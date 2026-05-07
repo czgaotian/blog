@@ -9,6 +9,8 @@ Phase 1 and phase 2 are complete.
 - `server` imports shared contracts and utilities through `@worker-blog/shared`.
 - Duplicate shared utility/type files have been removed from `server`.
 - `server` keeps only server-specific compatibility files under `src/utils`, `src/types`, and `src/schemas`.
+- `admin/src/services` has been removed; shared contracts moved to `@worker-blog/shared`, while runtime services stay in `server`.
+- `admin/src/db` has been removed; admin logging templates now import lightweight logging contracts from `@worker-blog/shared/types`.
 
 ## Completed Phase 1: Admin Extraction
 
@@ -25,6 +27,8 @@ Phase 1 and phase 2 are complete.
   - `packages/server/src/types/index.ts` re-exports shared types plus server-specific plugin aliases.
   - `packages/server/src/utils/index.ts` re-exports shared utilities while preserving server package version exports.
 - Removed duplicated shared files from `packages/server/src/utils` and `packages/server/src/types`.
+- Removed transitional `packages/admin/src/services`; UI-facing contracts now come from `@worker-blog/shared`, and server runtime service code remains under `packages/server/src/services`.
+- Removed transitional `packages/admin/src/db`; the remaining `LogConfig` template dependency is now a lightweight shared type.
 
 ## Remaining Intentional Server Files
 

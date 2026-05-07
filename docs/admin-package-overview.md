@@ -69,7 +69,7 @@ admin  -> shared
 - `admin` 负责 UI：HTML 模板、页面结构、后台组件、编辑器资源注入。
 - `shared` 负责通用契约：跨包类型、纯工具函数、通用 schema。
 
-admin 包应该避免依赖 server 包。当前代码里还有一些迁移期遗留，比如 `admin/src/db/schema.ts` re-export server schema，这种依赖方向后续应该被清理。
+admin 包应该避免依赖 server 包。此前 `admin/src/db/schema.ts` 曾经 re-export server schema，现已删除；admin 需要的轻量展示类型改从 `shared` 获取。
 
 ## templates 目录
 
@@ -169,16 +169,16 @@ server 检查插件状态
 
 后续如果要把编辑器抽成独立 package，可以把这些 helper 移到类似 `@worker-blog/editors` 的包中，让 admin template 从该包导入。
 
-## services 目录如何处理
+## services 目录已删除
 
 `packages/admin/src/services` 曾经包含：
 
 - `auth-validation.ts`
 - `route-metadata.ts`
 
-这些文件来自 admin/server/shared 拆分过程中的中间状态，目前已经按边界拆出：
+这些文件来自 admin/server/shared 拆分过程中的中间状态，目前已经按边界拆出，`packages/admin/src/services` 已删除。
 
-其中一部分内容是 UI 或类型确实需要的，比如：
+其中一部分内容是 UI 或类型确实需要的，例如：
 
 - auth settings 的类型。
 - API reference 页面需要的 route category metadata。
@@ -191,27 +191,28 @@ server 检查插件状态
 - 通过 Hono `inspectRoutes()` 自动发现路由。
 - 保存 app instance。
 
-这些 runtime 逻辑保留在 `packages/server/src/services`。
+这些 runtime 逻辑保留在 `packages/server/src/services`，由 server route 或 middleware 使用。
 
 当前边界是：
 
 - 纯类型、Zod schema、metadata 放到 `shared`。
 - Hono app、D1 查询、缓存等 runtime 逻辑留在 `server`。
 - admin template 只从 `shared` 导入展示所需的类型和常量。
+- admin 包不再包含 `services` 目录；如果后续需要新增服务层，应先判断它是 UI helper、共享契约还是 server runtime，分别放到 `admin/src/utils`、`shared` 或 `server/src/services`。
 
-## db 目录为什么存在
+## db 目录已删除
 
-`packages/admin/src/db/schema.ts` 当前只是：
+此前 `packages/admin/src/db/schema.ts` 只是：
 
 ```ts
 export * from '../../../server/src/db/schema'
 ```
 
-这是一个迁移期兼容层，让 admin 里的模板可以拿到 server schema 中的类型。
+这是迁移期兼容层，用来让 admin 里的模板拿到 server schema 中的类型。
 
-这个方向并不理想，因为它让 `admin` 反向依赖 `server`。例如模板如果只需要 `LogConfig` 类型，更好的做法是把轻量类型抽到 `shared`，而不是让 admin import server 的 Drizzle schema。
+这个方向并不理想，因为它让 `admin` 反向依赖 `server`。目前唯一需要的 `LogConfig` 展示类型已经抽到 `@worker-blog/shared/types`，admin 模板不再 import server 的 Drizzle schema。
 
-后续目标应该是删除 admin 的 `db` 目录。
+因此 `packages/admin/src/db` 已删除。后续如果 admin 还需要数据库相关的数据形状，应优先在 `shared` 定义轻量契约，由 server route 负责把数据库记录整理成模板数据。
 
 ## 开发时怎么验证
 

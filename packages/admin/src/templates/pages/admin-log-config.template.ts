@@ -1,6 +1,6 @@
 import { html } from 'hono/html'
 import { adminLayoutV2 } from '../layouts/admin-layout-v2.template'
-import type { LogConfig } from '../../db/schema'
+import type { LogConfig } from '@worker-blog/shared/types'
 
 interface BaseUser {
   name: string
