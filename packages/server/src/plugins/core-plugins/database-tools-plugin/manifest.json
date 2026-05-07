@@ -1,0 +1,36 @@
+{
+  "id": "database-tools",
+  "name": "Database Tools",
+  "version": "1.0.0-beta.1",
+  "description": "Database management and administration tools including migrations, backups, and query execution",
+  "author": "Worker Blog Team",
+  "homepage": "https://worker-blog.com/plugins/database-tools",
+  "repository": "https://github.com/lane711/worker-blog-ai/tree/main/src/plugins/core-plugins/database-tools-plugin",
+  "license": "MIT",
+  "category": "development",
+  "tags": [
+    "database",
+    "admin",
+    "tools",
+    "migrations",
+    "backup"
+  ],
+  "dependencies": [],
+  "settings": {},
+  "hooks": {
+    "onActivate": "activate",
+    "onDeactivate": "deactivate"
+  },
+  "routes": [],
+  "permissions": {
+    "database:admin": "Administer database"
+  },
+  "iconEmoji": "🗄️",
+  "is_core": false,
+  "defaultSettings": {
+    "enableTruncate": true,
+    "enableBackup": true,
+    "enableValidation": true,
+    "requireConfirmation": true
+  }
+}

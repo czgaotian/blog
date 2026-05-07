@@ -1,0 +1,33 @@
+name = "worker-blog-server"
+main = "src/index.ts"
+compatibility_date = "2024-01-01"
+compatibility_flags = ["nodejs_compat"]
+
+# Cloudflare Workers settings
+workers_dev = true
+
+# D1 Database
+[[d1_databases]]
+binding = "DB"
+database_name = "worker-blog-db"
+database_id = "YOUR_DATABASE_ID" # Run: wrangler d1 create worker-blog-db
+migrations_dir = "./migrations"
+
+# R2 Bucket for media storage
+[[r2_buckets]]
+binding = "BUCKET"
+bucket_name = "worker-blog-media"
+
+# Environment variables
+[vars]
+ENVIRONMENT = "development"
+CORS_ORIGINS = "http://localhost:8787"
+
+# Production environment
+[env.production]
+name = "worker-blog-server-production"
+vars = { ENVIRONMENT = "production" }
+
+# Observability
+[observability]
+enabled = true

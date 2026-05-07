@@ -1,0 +1,46 @@
+{
+  "name": "@worker-blog/server",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Default Worker Blog server application",
+  "type": "module",
+  "bin": {
+    "worker-blog-db-reset": "./bin/db-reset.js"
+  },
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler deploy",
+    "db:migrate": "wrangler d1 migrations apply DB",
+    "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:reset": "worker-blog-db-reset",
+    "db:studio": "drizzle-kit studio",
+    "test": "vitest --run",
+    "test:watch": "vitest"
+  },
+  "dependencies": {
+    "@hono/zod-validator": "^0.7.6",
+    "@worker-blog/admin": "workspace:*",
+    "@worker-blog/shared": "workspace:*",
+    "csv-parse": "^6.2.1",
+    "drizzle-zod": "^0.8.3",
+    "marked": "^18.0.3",
+    "semver": "^7.7.4",
+    "tiny-lru": "^13.0.0"
+  },
+  "devDependencies": {
+    "@cloudflare/workers-types": "^4.20251202.0",
+    "@types/node": "^24.10.1",
+    "@types/semver": "^7.7.1",
+    "drizzle-kit": "^0.31.7",
+    "drizzle-orm": "^0.44.7",
+    "hono": "^4.10.7",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3",
+    "vitest": "^4.0.15",
+    "wrangler": "^4.52.1",
+    "zod": "^4.1.13"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

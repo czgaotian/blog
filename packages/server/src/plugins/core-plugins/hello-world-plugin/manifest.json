@@ -1,0 +1,35 @@
+{
+  "id": "hello-world",
+  "name": "Hello World",
+  "version": "1.0.0-beta.1",
+  "description": "A simple Hello World plugin demonstration",
+  "author": "Worker Blog Team",
+  "homepage": "https://worker-blog.com/plugins/hello-world",
+  "repository": "https://github.com/lane711/worker-blog-ai/tree/main/src/plugins/core-plugins/hello-world-plugin",
+  "license": "MIT",
+  "category": "utilities",
+  "tags": [
+    "demo",
+    "example",
+    "hello-world"
+  ],
+  "dependencies": [],
+  "settings": {},
+  "hooks": {
+    "onActivate": "activate",
+    "onDeactivate": "deactivate"
+  },
+  "routes": [],
+  "permissions": {
+    "hello-world:view": "View Hello World page"
+  },
+  "adminMenu": {
+    "label": "Hello World",
+    "icon": "hand-raised",
+    "path": "/admin/hello-world",
+    "order": 90
+  },
+  "iconEmoji": "👋",
+  "is_core": false,
+  "defaultSettings": {}
+}

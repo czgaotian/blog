@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "lib": ["ES2022"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "noEmit": true,
+    "sourceMap": true,
+    "strict": true,
+    "noUnusedLocals": false,
+    "noUnusedParameters": false,
+    "noImplicitReturns": true,
+    "noFallthroughCasesInSwitch": true,
+    "exactOptionalPropertyTypes": false,
+    "resolveJsonModule": true,
+    "allowSyntheticDefaultImports": true,
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "types": ["node"],
+    "typeRoots": [
+      "../../node_modules/.pnpm/node_modules/@types",
+      "../../node_modules/.pnpm/node_modules/@cloudflare"
+    ],
+    "skipLibCheck": true,
+    "baseUrl": ".",
+    "paths": {
+      "@/*": ["./src/*"],
+      "@worker-blog/admin": ["../admin/src/index.ts"],
+      "@worker-blog/admin/*": ["../admin/src/*"],
+      "@worker-blog/shared": ["../shared/src/index.ts"],
+      "@worker-blog/shared/*": ["../shared/src/*"]
+    }
+  },
+  "include": [
+    "src/**/*"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts",
+    "src/plugins/available/email-templates-plugin/fix-email-case.ts",
+    "src/plugins/available/email-templates-plugin/initialize-email-system.ts",
+    "src/plugins/core-plugins/turnstile-plugin/headless-helpers.ts",
+    "src/plugins/core-plugins/turnstile-plugin/react-hooks.tsx",
+    "src/plugins/core-plugins/turnstile-plugin/formio-component-client.js"
+  ]
+}

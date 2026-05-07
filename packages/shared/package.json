@@ -1,0 +1,27 @@
+{
+  "name": "@worker-blog/shared",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared contracts and utilities for Worker Blog packages",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./auth": "./src/auth/index.ts",
+    "./auth/*": "./src/auth/*.ts",
+    "./routes": "./src/routes/index.ts",
+    "./routes/*": "./src/routes/*.ts",
+    "./types": "./src/types/index.ts",
+    "./types/*": "./src/types/*.ts",
+    "./utils": "./src/utils/index.ts",
+    "./utils/*": "./src/utils/*.ts",
+    "./schemas": "./src/schemas/index.ts",
+    "./schemas/*": "./src/schemas/*.ts",
+    "./collections/*": "./src/collections/*.ts"
+  },
+  "dependencies": {
+    "zod": "^4.1.13"
+  },
+  "devDependencies": {
+    "typescript": "^5.9.3"
+  }
+}
