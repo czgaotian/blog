@@ -29,6 +29,7 @@ import {
   adminApiContentRoutes,
   adminApiFormsRoutes,
   adminApiMediaRoutes,
+  adminApiCollectionsRoutes,
 } from './routes'
 import { getCoreVersion } from './utils/version'
 import { bootstrapMiddleware } from './middleware/bootstrap'
@@ -218,6 +219,7 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   app.route('/api', apiRoutes)
   app.route('/api/media', apiMediaRoutes)
   app.route('/api/system', apiSystemRoutes)
+  app.route('/admin/api/collections', adminApiCollectionsRoutes)
   app.route('/admin/api', adminApiRoutes)
   app.route('/admin/dashboard', adminDashboardRoutes)
   app.route('/admin/collections', adminCollectionsRoutes)
