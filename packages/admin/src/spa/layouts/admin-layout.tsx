@@ -30,7 +30,7 @@ const navItems = [
   { label: 'Content', href: '/admin/content', icon: FileText },
   { label: 'Media', href: '/admin/media', icon: Image },
   { label: 'Forms', href: '/admin/forms', icon: ClipboardList },
-  { label: 'Collections', href: '/admin/collections', icon: Database, legacy: true },
+  { label: 'Collections', href: '/admin/collections', icon: Database },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Plugins', href: '/admin/plugins', icon: Plug },
   { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
@@ -72,15 +72,6 @@ export function AdminLayout() {
           {navItems.map((item) => {
             const Icon = item.icon
             const className = 'flex h-10 items-center gap-3 rounded-md px-2 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring'
-
-            if (item.legacy) {
-              return (
-                <a key={item.href} href={item.href} className={className}>
-                  <Icon className="h-4 w-4" />
-                  {item.label}
-                </a>
-              )
-            }
 
             return (
               <NavLink

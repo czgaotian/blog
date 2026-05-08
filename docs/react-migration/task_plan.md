@@ -4,7 +4,7 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Phase 4 complete. Phase 5 complete (content, media, forms). Migration complete for all planned phases.
+Phase 4 complete. Phase 5 complete (content, media, forms). Phase 6 complete (collections). Migration complete for all planned phases.
 
 ## Tasks
 
@@ -64,6 +64,16 @@ Phase 4 complete. Phase 5 complete (content, media, forms). Migration complete f
 - [x] Add React pages: ContentListPage, FormsListPage, MediaLibraryPage.
 - [x] Wire content, forms, media routes into SPA router.
 - [x] Add Forms nav item; remove legacy: true from Content and Media nav items.
+
+### Phase 6: Collections Migration
+
+- [x] Add shared types: CollectionListItem, CollectionsListResponse, CollectionDetailResponse, CollectionField, CreateCollectionRequest, UpdateCollectionRequest, CreateFieldRequest, UpdateFieldRequest, MutateCollectionResponse.
+- [x] Add server route adminApiCollectionsRoutes with full CRUD for collections and fields (POST/PUT/DELETE /:id/fields).
+- [x] Mount /admin/api/collections before adminApiRoutes in app.ts.
+- [x] Add Dialog UI primitive.
+- [x] Add React Query hooks: useCollectionsList, useCollectionDetail, useCreateCollection, useUpdateCollection, useDeleteCollection, useCreateField, useUpdateField, useDeleteField.
+- [x] Add React pages: CollectionsListPage, CollectionEditPage (with inline field management via Dialog).
+- [x] Wire 3 routes into SPA router; remove legacy: true from Collections nav item.
 
 - Worktree creation was requested by the user, but sandbox blocked branch/worktree creation because `.git` is read-only. Continue in current checkout with scoped edits.
 - Keep legacy admin templates and routes intact for Phase 1.
