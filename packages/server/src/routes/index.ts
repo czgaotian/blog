@@ -39,6 +39,7 @@ export { adminApiContentRoutes } from './admin-api-content'
 export { adminApiFormsRoutes } from './admin-api-forms'
 export { adminApiMediaRoutes } from './admin-api-media'
 export { adminApiCollectionsRoutes } from './admin-api-collections'
+export { adminApiProfileRoutes } from './admin-api-profile'
 
 export const ROUTES_INFO = {
   message: 'Core routes available',
