@@ -7,6 +7,7 @@
 
 import { Hono } from 'hono'
 import { z } from 'zod'
+import type { AdminMeResponse } from '@worker-blog/shared/admin-api'
 // import { zValidator } from '@hono/zod-validator'
 import { requireAuth, requireRole } from '../middleware'
 import type { Bindings, Variables } from '../app'
@@ -16,6 +17,34 @@ export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variable
 // Apply auth middleware to all admin routes
 adminApiRoutes.use('*', requireAuth())
 adminApiRoutes.use('*', requireRole(['admin', 'editor']))
+
+/**
+ * Get current admin session bootstrap data
+ * GET /admin/api/me
+ */
+adminApiRoutes.get('/me', (c) => {
+  const user = c.get('user')
+
+  if (!user) {
+    return c.json({ error: 'Authentication required' }, 401)
+  }
+
+  const response: AdminMeResponse = {
+    user: {
+      id: user.userId,
+      email: user.email,
+      role: user.role,
+    },
+    permissions: [user.role],
+    app: {
+      name: 'Worker Blog',
+      version: c.get('appVersion') || '0.0.0',
+    },
+    pluginMenu: c.get('pluginMenuItems') || [],
+  }
+
+  return c.json(response)
+})
 
 /**
  * Get dashboard statistics

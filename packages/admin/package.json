@@ -9,10 +9,30 @@
     "./templates": "./src/templates/index.ts",
     "./templates/*": "./src/templates/*.ts"
   },
+  "scripts": {
+    "dev": "vite --host 0.0.0.0",
+    "build": "vite build",
+    "preview": "vite preview --host 0.0.0.0",
+    "type-check": "tsc --noEmit"
+  },
   "dependencies": {
-    "@worker-blog/shared": "workspace:*"
+    "@tanstack/react-query": "^5.90.12",
+    "@worker-blog/shared": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
+    "lucide-react": "^0.555.0",
+    "react": "^19.2.1",
+    "react-dom": "^19.2.1",
+    "react-router": "^7.10.0",
+    "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@types/react": "^19.2.7",
+    "@types/react-dom": "^19.2.3",
+    "@vitejs/plugin-react": "^5.1.1",
+    "autoprefixer": "^10.4.22",
+    "postcss": "^8.5.6",
+    "tailwindcss": "^3.4.18",
     "typescript": "^5.9.3"
   }
 }

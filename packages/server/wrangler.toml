@@ -6,6 +6,10 @@ compatibility_flags = ["nodejs_compat"]
 # Cloudflare Workers settings
 workers_dev = true
 
+[assets]
+directory = "../admin/dist"
+binding = "ASSETS"
+
 # D1 Database
 [[d1_databases]]
 binding = "DB"
@@ -15,7 +19,7 @@ migrations_dir = "./migrations"
 
 # R2 Bucket for media storage
 [[r2_buckets]]
-binding = "BUCKET"
+binding = "MEDIA_BUCKET"
 bucket_name = "worker-blog-media"
 
 # Environment variables

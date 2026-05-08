@@ -24,7 +24,8 @@ import {
   adminSettingsRoutes,
   adminFormsRoutes,
   publicFormsRoutes,
-  adminApiReferenceRoutes
+  adminApiReferenceRoutes,
+  createAdminSpaRoutes
 } from './routes'
 import { getCoreVersion } from './utils/version'
 import { bootstrapMiddleware } from './middleware/bootstrap'
@@ -288,6 +289,7 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   app.route('/admin/plugins', adminPluginRoutes)
   app.route('/admin/logs', adminLogsRoutes)
   app.route('/admin', adminUsersRoutes)
+  app.route('/', createAdminSpaRoutes())
   app.route('/auth', authRoutes)
 
   // Test cleanup routes (only for development/test environments)

@@ -34,6 +34,7 @@ export { adminSettingsRoutes } from './admin-settings'
 export { adminFormsRoutes } from './admin-forms'
 export { default as publicFormsRoutes } from './public-forms'
 export { adminApiReferenceRoutes } from './admin-api-reference'
+export { createAdminSpaRoutes } from './admin-spa'
 
 export const ROUTES_INFO = {
   message: 'Core routes available',
@@ -59,7 +60,8 @@ export const ROUTES_INFO = {
     'adminSettingsRoutes',
     'adminFormsRoutes',
     'publicFormsRoutes',
-    'adminApiReferenceRoutes'
+    'adminApiReferenceRoutes',
+    'createAdminSpaRoutes'
   ],
   status: 'Core package routes ready',
   reference: 'https://github.com/worker-blog/worker-blog'

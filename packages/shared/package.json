@@ -16,6 +16,8 @@
     "./utils/*": "./src/utils/*.ts",
     "./schemas": "./src/schemas/index.ts",
     "./schemas/*": "./src/schemas/*.ts",
+    "./admin-api": "./src/admin-api/index.ts",
+    "./admin-api/*": "./src/admin-api/*.ts",
     "./collections/*": "./src/collections/*.ts"
   },
   "dependencies": {
