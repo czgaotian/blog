@@ -4,7 +4,7 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Phase 3 complete. Next: Phase 4 (form mutations — log config update, plugin settings).
+Phase 4 complete. Next: Phase 5 (complex pages — content, media, forms).
 
 ## Tasks
 
@@ -42,6 +42,18 @@ Phase 3 complete. Next: Phase 4 (form mutations — log config update, plugin se
 - [x] Add React pages: dashboard, logs-list, log-details, log-config, api-reference, plugins-list.
 - [x] Wire 6 new routes into SPA router.
 - [x] Remove legacy: true from migrated nav items (Dashboard, Plugins, API Reference). Added Logs nav item.
+
+### Phase 4: Form Page Migration
+
+- [x] Add shared types: SettingsResponse, UpdateGeneralSettingsRequest, UpdateSecuritySettingsRequest, UsersListResponse, UserDetailResponse, CreateUserRequest, UpdateUserRequest, PluginSettingsResponse, UpdatePluginSettingsRequest.
+- [x] Add GET/PUT /admin/api/settings (general + security tabs).
+- [x] Add GET /admin/api/users, GET/PATCH/DELETE /admin/api/users/:id, POST /admin/api/users.
+- [x] Add GET/PUT /admin/api/plugin-settings/:id/settings.
+- [x] Add React Query hooks: useSettings, useUpdateGeneralSettings, useUpdateSecuritySettings, useUsersList, useUserDetail, useUpdateUser, useDeleteUser, usePluginSettings, useUpdatePluginSettings.
+- [x] Add React pages: SettingsPage (general+security tabs), UsersListPage, UserEditPage, PluginSettingsPage.
+- [x] Wire 4 new route groups into SPA router (settings, users, users/:id/edit, plugins/:id/settings).
+- [x] Remove legacy: true from Users and Settings nav items.
+- [x] Add Button destructive variant, Alert success tone, Input and Label UI primitives.
 
 ## Decisions
 

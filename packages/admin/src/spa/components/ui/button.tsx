@@ -1,13 +1,14 @@
 import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'react'
 import { cn } from '../../lib/utils'
 
-type ButtonVariant = 'primary' | 'ghost' | 'outline'
+type ButtonVariant = 'primary' | 'ghost' | 'outline' | 'destructive'
 type ButtonSize = 'sm' | 'md'
 
 const variantClasses: Record<ButtonVariant, string> = {
   primary: 'bg-primary text-primary-foreground hover:bg-primary/90',
   ghost: 'text-foreground hover:bg-muted',
   outline: 'border border-border bg-background hover:bg-muted',
+  destructive: 'bg-destructive text-destructive-foreground hover:bg-destructive/90',
 }
 
 const sizeClasses: Record<ButtonSize, string> = {

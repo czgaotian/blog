@@ -29,11 +29,11 @@ const navItems = [
   { label: 'Content', href: '/admin/content', icon: FileText, legacy: true },
   { label: 'Media', href: '/admin/media', icon: Image, legacy: true },
   { label: 'Collections', href: '/admin/collections', icon: Database, legacy: true },
-  { label: 'Users', href: '/admin/users', icon: Users, legacy: true },
+  { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Plugins', href: '/admin/plugins', icon: Plug },
   { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
   { label: 'SPA Test', href: '/admin/spa-test', icon: Activity },
-  { label: 'Settings', href: '/admin/settings', icon: Settings, legacy: true },
+  { label: 'Settings', href: '/admin/settings', icon: Settings },
 ]
 
 export function AdminLayout() {

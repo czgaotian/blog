@@ -1,8 +1,21 @@
 # Progress
 
-## 2026-05-08
+## 2026-05-08 (Phase 4)
 
-- Read `docs/react-migration/admin-react-migration-plan.md`.
+- Added shared admin-api types: settings.ts (SettingsResponse, update schemas), users.ts (UsersListResponse, UserDetailResponse, create/update schemas), plugin-settings.ts (PluginSettingsResponse, update schema). Re-exported from shared index.
+- Added server JSON API routes: admin-api-settings.ts (GET /admin/api/settings, PUT /general, PUT /security), admin-api-users.ts (GET /, GET /:id, POST /, PATCH /:id, DELETE /:id), admin-api-plugin-settings.ts (GET /:id/settings, PUT /:id/settings).
+- Mounted new routes in admin-api.ts at /settings, /users, /plugin-settings.
+- Added focused server tests for settings and users endpoints (29 test files, 570 tests passing).
+- Added SPA API hooks: api/settings.ts, api/users.ts, api/plugin-settings.ts with useQuery + useMutation.
+- Added UI primitives: Input, Label, Button destructive variant, Alert success tone.
+- Added SPA pages: SettingsPage (general + security tabs with form mutations), UsersListPage (search + pagination), UserEditPage (role/name edit + delete with confirm), PluginSettingsPage (dynamic field schema).
+- Wired new routes into SPA router: settings, users, users/:id/edit, plugins/:id/settings.
+- Removed legacy: true from Users and Settings nav items.
+- `pnpm type-check` passed.
+- `pnpm --filter @worker-blog/admin build` passed (394 kB JS, 14.9 kB CSS).
+- `pnpm --filter @worker-blog/server test` passed: 29 files, 570 tests.
+- `pnpm --filter @worker-blog/admin test` passed: 1 file, 3 tests.
+
 - Activated execution/worktree/TDD/planning workflows.
 - Confirmed checkout is on `main`, not a linked worktree.
 - User chose isolated worktree setup.

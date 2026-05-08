@@ -1,0 +1,219 @@
+import { Hono } from 'hono'
+import { requireAuth, requireRole } from '../middleware'
+import {
+  createUserSchema,
+  updateUserSchema,
+  type UsersListResponse,
+  type UserDetailResponse,
+} from '@worker-blog/shared/admin-api'
+import type { Bindings, Variables } from '../app'
+
+export const adminApiUsersRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+adminApiUsersRoutes.use('*', requireAuth())
+adminApiUsersRoutes.use('*', requireRole(['admin']))
+
+adminApiUsersRoutes.get('/', async (c) => {
+  const db = c.env.DB
+  if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
+  const page = Math.max(1, Number(c.req.query('page') || '1'))
+  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '20')))
+  const search = c.req.query('search') || ''
+  const offset = (page - 1) * limit
+
+  let rows: any[]
+  let total = 0
+
+  try {
+    if (search) {
+      const param = `%${search}%`
+      const countRes = await db
+        .prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1 AND (email LIKE ? OR username LIKE ? OR first_name LIKE ? OR last_name LIKE ?)')
+        .bind(param, param, param, param)
+        .first() as any
+      total = countRes?.count || 0
+
+      const res = await db
+        .prepare('SELECT id, email, username, first_name, last_name, role, is_active, created_at, last_login_at FROM users WHERE is_active = 1 AND (email LIKE ? OR username LIKE ? OR first_name LIKE ? OR last_name LIKE ?) ORDER BY created_at DESC LIMIT ? OFFSET ?')
+        .bind(param, param, param, param, limit, offset)
+        .all()
+      rows = res.results as any[]
+    } else {
+      const countRes = await db
+        .prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1')
+        .first() as any
+      total = countRes?.count || 0
+
+      const res = await db
+        .prepare('SELECT id, email, username, first_name, last_name, role, is_active, created_at, last_login_at FROM users WHERE is_active = 1 ORDER BY created_at DESC LIMIT ? OFFSET ?')
+        .bind(limit, offset)
+        .all()
+      rows = res.results as any[]
+    }
+  } catch (error) {
+    console.error('[admin-api-users] Error fetching users:', error)
+    return c.json({ error: 'Failed to fetch users' }, 500)
+  }
+
+  const users = rows.map((r: any) => ({
+    id: r.id,
+    email: r.email,
+    username: r.username ?? null,
+    firstName: r.first_name ?? null,
+    lastName: r.last_name ?? null,
+    role: r.role,
+    isActive: Boolean(r.is_active),
+    createdAt: r.created_at ? new Date(Number(r.created_at)).toISOString() : '',
+    lastLoginAt: r.last_login_at ? new Date(Number(r.last_login_at)).toISOString() : null,
+  }))
+
+  const response: UsersListResponse = { users, total, page, limit }
+  return c.json(response)
+})
+
+adminApiUsersRoutes.get('/:id', async (c) => {
+  const id = c.req.param('id')
+  const db = c.env.DB
+
+  try {
+    const row = await db
+      .prepare('SELECT id, email, username, first_name, last_name, phone, bio, avatar_url, timezone, language, role, is_active, two_factor_enabled, created_at, last_login_at FROM users WHERE id = ?')
+      .bind(id)
+      .first() as any
+
+    if (!row) return c.json({ error: 'User not found' }, 404)
+
+    const response: UserDetailResponse = {
+      user: {
+        id: row.id,
+        email: row.email,
+        username: row.username ?? null,
+        firstName: row.first_name ?? null,
+        lastName: row.last_name ?? null,
+        phone: row.phone ?? null,
+        bio: row.bio ?? null,
+        avatarUrl: row.avatar_url ?? null,
+        timezone: row.timezone || 'UTC',
+        language: row.language || 'en',
+        role: row.role,
+        isActive: Boolean(row.is_active),
+        twoFactorEnabled: Boolean(row.two_factor_enabled),
+        createdAt: row.created_at ? new Date(Number(row.created_at)).toISOString() : '',
+        lastLoginAt: row.last_login_at ? new Date(Number(row.last_login_at)).toISOString() : null,
+      },
+    }
+    return c.json(response)
+  } catch (error) {
+    console.error('[admin-api-users] Error fetching user:', error)
+    return c.json({ error: 'Failed to fetch user' }, 500)
+  }
+})
+
+adminApiUsersRoutes.post('/', async (c) => {
+  let body: unknown
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400)
+  }
+
+  const parsed = createUserSchema.safeParse(body)
+  if (!parsed.success) {
+    return c.json({ error: 'Validation failed', issues: parsed.error.issues }, 422)
+  }
+
+  const { email, password, role, firstName, lastName } = parsed.data
+  const db = c.env.DB
+
+  try {
+    const existing = await db
+      .prepare('SELECT id FROM users WHERE email = ?')
+      .bind(email)
+      .first()
+    if (existing) {
+      return c.json({ error: 'A user with this email already exists' }, 409)
+    }
+
+    const { AuthManager } = await import('../middleware/auth')
+    const passwordHash = await AuthManager.hashPassword(password)
+    const userId = crypto.randomUUID()
+    const now = Date.now()
+
+    await db
+      .prepare('INSERT INTO users (id, email, password_hash, role, first_name, last_name, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)')
+      .bind(userId, email, passwordHash, role, firstName ?? null, lastName ?? null, now, now)
+      .run()
+
+    return c.json({ message: 'User created successfully', userId }, 201)
+  } catch (error) {
+    console.error('[admin-api-users] Error creating user:', error)
+    return c.json({ error: 'Failed to create user' }, 500)
+  }
+})
+
+adminApiUsersRoutes.patch('/:id', async (c) => {
+  const id = c.req.param('id')
+  let body: unknown
+  try {
+    body = await c.req.json()
+  } catch {
+    return c.json({ error: 'Invalid JSON' }, 400)
+  }
+
+  const parsed = updateUserSchema.safeParse(body)
+  if (!parsed.success) {
+    return c.json({ error: 'Validation failed', issues: parsed.error.issues }, 422)
+  }
+
+  const db = c.env.DB
+  try {
+    const existing = await db.prepare('SELECT id FROM users WHERE id = ?').bind(id).first()
+    if (!existing) return c.json({ error: 'User not found' }, 404)
+
+    const fields: string[] = []
+    const params: unknown[] = []
+
+    if (parsed.data.email !== undefined) { fields.push('email = ?'); params.push(parsed.data.email) }
+    if (parsed.data.role !== undefined) { fields.push('role = ?'); params.push(parsed.data.role) }
+    if (parsed.data.firstName !== undefined) { fields.push('first_name = ?'); params.push(parsed.data.firstName) }
+    if (parsed.data.lastName !== undefined) { fields.push('last_name = ?'); params.push(parsed.data.lastName) }
+    if (parsed.data.isActive !== undefined) { fields.push('is_active = ?'); params.push(parsed.data.isActive ? 1 : 0) }
+
+    if (fields.length === 0) return c.json({ error: 'No fields to update' }, 400)
+
+    fields.push('updated_at = ?')
+    params.push(Date.now())
+    params.push(id)
+
+    await db
+      .prepare(`UPDATE users SET ${fields.join(', ')} WHERE id = ?`)
+      .bind(...params)
+      .run()
+
+    return c.json({ message: 'User updated successfully' })
+  } catch (error) {
+    console.error('[admin-api-users] Error updating user:', error)
+    return c.json({ error: 'Failed to update user' }, 500)
+  }
+})
+
+adminApiUsersRoutes.delete('/:id', async (c) => {
+  const id = c.req.param('id')
+  const currentUser = c.get('user')
+
+  if (currentUser?.userId === id) {
+    return c.json({ error: 'Cannot delete your own account' }, 400)
+  }
+
+  const db = c.env.DB
+  try {
+    const existing = await db.prepare('SELECT id FROM users WHERE id = ?').bind(id).first()
+    if (!existing) return c.json({ error: 'User not found' }, 404)
+
+    await db.prepare('DELETE FROM users WHERE id = ?').bind(id).run()
+    return c.json({ message: 'User deleted successfully' })
+  } catch (error) {
+    console.error('[admin-api-users] Error deleting user:', error)
+    return c.json({ error: 'Failed to delete user' }, 500)
+  }
+})

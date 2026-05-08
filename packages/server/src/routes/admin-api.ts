@@ -12,8 +12,11 @@ import type { AdminMeResponse } from '@worker-blog/shared/admin-api'
 import { requireAuth, requireRole } from '../middleware'
 import { adminApiDashboardRoutes } from './admin-api-dashboard'
 import { adminApiLogsRoutes } from './admin-api-logs'
+import { adminApiPluginSettingsRoutes } from './admin-api-plugin-settings'
 import { adminApiPluginsRoutes } from './admin-api-plugins'
 import { adminApiRoutesRoutes } from './admin-api-routes'
+import { adminApiSettingsRoutes } from './admin-api-settings'
+import { adminApiUsersRoutes } from './admin-api-users'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -52,8 +55,11 @@ adminApiRoutes.get('/me', (c) => {
 
 adminApiRoutes.route('/dashboard', adminApiDashboardRoutes)
 adminApiRoutes.route('/logs', adminApiLogsRoutes)
+adminApiRoutes.route('/plugin-settings', adminApiPluginSettingsRoutes)
 adminApiRoutes.route('/plugins', adminApiPluginsRoutes)
 adminApiRoutes.route('/api-reference', adminApiRoutesRoutes)
+adminApiRoutes.route('/settings', adminApiSettingsRoutes)
+adminApiRoutes.route('/users', adminApiUsersRoutes)
 
 /**
  * Get dashboard statistics
