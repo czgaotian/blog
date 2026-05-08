@@ -31,7 +31,7 @@ const navItems = [
   { label: 'Collections', href: '/admin/collections', icon: Database, legacy: true },
   { label: 'Users', href: '/admin/users', icon: Users, legacy: true },
   { label: 'Plugins', href: '/admin/plugins', icon: Plug, legacy: true },
-  { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen, legacy: true },
+  { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
   { label: 'SPA Test', href: '/admin/spa-test', icon: Activity },
   { label: 'Settings', href: '/admin/settings', icon: Settings, legacy: true },
 ]
