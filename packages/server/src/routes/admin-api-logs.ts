@@ -10,6 +10,17 @@ export const adminApiLogsRoutes = new Hono<{ Bindings: Bindings; Variables: Vari
 adminApiLogsRoutes.use('*', requireAuth())
 adminApiLogsRoutes.use('*', requireRole(['admin', 'editor']))
 
+function safeJson(raw: unknown): unknown {
+  if (typeof raw !== 'string') return raw ?? null
+  try { return JSON.parse(raw) } catch { return null }
+}
+
+function safeTags(raw: unknown): string[] {
+  if (Array.isArray(raw)) return raw as string[]
+  if (typeof raw !== 'string') return []
+  try { return JSON.parse(raw) } catch { return [] }
+}
+
 function toLogEntryResponse(log: any): LogEntryResponse {
   return {
     id: log.id,
@@ -24,8 +35,8 @@ function toLogEntryResponse(log: any): LogEntryResponse {
     statusCode: log.statusCode ?? null,
     duration: log.duration ?? null,
     stackTrace: log.stackTrace ?? null,
-    data: log.data ? (typeof log.data === 'string' ? JSON.parse(log.data) : log.data) : null,
-    tags: log.tags ? (typeof log.tags === 'string' ? JSON.parse(log.tags) : log.tags) : [],
+    data: safeJson(log.data),
+    tags: safeTags(log.tags),
     createdAt: new Date(log.createdAt).toISOString(),
   }
 }
@@ -53,8 +64,19 @@ adminApiLogsRoutes.get('/', async (c) => {
     return c.json({ error: 'Authentication required' }, 401)
   }
   const query = c.req.query()
-  const page = Math.max(1, parseInt(query.page || '1'))
-  const limit = Math.min(100, Math.max(1, parseInt(query.limit || '50')))
+  const rawPage = parseInt(query.page || '1')
+  const rawLimit = parseInt(query.limit || '50')
+  if (isNaN(rawPage) || isNaN(rawLimit)) {
+    return c.json({ error: 'page and limit must be integers' }, 400)
+  }
+  const page = Math.max(1, rawPage)
+  const limit = Math.min(100, Math.max(1, rawLimit))
+  if (query.start_date && isNaN(new Date(query.start_date).getTime())) {
+    return c.json({ error: 'Invalid start_date' }, 400)
+  }
+  if (query.end_date && isNaN(new Date(query.end_date).getTime())) {
+    return c.json({ error: 'Invalid end_date' }, 400)
+  }
   const logger = getLogger(c.env?.DB)
 
   const filter: LogFilter = {
