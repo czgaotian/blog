@@ -5,6 +5,8 @@ import {
   updateUserSchema,
   type UsersListResponse,
   type UserDetailResponse,
+  type ActivityLogItem,
+  type ActivityLogsListResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
 
@@ -215,5 +217,144 @@ adminApiUsersRoutes.delete('/:id', async (c) => {
   } catch (error) {
     console.error('[admin-api-users] Error deleting user:', error)
     return c.json({ error: 'Failed to delete user' }, 500)
+  }
+})
+
+// GET /activity-logs
+adminApiUsersRoutes.get('/activity-logs', async (c) => {
+  const user = c.get('user')
+  if (!user) return c.json({ error: 'Authentication required' }, 401)
+
+  const page = Math.max(1, Number(c.req.query('page') || 1))
+  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || 50)))
+  const action = c.req.query('action') || ''
+  const resourceType = c.req.query('resource_type') || ''
+  const dateFrom = c.req.query('date_from') || ''
+  const dateTo = c.req.query('date_to') || ''
+  const filterUserId = c.req.query('user_id') || ''
+
+  const db = c.env.DB
+  try {
+    const conditions: string[] = []
+    const params: unknown[] = []
+
+    if (action) { conditions.push('al.action LIKE ?'); params.push(`%${action}%`) }
+    if (resourceType) { conditions.push('al.resource_type = ?'); params.push(resourceType) }
+    if (dateFrom) { conditions.push('al.created_at >= ?'); params.push(new Date(dateFrom).getTime()) }
+    if (dateTo) { conditions.push('al.created_at <= ?'); params.push(new Date(dateTo).getTime() + 86400000) }
+    if (filterUserId) { conditions.push('al.user_id = ?'); params.push(filterUserId) }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    const countRow = await db
+      .prepare(`SELECT COUNT(*) as count FROM activity_logs al ${where}`)
+      .bind(...params)
+      .first() as any
+    const total = Number(countRow?.count || 0)
+
+    const { results } = await db
+      .prepare(
+        `SELECT al.id, al.user_id, al.action, al.resource_type, al.resource_id, al.details, al.ip_address, al.user_agent, al.created_at,
+                u.email as user_email,
+                COALESCE(u.first_name || ' ' || u.last_name, u.username, u.email) as user_name
+         FROM activity_logs al
+         LEFT JOIN users u ON al.user_id = u.id
+         ${where}
+         ORDER BY al.created_at DESC
+         LIMIT ? OFFSET ?`,
+      )
+      .bind(...params, limit, (page - 1) * limit)
+      .all()
+
+    const logs: ActivityLogItem[] = (results || []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id ?? null,
+      action: row.action,
+      resourceType: row.resource_type ?? null,
+      resourceId: row.resource_id ?? null,
+      details: row.details ? (typeof row.details === 'string' ? JSON.parse(row.details) : row.details) : null,
+      ipAddress: row.ip_address ?? null,
+      userAgent: row.user_agent ?? null,
+      createdAt: new Date(Number(row.created_at)).toISOString(),
+      userEmail: row.user_email ?? null,
+      userName: row.user_name ?? null,
+    }))
+
+    const response: ActivityLogsListResponse = {
+      logs,
+      pagination: { page, limit, total, pages: Math.ceil(total / limit) },
+    }
+    return c.json(response)
+  } catch (error) {
+    console.error('[admin-api-users] Error fetching activity logs:', error)
+    return c.json({ error: 'Failed to fetch activity logs' }, 500)
+  }
+})
+
+// GET /activity-logs/export
+adminApiUsersRoutes.get('/activity-logs/export', async (c) => {
+  const user = c.get('user')
+  if (!user) return c.json({ error: 'Authentication required' }, 401)
+
+  const action = c.req.query('action') || ''
+  const resourceType = c.req.query('resource_type') || ''
+  const dateFrom = c.req.query('date_from') || ''
+  const dateTo = c.req.query('date_to') || ''
+  const filterUserId = c.req.query('user_id') || ''
+
+  const db = c.env.DB
+  try {
+    const conditions: string[] = []
+    const params: unknown[] = []
+
+    if (action) { conditions.push('al.action LIKE ?'); params.push(`%${action}%`) }
+    if (resourceType) { conditions.push('al.resource_type = ?'); params.push(resourceType) }
+    if (dateFrom) { conditions.push('al.created_at >= ?'); params.push(new Date(dateFrom).getTime()) }
+    if (dateTo) { conditions.push('al.created_at <= ?'); params.push(new Date(dateTo).getTime() + 86400000) }
+    if (filterUserId) { conditions.push('al.user_id = ?'); params.push(filterUserId) }
+
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
+
+    const { results } = await db
+      .prepare(
+        `SELECT al.id, al.user_id, al.action, al.resource_type, al.resource_id, al.details, al.ip_address, al.created_at,
+                u.email as user_email,
+                COALESCE(u.first_name || ' ' || u.last_name, u.username, u.email) as user_name
+         FROM activity_logs al
+         LEFT JOIN users u ON al.user_id = u.id
+         ${where}
+         ORDER BY al.created_at DESC
+         LIMIT 10000`,
+      )
+      .bind(...params)
+      .all()
+
+    const csvRow = (fields: string[]) =>
+      fields.map(f => `"${String(f ?? '').replace(/"/g, '""')}"`).join(',')
+
+    const headers = ['Timestamp', 'User', 'Email', 'Action', 'Resource Type', 'Resource ID', 'IP Address', 'Details']
+    const rows = (results || []).map((row: any) => csvRow([
+      new Date(Number(row.created_at)).toISOString(),
+      row.user_name ?? '',
+      row.user_email ?? '',
+      row.action,
+      row.resource_type ?? '',
+      row.resource_id ?? '',
+      row.ip_address ?? '',
+      row.details ? JSON.stringify(row.details) : '',
+    ]))
+
+    const csv = [csvRow(headers), ...rows].join('\n')
+    const date = new Date().toISOString().slice(0, 10)
+
+    return new Response(csv, {
+      headers: {
+        'Content-Type': 'text/csv',
+        'Content-Disposition': `attachment; filename="activity-logs-${date}.csv"`,
+      },
+    })
+  } catch (error) {
+    console.error('[admin-api-users] Error exporting activity logs:', error)
+    return c.json({ error: 'Failed to export activity logs' }, 500)
   }
 })
