@@ -1,5 +1,6 @@
 export * from './auth'
 export * from './content'
+export * from './collections'
 export * from './dashboard'
 export * from './forms'
 export * from './logs'
