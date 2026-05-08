@@ -119,3 +119,79 @@ describe('DELETE /admin/api/users/:id', () => {
     expect(json.error).toMatch(/own account/i)
   })
 })
+
+const mockActivityLog = {
+  id: 'log1', user_id: 'u1', action: 'content.create',
+  resource_type: 'content', resource_id: 'c1',
+  details: JSON.stringify({ title: 'Test' }),
+  ip_address: '127.0.0.1', user_agent: 'Mozilla',
+  created_at: 1700000000000,
+  user_email: 'admin@test.com', user_name: 'Admin User',
+}
+
+describe('GET /admin/api/users/activity-logs', () => {
+  it('returns activity logs list', async () => {
+    const db: any = {
+      prepare: (sql: string) => ({
+        bind: (..._args: any[]) => ({
+          first: async () => {
+            if (sql.includes('COUNT(*)')) return { count: 1 }
+            return null
+          },
+          all: async () => ({ results: [mockActivityLog] }),
+          run: async () => ({}),
+        }),
+      }),
+    }
+    const app = new Hono()
+    app.use('*', async (c, next) => {
+      c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
+      await next()
+    })
+    app.route('/admin/api/users', adminApiUsersRoutes)
+    const res = await app.request('/admin/api/users/activity-logs', {}, { DB: db })
+    expect(res.status).toBe(200)
+    const json = await res.json() as any
+    expect(json).toHaveProperty('logs')
+    expect(json).toHaveProperty('pagination')
+    expect(json.logs[0].action).toBe('content.create')
+    expect(json.logs[0].userId).toBe('u1')
+    expect(json.pagination).toHaveProperty('total', 1)
+  })
+
+  it('returns 400 for invalid date_from', async () => {
+    const db: any = { prepare: () => ({ bind: () => ({ first: async () => null, all: async () => ({ results: [] }) }) }) }
+    const app = new Hono()
+    app.use('*', async (c, next) => {
+      c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
+      await next()
+    })
+    app.route('/admin/api/users', adminApiUsersRoutes)
+    const res = await app.request('/admin/api/users/activity-logs?date_from=not-a-date', {}, { DB: db })
+    expect(res.status).toBe(400)
+  })
+})
+
+describe('GET /admin/api/users/activity-logs/export', () => {
+  it('returns CSV with correct content-type', async () => {
+    const db: any = {
+      prepare: () => ({
+        bind: (..._args: any[]) => ({
+          all: async () => ({ results: [mockActivityLog] }),
+        }),
+      }),
+    }
+    const app = new Hono()
+    app.use('*', async (c, next) => {
+      c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
+      await next()
+    })
+    app.route('/admin/api/users', adminApiUsersRoutes)
+    const res = await app.request('/admin/api/users/activity-logs/export', {}, { DB: db })
+    expect(res.status).toBe(200)
+    expect(res.headers.get('content-type')).toContain('text/csv')
+    const text = await res.text()
+    expect(text).toContain('Timestamp')
+    expect(text).toContain('content.create')
+  })
+})
