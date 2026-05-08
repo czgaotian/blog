@@ -2,6 +2,8 @@ import { createBrowserRouter } from 'react-router'
 import { AdminLayout } from './layouts/admin-layout'
 import { DashboardPage } from './pages/dashboard'
 import { LogsListPage } from './pages/logs-list'
+import { LogDetailsPage } from './pages/log-details'
+import { LogConfigPage } from './pages/log-config'
 import { SpaTestPage } from './pages/spa-test'
 import { NotFoundPage } from './pages/not-found'
 
@@ -13,6 +15,8 @@ export const router = createBrowserRouter(
       children: [
         { path: 'dashboard', element: <DashboardPage /> },
         { path: 'logs', element: <LogsListPage /> },
+        { path: 'logs/config', element: <LogConfigPage /> },
+        { path: 'logs/:id', element: <LogDetailsPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],
