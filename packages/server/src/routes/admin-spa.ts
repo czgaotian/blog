@@ -54,3 +54,12 @@ export function createAdminSpaRoutes() {
 
   return routes
 }
+
+export async function serveAdminSpaShell(c: any): Promise<Response> {
+  const url = new URL(c.req.url)
+  url.pathname = '/index.html'
+  const response = await c.env.ASSETS.fetch(new Request(url, c.req.raw))
+  const headers = new Headers(response.headers)
+  headers.set('Cache-Control', 'no-store')
+  return new Response(response.body, { status: response.status, statusText: response.statusText, headers })
+}

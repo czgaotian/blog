@@ -1,5 +1,10 @@
 import { createBrowserRouter } from 'react-router'
 import { AdminLayout } from './layouts/admin-layout'
+import { AuthLayout } from './layouts/auth-layout'
+import { LoginPage } from './pages/auth/login'
+import { RegisterPage } from './pages/auth/register'
+import { AcceptInvitationPage } from './pages/auth/accept-invitation'
+import { ResetPasswordPage } from './pages/auth/reset-password'
 import { DashboardPage } from './pages/dashboard'
 import { LogsListPage } from './pages/logs-list'
 import { LogDetailsPage } from './pages/log-details'
@@ -22,6 +27,16 @@ import { ActivityLogsPage } from './pages/activity-logs'
 
 export const router = createBrowserRouter(
   [
+    {
+      path: '/auth',
+      element: <AuthLayout />,
+      children: [
+        { path: 'login', element: <LoginPage /> },
+        { path: 'register', element: <RegisterPage /> },
+        { path: 'accept-invitation', element: <AcceptInvitationPage /> },
+        { path: 'reset-password', element: <ResetPasswordPage /> },
+      ],
+    },
     {
       path: '/admin',
       element: <AdminLayout />,
