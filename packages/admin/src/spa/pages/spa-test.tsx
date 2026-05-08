@@ -3,6 +3,11 @@ import { CheckCircle2 } from 'lucide-react'
 import { adminApi } from '../api/query'
 import { PageHeader } from '../components/page-header'
 import { Alert } from '../components/ui/alert'
+import { Badge } from '../components/ui/badge'
+import { FilterBar } from '../components/ui/filter-bar'
+import { LoadingState } from '../components/ui/loading-state'
+import { Pagination } from '../components/ui/pagination'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 
 export function SpaTestPage() {
   const meQuery = useQuery({
@@ -31,6 +36,40 @@ export function SpaTestPage() {
           The shell loaded, but `/admin/api/me` did not return bootstrap data.
         </Alert>
       ) : null}
+
+      <div className="space-y-3">
+        <FilterBar searchLabel="Filter preview rows" />
+
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Primitive</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Purpose</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            <TableRow>
+              <TableCell className="font-medium">Table</TableCell>
+              <TableCell>
+                <Badge>Ready</Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">Shared list layout for migrated admin pages.</TableCell>
+            </TableRow>
+            <TableRow>
+              <TableCell className="font-medium">Filter bar</TableCell>
+              <TableCell>
+                <Badge>Ready</Badge>
+              </TableCell>
+              <TableCell className="text-muted-foreground">Search and action container for list pages.</TableCell>
+            </TableRow>
+          </TableBody>
+        </Table>
+
+        {meQuery.isLoading ? <LoadingState label="Checking admin bootstrap data" /> : null}
+
+        <Pagination page={1} pageCount={1} />
+      </div>
     </section>
   )
 }

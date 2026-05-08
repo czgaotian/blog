@@ -1,5 +1,6 @@
 import { NavLink, Outlet } from 'react-router'
 import { useQuery } from '@tanstack/react-query'
+import { useEffect, useState } from 'react'
 import {
   Activity,
   BookOpen,
@@ -9,14 +10,17 @@ import {
   Image,
   LogOut,
   Menu,
+  Moon,
   Plug,
   Settings,
+  Sun,
   Users,
 } from 'lucide-react'
 import { adminApi } from '../api/query'
 import { Alert } from '../components/ui/alert'
 import { Badge } from '../components/ui/badge'
 import { ButtonLink } from '../components/ui/button'
+import { getInitialTheme, setStoredTheme, type Theme } from '../lib/theme'
 import { cn } from '../lib/utils'
 
 const navItems = [
@@ -36,10 +40,23 @@ export function AdminLayout() {
     queryKey: ['admin', 'me'],
     queryFn: adminApi.me,
   })
+  const [theme, setTheme] = useState<Theme>(() => {
+    if (typeof window === 'undefined') {
+      return 'light'
+    }
+
+    return getInitialTheme(window.localStorage, window.matchMedia('(prefers-color-scheme: dark)').matches)
+  })
 
   const appName = meQuery.data?.app.name || 'Worker Blog'
   const appVersion = meQuery.data?.app.version
   const pluginMenu = meQuery.data?.pluginMenu || []
+  const nextTheme = theme === 'dark' ? 'light' : 'dark'
+
+  useEffect(() => {
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    setStoredTheme(window.localStorage, theme)
+  }, [theme])
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -106,10 +123,20 @@ export function AdminLayout() {
               </p>
             </div>
           </div>
-          <ButtonLink href="/auth/logout" variant="ghost">
-            <LogOut className="h-4 w-4" />
-            Sign out
-          </ButtonLink>
+          <div className="flex items-center gap-1">
+            <button
+              aria-label={`Switch to ${nextTheme} mode`}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              type="button"
+              onClick={() => setTheme(nextTheme)}
+            >
+              {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+            </button>
+            <ButtonLink href="/auth/logout" variant="ghost">
+              <LogOut className="h-4 w-4" />
+              Sign out
+            </ButtonLink>
+          </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6">
           {meQuery.isError ? (

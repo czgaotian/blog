@@ -32,3 +32,13 @@
 - `pnpm --filter @worker-blog/admin build` passed.
 - `pnpm type-check` passed.
 - `pnpm --filter @worker-blog/server test` passed: 23 files, 547 tests.
+- Continued Phase 2 foundation work.
+- Added admin package `test` and `test:watch` scripts with Vitest dev dependency and synchronized `pnpm-lock.yaml`.
+- Added tested theme persistence helper for `light` / `dark` admin theme selection.
+- Added persisted dark mode toggle to the SPA layout.
+- Added reusable SPA primitives for loading state, table, pagination, filter bar, and an ErrorBoundary.
+- Wired ErrorBoundary into the SPA root and added the new primitives to `/admin/spa-test` as the foundation preview route.
+- `pnpm --filter @worker-blog/admin test` passed: 1 file, 3 tests.
+- `pnpm --filter @worker-blog/admin build` passed.
+- `pnpm type-check` passed.
+- `pnpm --filter @worker-blog/server test` passed: 23 files, 547 tests.

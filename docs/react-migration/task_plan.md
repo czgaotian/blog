@@ -26,9 +26,10 @@ Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate bu
 - [x] Add first reusable SPA UI primitives: button, badge, alert, page header.
 - [x] Update SPA admin layout to consume app metadata, user role, and plugin menu JSON.
 - [x] Keep business/admin pages as legacy links during this phase.
-- [ ] Add more reusable table, pagination, filter, dialog, loading, and error boundary primitives.
-- [ ] Add dark mode toggle and persisted theme behavior.
-- [ ] Add frontend component tests when the admin package has a test harness.
+- [x] Add more reusable table, pagination, filter, loading, and error boundary primitives.
+- [x] Add dark mode toggle and persisted theme behavior.
+- [x] Add frontend test harness for admin package and theme persistence coverage.
+- [ ] Add dialog primitive when a migrated workflow needs confirmation/modal behavior.
 
 ## Decisions
 
@@ -36,6 +37,8 @@ Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate bu
 - Keep legacy admin templates and routes intact for Phase 1.
 - Phase 2 starts with a thin shell/layout increment before migrating any business page.
 - Avoid adding a frontend test stack in this increment; use existing server Vitest coverage plus type-check/build verification.
+- Added a minimal admin Vitest harness once theme persistence needed logic-level coverage.
+- Defer dialog until the first migrated mutating workflow needs confirm/modal behavior.
 
 ## Errors Encountered
 

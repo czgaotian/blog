@@ -24,3 +24,6 @@ Phase 1 target:
 - The server already computes plugin menu items in `pluginMenuMiddleware`; React layout should consume them as legacy links until plugin SPA routes are designed.
 - `packages/admin` does not currently have its own frontend test harness. For the first Phase 2 increment, verification uses server route tests, `pnpm type-check`, and admin Vite build.
 - Business admin URLs remain legacy links in the sidebar until their API/page migrations are done one feature at a time.
+- Admin now has a minimal Vitest harness for browser-independent SPA logic. Component rendering tests still need a DOM test library decision.
+- Theme state is persisted in `localStorage` under `admin-theme` and applied by toggling the root `dark` class.
+- Dialog/confirm primitives should be introduced with the first migrated mutating workflow instead of guessing requirements before Phase 3.
