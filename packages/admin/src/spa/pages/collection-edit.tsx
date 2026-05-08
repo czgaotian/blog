@@ -1,15 +1,15 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, Link } from 'react-router'
+import { useMutation, useQueryClient } from '@tanstack/react-query'
 import {
   useCollectionDetail,
   useCreateCollection,
   useUpdateCollection,
   useDeleteCollection,
   useCreateField,
-  useUpdateField,
-  useDeleteField,
 } from '../api/collections'
 import type { CollectionField } from '@worker-blog/shared/admin-api'
+import type { UpdateFieldRequest } from '@worker-blog/shared/admin-api'
 import { PageHeader } from '../components/page-header'
 import { Alert } from '../components/ui/alert'
 import { Badge } from '../components/ui/badge'
@@ -19,7 +19,7 @@ import { Input } from '../components/ui/input'
 import { Label } from '../components/ui/label'
 import { LoadingState } from '../components/ui/loading-state'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
-import { AdminApiError } from '../api/client'
+import { AdminApiError, adminFetch } from '../api/client'
 
 const ALL_FIELD_TYPES = [
   { value: 'text', label: 'Text' },
@@ -57,6 +57,7 @@ export function CollectionEditPage() {
   const { id } = useParams<{ id: string }>()
   const isNew = !id || id === 'new'
   const navigate = useNavigate()
+  const qc = useQueryClient()
 
   const { data, isLoading, isError } = useCollectionDetail(isNew ? '' : id!)
   const createCollection = useCreateCollection()
@@ -64,9 +65,22 @@ export function CollectionEditPage() {
   const deleteCollection = useDeleteCollection(isNew ? '' : id!)
 
   const createField = useCreateField(isNew ? '' : id!)
-  const [activeFieldId, setActiveFieldId] = useState<string>('')
-  const updateField = useUpdateField(isNew ? '' : id!, activeFieldId)
-  const deleteField = useDeleteField(isNew ? '' : id!, activeFieldId)
+  const activeFieldIdRef = useRef<string>('')
+  const updateField = useMutation<unknown, Error, UpdateFieldRequest>({
+    mutationFn: (data: UpdateFieldRequest) =>
+      adminFetch(`/admin/api/collections/${id}/fields/${activeFieldIdRef.current}`, {
+        method: 'PUT',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'collections', id] }),
+  })
+  const deleteField = useMutation<unknown, Error, void>({
+    mutationFn: () =>
+      adminFetch(`/admin/api/collections/${id}/fields/${activeFieldIdRef.current}`, {
+        method: 'DELETE',
+      }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'collections', id] }),
+  })
 
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
@@ -111,7 +125,7 @@ export function CollectionEditPage() {
   }
 
   function openEditField(field: CollectionField) {
-    setActiveFieldId(field.id)
+    activeFieldIdRef.current = field.id
     setFieldForm({
       fieldName: field.fieldName,
       fieldLabel: field.fieldLabel,
@@ -152,7 +166,7 @@ export function CollectionEditPage() {
   }
 
   async function handleDeleteField(field: CollectionField) {
-    setActiveFieldId(field.id)
+    activeFieldIdRef.current = field.id
     await deleteField.mutateAsync()
   }
 
