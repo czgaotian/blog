@@ -11,6 +11,7 @@ import type { AdminMeResponse } from '@worker-blog/shared/admin-api'
 // import { zValidator } from '@hono/zod-validator'
 import { requireAuth, requireRole } from '../middleware'
 import { adminApiDashboardRoutes } from './admin-api-dashboard'
+import { adminApiLogsRoutes } from './admin-api-logs'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -48,6 +49,7 @@ adminApiRoutes.get('/me', (c) => {
 })
 
 adminApiRoutes.route('/dashboard', adminApiDashboardRoutes)
+adminApiRoutes.route('/logs', adminApiLogsRoutes)
 
 /**
  * Get dashboard statistics
