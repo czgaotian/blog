@@ -24,6 +24,7 @@ function createApp() {
       iat: 100,
     })
     c.set('appVersion', '9.8.7')
+    c.set('appName', 'Custom Admin')
     c.set('pluginMenuItems', [
       { label: 'Cache', path: '/admin/cache', icon: '<svg></svg>' },
     ])
@@ -50,7 +51,7 @@ describe('GET /admin/api/me', () => {
       },
       permissions: ['admin'],
       app: {
-        name: 'Worker Blog',
+        name: 'Custom Admin',
         version: '9.8.7',
       },
       pluginMenu: [

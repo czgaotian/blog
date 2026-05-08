@@ -4,9 +4,11 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Execute Phase 1 only: React SPA infrastructure, server SPA/assets fallback, `/admin/api/me`, and Worker binding config fixes. Do not migrate business pages yet.
+Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate business pages yet.
 
 ## Tasks
+
+### Phase 1: SPA Infrastructure
 
 - [x] Review migration plan and execution constraints.
 - [x] Attempt isolated worktree setup.
@@ -18,10 +20,22 @@ Execute Phase 1 only: React SPA infrastructure, server SPA/assets fallback, `/ad
 - [x] Update `wrangler.toml` assets config and R2 binding.
 - [x] Run verification commands and record results.
 
+### Phase 2: UI Foundation and Layout
+
+- [x] Extend `/admin/api/me` bootstrap metadata to use configured app name.
+- [x] Add first reusable SPA UI primitives: button, badge, alert, page header.
+- [x] Update SPA admin layout to consume app metadata, user role, and plugin menu JSON.
+- [x] Keep business/admin pages as legacy links during this phase.
+- [ ] Add more reusable table, pagination, filter, dialog, loading, and error boundary primitives.
+- [ ] Add dark mode toggle and persisted theme behavior.
+- [ ] Add frontend component tests when the admin package has a test harness.
+
 ## Decisions
 
 - Worktree creation was requested by the user, but sandbox blocked branch/worktree creation because `.git` is read-only. Continue in current checkout with scoped edits.
 - Keep legacy admin templates and routes intact for Phase 1.
+- Phase 2 starts with a thin shell/layout increment before migrating any business page.
+- Avoid adding a frontend test stack in this increment; use existing server Vitest coverage plus type-check/build verification.
 
 ## Errors Encountered
 

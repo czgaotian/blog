@@ -84,6 +84,7 @@ export interface Variables {
   }
   requestId?: string
   startTime?: number
+  appName?: string
   appVersion?: string
   csrfToken?: string
   pluginMenuItems?: Array<{ label: string; path: string; icon: string }>
@@ -161,8 +162,9 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   const appVersion = config.version || getCoreVersion()
   const appName = config.name || 'Worker Blog'
 
-  // App version middleware
+  // App metadata middleware
   app.use('*', async (c, next) => {
+    c.set('appName', appName)
     c.set('appVersion', appVersion)
     await next()
   })

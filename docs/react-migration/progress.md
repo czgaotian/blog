@@ -22,3 +22,13 @@
 - `pnpm type-check` passed.
 - `pnpm --filter @worker-blog/server test` passed: 23 files, 547 tests.
 - `pnpm dev` started Wrangler on `http://localhost:8788` and recognized `DB`, `MEDIA_BUCKET`, and `ASSETS`. Curl from the sandbox could not connect to the printed local URL, so hard-refresh HTTP smoke could not be completed here.
+- Continued migration into Phase 2.
+- Added failing coverage for `/admin/api/me` returning configured app name, then implemented `appName` on Hono variables and app metadata middleware.
+- Added SPA UI primitives: `Button`, `ButtonLink`, `Badge`, `Alert`, and `PageHeader`.
+- Added destructive color tokens to Tailwind/theme variables for reusable error states.
+- Updated SPA admin layout to read app name/version, user role, and plugin menu from `/admin/api/me`.
+- Expanded SPA sidebar with legacy admin links while keeping business pages server-rendered.
+- Reused the new page header/alert/button primitives in `SpaTestPage` and `NotFoundPage`.
+- `pnpm --filter @worker-blog/admin build` passed.
+- `pnpm type-check` passed.
+- `pnpm --filter @worker-blog/server test` passed: 23 files, 547 tests.

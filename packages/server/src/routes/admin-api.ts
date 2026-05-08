@@ -37,7 +37,7 @@ adminApiRoutes.get('/me', (c) => {
     },
     permissions: [user.role],
     app: {
-      name: 'Worker Blog',
+      name: c.get('appName') || 'Worker Blog',
       version: c.get('appVersion') || '0.0.0',
     },
     pluginMenu: c.get('pluginMenuItems') || [],
