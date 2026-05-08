@@ -4,7 +4,7 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Phase 4 complete. Next: Phase 5 (complex pages — content, media, forms).
+Phase 4 complete. Phase 5 complete (content, media, forms). Migration complete for all planned phases.
 
 ## Tasks
 
@@ -55,7 +55,15 @@ Phase 4 complete. Next: Phase 5 (complex pages — content, media, forms).
 - [x] Remove legacy: true from Users and Settings nav items.
 - [x] Add Button destructive variant, Alert success tone, Input and Label UI primitives.
 
-## Decisions
+### Phase 5: Complex Page Migration
+
+- [x] Add shared types: ContentListResponse, ContentDetailResponse, ContentVersionsResponse, MutateContentResponse, FormsListResponse, FormDetailResponse, MutateFormResponse, MediaListResponse, MediaDetailResponse, UploadMediaResponse, MutateMediaResponse.
+- [x] Add server routes: adminApiContentRoutes (GET/POST/PUT/DELETE /admin/api/content, GET /:id/versions, POST /:id/restore/:version), adminApiFormsRoutes (GET/POST/PUT/DELETE /admin/api/forms), adminApiMediaRoutes (GET/POST/PUT/DELETE /admin/api/media, POST /upload).
+- [x] Mount new routes in app.ts at /admin/api/content, /admin/api/forms, /admin/api/media.
+- [x] Add React Query hooks: useContentList, useContentDetail, useContentVersions, useCreateContent, useUpdateContent, useDeleteContent, useRestoreContentVersion, useFormsList, useFormDetail, useCreateForm, useUpdateForm, useDeleteForm, useMediaList, useMediaDetail, useUploadMedia, useUpdateMedia, useDeleteMedia.
+- [x] Add React pages: ContentListPage, FormsListPage, MediaLibraryPage.
+- [x] Wire content, forms, media routes into SPA router.
+- [x] Add Forms nav item; remove legacy: true from Content and Media nav items.
 
 - Worktree creation was requested by the user, but sandbox blocked branch/worktree creation because `.git` is read-only. Continue in current checkout with scoped edits.
 - Keep legacy admin templates and routes intact for Phase 1.

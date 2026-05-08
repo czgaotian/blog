@@ -12,6 +12,9 @@ import { UsersListPage } from './pages/users-list'
 import { UserEditPage } from './pages/user-edit'
 import { SpaTestPage } from './pages/spa-test'
 import { NotFoundPage } from './pages/not-found'
+import { ContentListPage } from './pages/content-list'
+import { FormsListPage } from './pages/forms-list'
+import { MediaLibraryPage } from './pages/media-library'
 
 export const router = createBrowserRouter(
   [
@@ -29,6 +32,9 @@ export const router = createBrowserRouter(
         { path: 'settings', element: <SettingsPage /> },
         { path: 'users', element: <UsersListPage /> },
         { path: 'users/:id/edit', element: <UserEditPage /> },
+        { path: 'content', element: <ContentListPage /> },
+        { path: 'forms', element: <FormsListPage /> },
+        { path: 'media', element: <MediaLibraryPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],

@@ -4,6 +4,7 @@ import { useEffect, useState } from 'react'
 import {
   Activity,
   BookOpen,
+  ClipboardList,
   Database,
   FileText,
   Gauge,
@@ -26,8 +27,9 @@ import { cn } from '../lib/utils'
 const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: Gauge },
   { label: 'Logs', href: '/admin/logs', icon: Activity },
-  { label: 'Content', href: '/admin/content', icon: FileText, legacy: true },
-  { label: 'Media', href: '/admin/media', icon: Image, legacy: true },
+  { label: 'Content', href: '/admin/content', icon: FileText },
+  { label: 'Media', href: '/admin/media', icon: Image },
+  { label: 'Forms', href: '/admin/forms', icon: ClipboardList },
   { label: 'Collections', href: '/admin/collections', icon: Database, legacy: true },
   { label: 'Users', href: '/admin/users', icon: Users },
   { label: 'Plugins', href: '/admin/plugins', icon: Plug },

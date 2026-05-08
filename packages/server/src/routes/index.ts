@@ -35,6 +35,9 @@ export { adminFormsRoutes } from './admin-forms'
 export { default as publicFormsRoutes } from './public-forms'
 export { adminApiReferenceRoutes } from './admin-api-reference'
 export { createAdminSpaRoutes } from './admin-spa'
+export { adminApiContentRoutes } from './admin-api-content'
+export { adminApiFormsRoutes } from './admin-api-forms'
+export { adminApiMediaRoutes } from './admin-api-media'
 
 export const ROUTES_INFO = {
   message: 'Core routes available',

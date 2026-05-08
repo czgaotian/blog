@@ -25,7 +25,10 @@ import {
   adminFormsRoutes,
   publicFormsRoutes,
   adminApiReferenceRoutes,
-  createAdminSpaRoutes
+  createAdminSpaRoutes,
+  adminApiContentRoutes,
+  adminApiFormsRoutes,
+  adminApiMediaRoutes,
 } from './routes'
 import { getCoreVersion } from './utils/version'
 import { bootstrapMiddleware } from './middleware/bootstrap'
@@ -227,6 +230,9 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   app.route('/admin/seed-data', createSeedDataAdminRoutes())
   app.route('/admin/content', adminContentRoutes)
   app.route('/admin/media', adminMediaRoutes)
+  app.route('/admin/api/content', adminApiContentRoutes)
+  app.route('/admin/api/forms', adminApiFormsRoutes)
+  app.route('/admin/api/media', adminApiMediaRoutes)
   // Security audit middleware - logs auth events (login, register, logout)
   app.use('/auth/*', securityAuditMiddleware())
 
