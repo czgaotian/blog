@@ -4,7 +4,7 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Phase 4 complete. Phase 5 complete (content, media, forms). Phase 6 complete (collections). Migration complete for all planned phases.
+Phase 4 complete. Phase 5 complete (content, media, forms). Phase 6 complete (collections). Phase 7 complete (remove legacy HTML routes). All planned phases complete.
 
 ## Tasks
 
@@ -74,6 +74,19 @@ Phase 4 complete. Phase 5 complete (content, media, forms). Phase 6 complete (co
 - [x] Add React Query hooks: useCollectionsList, useCollectionDetail, useCreateCollection, useUpdateCollection, useDeleteCollection, useCreateField, useUpdateField, useDeleteField.
 - [x] Add React pages: CollectionsListPage, CollectionEditPage (with inline field management via Dialog).
 - [x] Wire 3 routes into SPA router; remove legacy: true from Collections nav item.
+
+### Phase 7: Remove Legacy HTML Routes
+
+- [x] Add shared types: UserProfileResponse, UpdateProfileRequest, ChangePasswordRequest, MutateProfileResponse, ActivityLogItem, ActivityLogsListResponse.
+- [x] Add server route adminApiProfileRoutes (GET/PUT /profile, POST /profile/password, POST /profile/avatar) — auth-only, no admin role required.
+- [x] Add activity-log endpoints to adminApiUsersRoutes (GET/GET-export /activity-logs).
+- [x] Mount /admin/api/profile before adminApiRoutes in app.ts.
+- [x] Add React Query hooks: useProfile, useUpdateProfile, useChangePassword, useUploadAvatar, useActivityLogs, activityLogsExportUrl.
+- [x] Add React pages: ProfilePage, ActivityLogsPage.
+- [x] Wire /admin/profile and /admin/activity-logs into SPA router; add Profile and Activity Logs nav items.
+- [x] Remove all legacy HTML route exports from routes/index.ts and mounts from app.ts.
+- [x] Delete 16 legacy admin-*.ts route files (admin-content, admin-users, admin-dashboard, admin-media, admin-forms, admin-collections, admin-plugins, admin-logs, admin-settings, admin-api-reference, admin-code-examples, admin-testimonials, admin-design, admin-checkboxes, admin-collections-field-types, admin-content-field-types).
+- [ ] Delete packages/admin/src/templates/ — blocked: templates still used by auth routes (login/register) and plugin admin pages (cache, analytics, security-audit, stripe, workflow, user-profiles, email-templates, database-tools, redirect-management). Requires migrating those to SPA first.
 
 - Worktree creation was requested by the user, but sandbox blocked branch/worktree creation because `.git` is read-only. Continue in current checkout with scoped edits.
 - Keep legacy admin templates and routes intact for Phase 1.
