@@ -47,6 +47,8 @@ function makeMockDb(overrides: Partial<{
     fieldResults = [mockField],
   } = overrides
 
+  const runCalls: string[] = []
+
   const mockDb: any = {
     prepare: (sql: string) => ({
       bind: (..._args: any[]) => ({
@@ -72,7 +74,10 @@ function makeMockDb(overrides: Partial<{
           if (sql.includes('SELECT name FROM collections WHERE id = ?')) {
             return collectionFirst
           }
-          return collectionFirst
+          if (sql.includes('SELECT name, managed FROM collections')) {
+            return collectionFirst
+          }
+          throw new Error(`Unexpected SQL in mock first(): ${sql}`)
         },
         all: async () => {
           if (sql.includes('COUNT(*) as count') && sql.includes('content_fields GROUP BY')) {
@@ -89,21 +94,21 @@ function makeMockDb(overrides: Partial<{
           }
           return { results: [] }
         },
-        run: async () => ({}),
+        run: async () => { runCalls.push(sql); return {} },
       }),
       first: async () => collectionFirst,
       all: async () => ({ results: collectionResults }),
-      run: async () => ({}),
+      run: async () => { runCalls.push(sql); return {} },
     }),
   }
-  return mockDb
+  return { db: mockDb, runCalls }
 }
 
 const mockCacheKV = { delete: async () => {} }
 
 import { adminApiCollectionsRoutes } from './admin-api-collections'
 
-function createApp(mockDb?: any) {
+function createApp() {
   const app = new Hono()
   app.use('*', async (c, next) => {
     c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
@@ -119,7 +124,7 @@ function createUnauthApp() {
   return app
 }
 
-const baseEnv = { DB: makeMockDb(), CACHE_KV: mockCacheKV }
+const baseEnv = { DB: makeMockDb().db, CACHE_KV: mockCacheKV }
 
 // ──────────────────────────────────────────────
 // GET /
@@ -170,7 +175,7 @@ describe('GET /admin/api/collections/:id', () => {
   })
 
   it('returns 404 for unknown id', async () => {
-    const db = makeMockDb({ collectionFirst: null })
+    const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
     const res = await app.request('/admin/api/collections/unknown', {}, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(404)
@@ -191,7 +196,7 @@ describe('GET /admin/api/collections/:id', () => {
 describe('POST /admin/api/collections', () => {
   it('creates a collection and returns 201', async () => {
     // Make sure no existing collection with that name
-    const db = makeMockDb()
+    const { db, runCalls } = makeMockDb()
     // Override to return null for "SELECT id FROM collections WHERE name = ?"
     const originalPrepare = db.prepare.bind(db)
     db.prepare = (sql: string) => {
@@ -200,11 +205,11 @@ describe('POST /admin/api/collections', () => {
           bind: () => ({
             first: async () => null,
             all: async () => ({ results: [] }),
-            run: async () => ({}),
+            run: async () => { runCalls.push(sql); return {} },
           }),
           first: async () => null,
           all: async () => ({ results: [] }),
-          run: async () => ({}),
+          run: async () => { runCalls.push(sql); return {} },
         }
       }
       return originalPrepare(sql)
@@ -220,6 +225,7 @@ describe('POST /admin/api/collections', () => {
     const json = await res.json() as any
     expect(json).toHaveProperty('message')
     expect(json).toHaveProperty('id')
+    expect(runCalls.some(s => s.includes('INSERT INTO collections'))).toBe(true)
   })
 
   it('returns 422 on validation failure (missing displayName)', async () => {
@@ -246,7 +252,7 @@ describe('POST /admin/api/collections', () => {
 
   it('returns 409 when collection name already exists', async () => {
     // mockDb returns existing by default for "SELECT id FROM collections WHERE name = ?"
-    const db = makeMockDb({ collectionFirst: { id: 'existing-id' } })
+    const { db } = makeMockDb({ collectionFirst: { id: 'existing-id' } })
     const app = createApp()
     const res = await app.request('/admin/api/collections', {
       method: 'POST',
@@ -262,19 +268,21 @@ describe('POST /admin/api/collections', () => {
 // ──────────────────────────────────────────────
 describe('PATCH /admin/api/collections/:id', () => {
   it('updates a collection and returns 200', async () => {
+    const { db, runCalls } = makeMockDb()
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ displayName: 'Updated Name' }),
-    }, baseEnv)
+    }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('message')
+    expect(runCalls.some(s => s.includes('UPDATE collections SET'))).toBe(true)
   })
 
   it('returns 404 for unknown id', async () => {
-    const db = makeMockDb({ collectionFirst: null })
+    const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
     const res = await app.request('/admin/api/collections/unknown', {
       method: 'PATCH',
@@ -300,7 +308,7 @@ describe('PATCH /admin/api/collections/:id', () => {
 // ──────────────────────────────────────────────
 describe('DELETE /admin/api/collections/:id', () => {
   it('deletes collection with no content', async () => {
-    const db = makeMockDb({ contentCount: 0 })
+    const { db, runCalls } = makeMockDb({ contentCount: 0 })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1', {
       method: 'DELETE',
@@ -308,10 +316,11 @@ describe('DELETE /admin/api/collections/:id', () => {
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('message')
+    expect(runCalls.some(s => s.includes('DELETE FROM collections'))).toBe(true)
   })
 
   it('blocks delete when collection has content', async () => {
-    const db = makeMockDb({ contentCount: 3 })
+    const { db } = makeMockDb({ contentCount: 3 })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1', {
       method: 'DELETE',
@@ -322,7 +331,7 @@ describe('DELETE /admin/api/collections/:id', () => {
   })
 
   it('blocks delete of managed collection', async () => {
-    const db = makeMockDb({
+    const { db } = makeMockDb({
       collectionFirst: { ...mockCollection, managed: 1 },
       contentCount: 0,
     })
@@ -336,7 +345,7 @@ describe('DELETE /admin/api/collections/:id', () => {
   })
 
   it('returns 404 for unknown id', async () => {
-    const db = makeMockDb({ collectionFirst: null })
+    const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
     const res = await app.request('/admin/api/collections/unknown', {
       method: 'DELETE',
@@ -355,7 +364,7 @@ describe('POST /admin/api/collections/:id/fields', () => {
       ...mockCollection,
       schema: JSON.stringify({ type: 'object', properties: { title: { type: 'string', title: 'Title' } }, required: [] }),
     }
-    const db = makeMockDb({ collectionFirst: colNoSummary })
+    const { db } = makeMockDb({ collectionFirst: colNoSummary })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields', {
       method: 'POST',
@@ -419,7 +428,7 @@ describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
   })
 
   it('returns 404 when collection not found', async () => {
-    const db = makeMockDb({ collectionFirst: null })
+    const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
     const res = await app.request('/admin/api/collections/unknown/fields/schema-title', {
       method: 'PUT',
@@ -431,7 +440,7 @@ describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
 
   it('returns 400 when no fields to update (legacy field)', async () => {
     // For legacy (non-schema-) fields with no matching fields in body
-    const db = makeMockDb({ fieldFirst: { id: 'field1' } })
+    const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields/field1', {
       method: 'PUT',
@@ -465,7 +474,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
   })
 
   it('deletes a legacy content_fields row', async () => {
-    const db = makeMockDb({ fieldFirst: { id: 'field1' } })
+    const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields/field1', {
       method: 'DELETE',
@@ -474,7 +483,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
   })
 
   it('returns 404 when legacy field not found', async () => {
-    const db = makeMockDb({ fieldFirst: null })
+    const { db } = makeMockDb({ fieldFirst: null })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields/field99', {
       method: 'DELETE',
@@ -488,7 +497,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
 // ──────────────────────────────────────────────
 describe('POST /admin/api/collections/:id/fields/reorder', () => {
   it('reorders content_fields and returns 200', async () => {
-    const db = makeMockDb({ fieldResults: [{ id: 'field1' }, { id: 'field2' }] })
+    const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }, { id: 'field2' }] })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields/reorder', {
       method: 'POST',
@@ -512,7 +521,7 @@ describe('POST /admin/api/collections/:id/fields/reorder', () => {
 
   it('silently ignores fieldIds not belonging to collection', async () => {
     // Only field1 belongs to collection; field99 is filtered out
-    const db = makeMockDb({ fieldResults: [{ id: 'field1' }] })
+    const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }] })
     const app = createApp()
     const res = await app.request('/admin/api/collections/col1/fields/reorder', {
       method: 'POST',
