@@ -22,24 +22,34 @@ adminApiDashboardRoutes.get('/', async (c) => {
   try {
     const r = await db.prepare("SELECT COUNT(*) as count FROM collections WHERE is_active = 1 AND (source_type IS NULL OR source_type = 'user')").first()
     collections = (r as any)?.count || 0
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching collections count:', e)
+  }
   try {
     const r = await db.prepare("SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL AND (col.source_type IS NULL OR col.source_type = 'user')").first()
     contentItems = (r as any)?.count || 0
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching content items count:', e)
+  }
   try {
     const r = await db.prepare('SELECT COUNT(*) as count, COALESCE(SUM(size), 0) as total_size FROM media WHERE deleted_at IS NULL').first()
     mediaFiles = (r as any)?.count || 0
     mediaSize = (r as any)?.total_size || 0
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching media count:', e)
+  }
   try {
     const r = await db.prepare('SELECT COUNT(*) as count FROM users WHERE is_active = 1').first()
     users = (r as any)?.count || 0
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching users count:', e)
+  }
   try {
     const r = await db.prepare('SELECT 1').run()
     databaseSize = (r as any)?.meta?.size_after || 0
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching database size:', e)
+  }
 
   // Recent activity
   let recentActivity: DashboardResponse['recentActivity'] = []
@@ -51,7 +61,7 @@ adminApiDashboardRoutes.get('/', async (c) => {
       WHERE a.resource_type IN ('content', 'collections', 'users', 'media')
       ORDER BY a.created_at DESC
       LIMIT 10
-    `).bind().all()
+    `).all()
     recentActivity = (results || []).map((row: any) => {
       const user = row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
@@ -67,7 +77,9 @@ adminApiDashboardRoutes.get('/', async (c) => {
         user,
       }
     })
-  } catch {}
+  } catch (e) {
+    console.error('Error fetching recent activity:', e)
+  }
 
   const response: DashboardResponse = {
     stats: { collections, contentItems, mediaFiles, users, mediaSize, databaseSize },
