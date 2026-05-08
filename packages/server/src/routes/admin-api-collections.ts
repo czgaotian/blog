@@ -357,7 +357,7 @@ adminApiCollectionsRoutes.put('/:id/fields/:fieldId', async (c) => {
     }
 
     // legacy content_fields row
-    const existing = await db.prepare('SELECT id FROM content_fields WHERE id = ?').bind(fieldId).first()
+    const existing = await db.prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?').bind(fieldId, collectionId).first()
     if (!existing) return c.json({ error: 'Field not found' }, 404)
 
     const updates: string[] = []
