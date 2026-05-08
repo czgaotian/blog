@@ -15,6 +15,7 @@ import {
   Plug,
   Settings,
   Sun,
+  User,
   Users,
 } from 'lucide-react'
 import { adminApi } from '../api/query'
@@ -36,6 +37,8 @@ const navItems = [
   { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
   { label: 'SPA Test', href: '/admin/spa-test', icon: Activity },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
+  { label: 'Profile', href: '/admin/profile', icon: User },
+  { label: 'Activity Logs', href: '/admin/activity-logs', icon: Activity },
 ]
 
 export function AdminLayout() {

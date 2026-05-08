@@ -17,6 +17,8 @@ import { FormsListPage } from './pages/forms-list'
 import { MediaLibraryPage } from './pages/media-library'
 import { CollectionsListPage } from './pages/collections-list'
 import { CollectionEditPage } from './pages/collection-edit'
+import { ProfilePage } from './pages/profile'
+import { ActivityLogsPage } from './pages/activity-logs'
 
 export const router = createBrowserRouter(
   [
@@ -40,6 +42,8 @@ export const router = createBrowserRouter(
         { path: 'collections', element: <CollectionsListPage /> },
         { path: 'collections/new', element: <CollectionEditPage /> },
         { path: 'collections/:id/edit', element: <CollectionEditPage /> },
+        { path: 'profile', element: <ProfilePage /> },
+        { path: 'activity-logs', element: <ActivityLogsPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],
