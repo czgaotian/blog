@@ -25,6 +25,7 @@ import { cn } from '../lib/utils'
 
 const navItems = [
   { label: 'Dashboard', href: '/admin/dashboard', icon: Gauge },
+  { label: 'Logs', href: '/admin/logs', icon: Activity },
   { label: 'Content', href: '/admin/content', icon: FileText, legacy: true },
   { label: 'Media', href: '/admin/media', icon: Image, legacy: true },
   { label: 'Collections', href: '/admin/collections', icon: Database, legacy: true },
