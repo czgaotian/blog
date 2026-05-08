@@ -39,6 +39,9 @@ Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate bu
 - Avoid adding a frontend test stack in this increment; use existing server Vitest coverage plus type-check/build verification.
 - Added a minimal admin Vitest harness once theme persistence needed logic-level coverage.
 - Defer dialog until the first migrated mutating workflow needs confirm/modal behavior.
+- Phase 3 scope: all 6 pages — dashboard, logs list, log details, log config (display only), api-reference, plugins list.
+- Dashboard consolidates HTMX fragments into a single `GET /admin/api/dashboard` endpoint returning stats, storage, recent-activity, and system-status in one response.
+- Log config mutations (POST /config/:category, cleanup) deferred to Phase 4; Phase 3 only renders the config read-only.
 
 ## Errors Encountered
 
