@@ -286,6 +286,11 @@ adminApiCollectionsRoutes.post('/:id/fields', async (c) => {
     await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
       .bind(JSON.stringify(schema), Date.now(), collectionId).run()
 
+    try {
+      await c.env.CACHE_KV.delete('cache:collections:all')
+      await c.env.CACHE_KV.delete(`cache:collection:${row.name}`)
+    } catch { /* ignore */ }
+
     return c.json({ message: 'Field added successfully', id: `schema-${parsed.data.fieldName}` }, 201)
   } catch (error) {
     console.error('[admin-api-collections] Error adding field:', error)
@@ -337,6 +342,10 @@ adminApiCollectionsRoutes.put('/:id/fields/:fieldId', async (c) => {
 
       await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
         .bind(JSON.stringify(schema), Date.now(), collectionId).run()
+      try {
+        await c.env.CACHE_KV.delete('cache:collections:all')
+        await c.env.CACHE_KV.delete(`cache:collection:${row.name}`)
+      } catch { /* ignore */ }
       return c.json({ message: 'Field updated successfully' })
     }
 
@@ -355,6 +364,10 @@ adminApiCollectionsRoutes.put('/:id/fields/:fieldId', async (c) => {
     updates.push('updated_at = ?')
     vals.push(Date.now(), fieldId)
     await db.prepare(`UPDATE content_fields SET ${updates.join(', ')} WHERE id = ?`).bind(...vals).run()
+    try {
+      await c.env.CACHE_KV.delete('cache:collections:all')
+      await c.env.CACHE_KV.delete(`cache:collection:${row.name}`)
+    } catch { /* ignore */ }
     return c.json({ message: 'Field updated successfully' })
   } catch (error) {
     console.error('[admin-api-collections] Error updating field:', error)
@@ -383,9 +396,20 @@ adminApiCollectionsRoutes.delete('/:id/fields/:fieldId', async (c) => {
       }
       await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
         .bind(JSON.stringify(schema), Date.now(), collectionId).run()
+      try {
+        await c.env.CACHE_KV.delete('cache:collections:all')
+        await c.env.CACHE_KV.delete(`cache:collection:${row.name}`)
+      } catch { /* ignore */ }
       return c.json({ message: 'Field deleted successfully' })
     }
     await db.prepare('DELETE FROM content_fields WHERE id = ?').bind(fieldId).run()
+    try {
+      const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
+      if (collRow) {
+        await c.env.CACHE_KV.delete('cache:collections:all')
+        await c.env.CACHE_KV.delete(`cache:collection:${collRow.name}`)
+      }
+    } catch { /* ignore */ }
     return c.json({ message: 'Field deleted successfully' })
   } catch (error) {
     console.error('[admin-api-collections] Error deleting field:', error)
@@ -396,6 +420,7 @@ adminApiCollectionsRoutes.delete('/:id/fields/:fieldId', async (c) => {
 // POST /:id/fields/reorder
 adminApiCollectionsRoutes.post('/:id/fields/reorder', async (c) => {
   if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
+  const collectionId = c.req.param('id')
 
   let body: unknown
   try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON' }, 400) }
@@ -408,6 +433,13 @@ adminApiCollectionsRoutes.post('/:id/fields/reorder', async (c) => {
     for (let i = 0; i < parsed.fieldIds.length; i++) {
       await db.prepare('UPDATE content_fields SET field_order = ?, updated_at = ? WHERE id = ?')
         .bind(i + 1, Date.now(), parsed.fieldIds[i]).run()
+    }
+    const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
+    if (collRow) {
+      try {
+        await c.env.CACHE_KV.delete('cache:collections:all')
+        await c.env.CACHE_KV.delete(`cache:collection:${collRow.name}`)
+      } catch { /* ignore */ }
     }
     return c.json({ message: 'Fields reordered successfully' })
   } catch (error) {
