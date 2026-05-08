@@ -13,6 +13,7 @@ import { requireAuth, requireRole } from '../middleware'
 import { adminApiDashboardRoutes } from './admin-api-dashboard'
 import { adminApiLogsRoutes } from './admin-api-logs'
 import { adminApiPluginsRoutes } from './admin-api-plugins'
+import { adminApiRoutesRoutes } from './admin-api-routes'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -52,6 +53,7 @@ adminApiRoutes.get('/me', (c) => {
 adminApiRoutes.route('/dashboard', adminApiDashboardRoutes)
 adminApiRoutes.route('/logs', adminApiLogsRoutes)
 adminApiRoutes.route('/plugins', adminApiPluginsRoutes)
+adminApiRoutes.route('/api-reference', adminApiRoutesRoutes)
 
 /**
  * Get dashboard statistics
