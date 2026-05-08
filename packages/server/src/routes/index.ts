@@ -19,21 +19,7 @@ export { default as authRoutes } from './auth'
 export { default as testCleanupRoutes } from './test-cleanup'
 
 // Admin UI routes
-export { default as adminContentRoutes } from './admin-content'
-export { userRoutes as adminUsersRoutes } from './admin-users'
-export { adminMediaRoutes } from './admin-media'
-export { adminPluginRoutes } from './admin-plugins'
-export { adminLogsRoutes } from './admin-logs'
-export { adminDesignRoutes } from './admin-design'
-export { adminCheckboxRoutes } from './admin-checkboxes'
-export { default as adminTestimonialsRoutes } from './admin-testimonials'
-export { default as adminCodeExamplesRoutes } from './admin-code-examples'
-export { adminDashboardRoutes } from './admin-dashboard'
-export { adminCollectionsRoutes } from './admin-collections'
-export { adminSettingsRoutes } from './admin-settings'
-export { adminFormsRoutes } from './admin-forms'
 export { default as publicFormsRoutes } from './public-forms'
-export { adminApiReferenceRoutes } from './admin-api-reference'
 export { createAdminSpaRoutes } from './admin-spa'
 export { adminApiContentRoutes } from './admin-api-content'
 export { adminApiFormsRoutes } from './admin-api-forms'
@@ -51,21 +37,7 @@ export const ROUTES_INFO = {
     'adminApiRoutes',
     'authRoutes',
     'testCleanupRoutes',
-    'adminContentRoutes',
-    'adminUsersRoutes',
-    'adminMediaRoutes',
-    'adminPluginRoutes',
-    'adminLogsRoutes',
-    'adminDesignRoutes',
-    'adminCheckboxRoutes',
-    'adminTestimonialsRoutes',
-    'adminCodeExamplesRoutes',
-    'adminDashboardRoutes',
-    'adminCollectionsRoutes',
-    'adminSettingsRoutes',
-    'adminFormsRoutes',
     'publicFormsRoutes',
-    'adminApiReferenceRoutes',
     'createAdminSpaRoutes'
   ],
   status: 'Core package routes ready',

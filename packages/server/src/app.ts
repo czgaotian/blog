@@ -14,17 +14,7 @@ import {
   adminApiRoutes,
   authRoutes,
   testCleanupRoutes,
-  adminContentRoutes,
-  adminUsersRoutes,
-  adminMediaRoutes,
-  adminPluginRoutes,
-  adminLogsRoutes,
-  adminDashboardRoutes,
-  adminCollectionsRoutes,
-  adminSettingsRoutes,
-  adminFormsRoutes,
   publicFormsRoutes,
-  adminApiReferenceRoutes,
   createAdminSpaRoutes,
   adminApiContentRoutes,
   adminApiFormsRoutes,
@@ -223,17 +213,10 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   app.route('/admin/api/collections', adminApiCollectionsRoutes)
   app.route('/admin/api/profile', adminApiProfileRoutes)
   app.route('/admin/api', adminApiRoutes)
-  app.route('/admin/dashboard', adminDashboardRoutes)
-  app.route('/admin/collections', adminCollectionsRoutes)
-  app.route('/admin/forms', adminFormsRoutes)
-  app.route('/admin/settings', adminSettingsRoutes)
   app.route('/forms', publicFormsRoutes)
   app.route('/api/forms', publicFormsRoutes) // API endpoint for form submissions
-  app.route('/admin/api-reference', adminApiReferenceRoutes)
   app.route('/admin/database-tools', createDatabaseToolsAdminRoutes())
   app.route('/admin/seed-data', createSeedDataAdminRoutes())
-  app.route('/admin/content', adminContentRoutes)
-  app.route('/admin/media', adminMediaRoutes)
   app.route('/admin/api/content', adminApiContentRoutes)
   app.route('/admin/api/forms', adminApiFormsRoutes)
   app.route('/admin/api/media', adminApiMediaRoutes)
@@ -298,9 +281,6 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
     }
   }
 
-  app.route('/admin/plugins', adminPluginRoutes)
-  app.route('/admin/logs', adminLogsRoutes)
-  app.route('/admin', adminUsersRoutes)
   app.route('/', createAdminSpaRoutes())
   app.route('/auth', authRoutes)
 
