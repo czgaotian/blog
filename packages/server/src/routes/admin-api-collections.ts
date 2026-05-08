@@ -1,4 +1,5 @@
 import { Hono } from 'hono'
+import { z } from 'zod'
 import { requireAuth, requireRole } from '../middleware'
 import {
   createCollectionSchema,
@@ -12,6 +13,8 @@ import {
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
 
+const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
+
 export const adminApiCollectionsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
 adminApiCollectionsRoutes.use('*', requireAuth())
@@ -19,6 +22,7 @@ adminApiCollectionsRoutes.use('*', requireRole(['admin', 'editor']))
 adminApiCollectionsRoutes.post('*', requireRole(['admin']))
 adminApiCollectionsRoutes.put('*', requireRole(['admin']))
 adminApiCollectionsRoutes.delete('*', requireRole(['admin']))
+adminApiCollectionsRoutes.patch('*', requireRole(['admin']))
 
 function mapField(row: any): CollectionField {
   return {
@@ -334,6 +338,9 @@ adminApiCollectionsRoutes.put('/:id/fields/:fieldId', async (c) => {
           updated.format = parsed.data.fieldType
         }
       }
+      if (parsed.data.fieldType !== undefined && !['richtext', 'quill', 'markdown', 'date', 'slug', 'media', 'reference'].includes(parsed.data.fieldType)) {
+        delete updated.format
+      }
       schema.properties[fieldName] = updated
 
       const idx = schema.required.indexOf(fieldName)
@@ -402,6 +409,8 @@ adminApiCollectionsRoutes.delete('/:id/fields/:fieldId', async (c) => {
       } catch { /* ignore */ }
       return c.json({ message: 'Field deleted successfully' })
     }
+    const fieldRow = await db.prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?').bind(fieldId, collectionId).first()
+    if (!fieldRow) return c.json({ error: 'Field not found' }, 404)
     await db.prepare('DELETE FROM content_fields WHERE id = ?').bind(fieldId).run()
     try {
       const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
@@ -425,14 +434,21 @@ adminApiCollectionsRoutes.post('/:id/fields/reorder', async (c) => {
   let body: unknown
   try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON' }, 400) }
 
-  const parsed = (body as any)
-  if (!Array.isArray(parsed?.fieldIds)) return c.json({ error: 'fieldIds array required' }, 400)
+  const parsed = reorderSchema.safeParse(body)
+  if (!parsed.success) return c.json({ error: 'fieldIds array required' }, 400)
 
   const db = c.env.DB
   try {
-    for (let i = 0; i < parsed.fieldIds.length; i++) {
+    const { results: validRows } = await db
+      .prepare('SELECT id FROM content_fields WHERE collection_id = ?')
+      .bind(collectionId)
+      .all()
+    const validIds = new Set((validRows || []).map((r: any) => String(r.id)))
+    const safeFieldIds = parsed.data.fieldIds.filter((id) => validIds.has(id))
+
+    for (let i = 0; i < safeFieldIds.length; i++) {
       await db.prepare('UPDATE content_fields SET field_order = ?, updated_at = ? WHERE id = ?')
-        .bind(i + 1, Date.now(), parsed.fieldIds[i]).run()
+        .bind(i + 1, Date.now(), safeFieldIds[i]).run()
     }
     const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
     if (collRow) {
