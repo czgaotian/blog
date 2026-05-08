@@ -4,7 +4,7 @@ Source plan: `docs/react-migration/admin-react-migration-plan.md`
 
 ## Current Scope
 
-Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate business pages yet.
+Phase 3 complete. Next: Phase 4 (form mutations — log config update, plugin settings).
 
 ## Tasks
 
@@ -30,6 +30,18 @@ Continue Phase 2: React SPA layout and reusable UI foundation. Do not migrate bu
 - [x] Add dark mode toggle and persisted theme behavior.
 - [x] Add frontend test harness for admin package and theme persistence coverage.
 - [ ] Add dialog primitive when a migrated workflow needs confirmation/modal behavior.
+
+### Phase 3: Low-Risk Page Migration
+
+- [x] Add shared response types: DashboardResponse, LogsListResponse, LogDetailsResponse, LogConfigResponse, PluginsListResponse, ApiReferenceResponse.
+- [x] Add GET /admin/api/dashboard (stats + activity + metrics consolidated).
+- [x] Add GET /admin/api/logs, /logs/config, /logs/:id.
+- [x] Add GET /admin/api/plugins.
+- [x] Add GET /admin/api/api-reference.
+- [x] Add React Query hooks for all 4 feature areas.
+- [x] Add React pages: dashboard, logs-list, log-details, log-config, api-reference, plugins-list.
+- [x] Wire 6 new routes into SPA router.
+- [x] Remove legacy: true from migrated nav items (Dashboard, Plugins, API Reference). Added Logs nav item.
 
 ## Decisions
 
