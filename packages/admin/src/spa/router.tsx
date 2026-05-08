@@ -5,6 +5,7 @@ import { LogsListPage } from './pages/logs-list'
 import { LogDetailsPage } from './pages/log-details'
 import { LogConfigPage } from './pages/log-config'
 import { ApiReferencePage } from './pages/api-reference'
+import { PluginsListPage } from './pages/plugins-list'
 import { SpaTestPage } from './pages/spa-test'
 import { NotFoundPage } from './pages/not-found'
 
@@ -19,6 +20,7 @@ export const router = createBrowserRouter(
         { path: 'logs/config', element: <LogConfigPage /> },
         { path: 'logs/:id', element: <LogDetailsPage /> },
         { path: 'api-reference', element: <ApiReferencePage /> },
+        { path: 'plugins', element: <PluginsListPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],
