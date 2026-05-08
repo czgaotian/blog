@@ -10,6 +10,7 @@ export interface LogEntryResponse {
   url: string | null
   statusCode: number | null
   duration: number | null
+  stackTrace: string | null
   data: unknown | null
   tags: string[]
   createdAt: string

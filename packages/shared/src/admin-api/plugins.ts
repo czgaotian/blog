@@ -4,23 +4,24 @@ export interface PluginListItem {
   id: string
   name: string
   displayName: string
-  description: string
+  description: string | null
   version: string
   author: string
   status: AdminPluginStatus
   category: string
-  icon: string
+  icon: string | null
   lastUpdated: string
   isCore: boolean
   dependencies: string[]
   permissions: string[]
+  errorMessage: string | null
 }
 
 export interface PluginsStats {
   total: number
   active: number
   inactive: number
-  errors: number
+  error: number
   uninstalled: number
 }
 
