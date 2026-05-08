@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { requireAuth, AuthManager } from '../middleware'
-import { sanitizeInput } from '@worker-blog/shared/utils/sanitize'
 import {
   updateProfileSchema,
   changePasswordSchema,
@@ -78,12 +77,12 @@ adminApiProfileRoutes.put('/', async (c) => {
         'UPDATE users SET first_name = ?, last_name = ?, username = ?, email = ?, phone = ?, bio = ?, timezone = ?, language = ?, email_notifications = ?, updated_at = ? WHERE id = ?',
       )
       .bind(
-        sanitizeInput(parsed.data.firstName),
-        sanitizeInput(parsed.data.lastName),
-        sanitizeInput(parsed.data.username),
+        parsed.data.firstName,
+        parsed.data.lastName,
+        parsed.data.username,
         parsed.data.email,
-        parsed.data.phone ? sanitizeInput(parsed.data.phone) : null,
-        parsed.data.bio ? sanitizeInput(parsed.data.bio) : null,
+        parsed.data.phone ?? null,
+        parsed.data.bio ?? null,
         parsed.data.timezone ?? 'UTC',
         parsed.data.language ?? 'en',
         parsed.data.emailNotifications ? 1 : 0,
@@ -155,6 +154,8 @@ adminApiProfileRoutes.post('/avatar', async (c) => {
     }
 
     const ext = avatarFile.type.split('/')[1]
+    // File bytes are not persisted to storage in this implementation — only the URL path is stored.
+    // A real implementation would upload to R2/S3 here before calling db.prepare.
     const avatarUrl = `/uploads/avatars/${user.userId}-${Date.now()}.${ext}`
 
     const db = c.env.DB
