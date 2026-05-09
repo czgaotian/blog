@@ -1,0 +1,295 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Coming Soon</title>
+    <style>
+      *,
+      *::before,
+      *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+      }
+
+      body {
+        background: #000;
+        color: #fff;
+        font-family: "Inter", "Helvetica Neue", Arial, sans-serif;
+        min-height: 100vh;
+        min-height: 100dvh;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+      }
+
+      canvas {
+        position: fixed;
+        inset: 0;
+        pointer-events: none;
+        z-index: 0;
+      }
+
+      .content {
+        position: relative;
+        z-index: 1;
+        text-align: center;
+        padding: 2rem;
+        width: 100%;
+        max-width: 640px;
+      }
+
+      .title {
+        font-size: clamp(2.5rem, 8vw, 6rem);
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        line-height: 1.05;
+        will-change: transform;
+        transition: transform 0.08s ease-out;
+        background: linear-gradient(
+          105deg,
+          rgba(255, 255, 255, 0.55) 0%,
+          rgba(255, 255, 255, 0.55) 30%,
+          rgba(255, 255, 255, 1) 43%,
+          rgba(255, 255, 255, 1) 50%,
+          rgba(255, 255, 255, 0.55) 57%,
+          rgba(255, 255, 255, 0.55) 100%
+        );
+        background-size: 250% 100%;
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        background-clip: text;
+        animation: shimmer 4s ease-in-out infinite;
+      }
+
+      @keyframes shimmer {
+        0%   { background-position: 160% center; }
+        100% { background-position: -60% center; }
+      }
+
+      .subtitle {
+        margin-top: 1.5rem;
+        font-size: 1rem;
+        color: rgba(255, 255, 255, 0.45);
+        font-weight: 300;
+        letter-spacing: 0.04em;
+        line-height: 1.8;
+      }
+
+      .divider {
+        width: 40px;
+        height: 1px;
+        background: rgba(255, 255, 255, 0.2);
+        margin: 2.5rem auto;
+      }
+
+      .link {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.5rem;
+        font-size: 0.85rem;
+        color: rgba(255, 255, 255, 0.4);
+        text-decoration: none;
+        letter-spacing: 0.04em;
+        transition: color 0.2s;
+        padding: 0.5rem 0;
+        -webkit-tap-highlight-color: transparent;
+      }
+
+      .link:hover,
+      .link:active {
+        color: rgba(255, 255, 255, 0.85);
+      }
+
+      .link svg {
+        width: 16px;
+        height: 16px;
+        fill: currentColor;
+      }
+
+      @media (max-width: 480px) {
+        .content {
+          padding: 1.5rem;
+        }
+
+        .subtitle {
+          font-size: 0.9rem;
+        }
+
+        .divider {
+          margin: 2rem auto;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <canvas id="c"></canvas>
+
+    <div class="content">
+      <h1 class="title" id="title">Back Soon</h1>
+      <p class="subtitle">
+        Currently under development, a new version is on its way.<br />
+      </p>
+      <div class="divider"></div>
+      <a
+        class="link"
+        href="https://github.com/czgaotian/blog"
+        target="_blank"
+        rel="noopener"
+      >
+        <svg viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path
+            d="M12 .297c-6.63 0-12 5.373-12 12 0 5.303 3.438 9.8 8.205 11.385.6.113.82-.258.82-.577 0-.285-.01-1.04-.015-2.04-3.338.724-4.042-1.61-4.042-1.61-.546-1.385-1.335-1.755-1.335-1.755-1.087-.744.084-.729.084-.729 1.205.084 1.838 1.236 1.838 1.236 1.07 1.835 2.809 1.305 3.495.998.108-.776.417-1.305.76-1.605-2.665-.3-5.466-1.332-5.466-5.93 0-1.31.465-2.38 1.235-3.22-.135-.303-.54-1.523.105-3.176 0 0 1.005-.322 3.3 1.23.96-.267 1.98-.399 3-.405 1.02.006 2.04.138 3 .405 2.28-1.552 3.285-1.23 3.285-1.23.645 1.653.24 2.873.12 3.176.765.84 1.23 1.91 1.23 3.22 0 4.61-2.805 5.625-5.475 5.92.42.36.81 1.096.81 2.22 0 1.606-.015 2.896-.015 3.286 0 .315.21.69.825.57C20.565 22.092 24 17.592 24 12.297c0-6.627-5.373-12-12-12"
+          />
+        </svg>
+        czgaotian/blog
+      </a>
+    </div>
+
+    <script>
+      const canvas = document.getElementById("c");
+      const ctx = canvas.getContext("2d");
+      let W, H, particles;
+
+      // Smoothed mouse position (canvas coords)
+      let mouseX = -9999,
+        mouseY = -9999;
+      let smoothX = -9999,
+        smoothY = -9999;
+
+      // Normalised [-1,1] for title tilt
+      let mx = 0,
+        my = 0;
+
+      function resize() {
+        W = canvas.width = window.innerWidth;
+        H = canvas.height = window.innerHeight;
+      }
+
+      function createParticles() {
+        const count = Math.floor((W * H) / 14000);
+        particles = Array.from({ length: count }, () => ({
+          x: Math.random() * W,
+          y: Math.random() * H,
+          r: Math.random() * 1.2 + 0.3,
+          vx: (Math.random() - 0.5) * 0.25,
+          vy: (Math.random() - 0.5) * 0.25,
+          alpha: Math.random() * 0.5 + 0.1,
+        }));
+      }
+
+      const REPEL_RADIUS = 140;
+      const REPEL_STRENGTH = 2.5;
+      const ATTRACT_RADIUS = 220;
+      const ATTRACT_STRENGTH = 0.18;
+
+      function draw() {
+        // Smooth mouse tracking
+        smoothX += (mouseX - smoothX) * 0.1;
+        smoothY += (mouseY - smoothY) * 0.1;
+
+        ctx.clearRect(0, 0, W, H);
+
+        for (const p of particles) {
+          // Base drift
+          p.x += p.vx;
+          p.y += p.vy;
+
+          // Mouse interaction
+          const dx = p.x - smoothX;
+          const dy = p.y - smoothY;
+          const dist = Math.sqrt(dx * dx + dy * dy);
+
+          if (dist < REPEL_RADIUS && dist > 0) {
+            // Push away from cursor
+            const force = (1 - dist / REPEL_RADIUS) * REPEL_STRENGTH;
+            p.x += (dx / dist) * force;
+            p.y += (dy / dist) * force;
+          } else if (dist < ATTRACT_RADIUS && dist > REPEL_RADIUS) {
+            // Gently pull toward the ripple edge
+            const force = (1 - dist / ATTRACT_RADIUS) * ATTRACT_STRENGTH;
+            p.x -= (dx / dist) * force;
+            p.y -= (dy / dist) * force;
+          }
+
+          // Wrap edges
+          if (p.x < 0) p.x = W;
+          if (p.x > W) p.x = 0;
+          if (p.y < 0) p.y = H;
+          if (p.y > H) p.y = 0;
+
+          // Brighten particles near cursor
+          const proximity = Math.max(0, 1 - dist / REPEL_RADIUS);
+          const alpha = p.alpha + proximity * 0.5;
+
+          ctx.beginPath();
+          ctx.arc(p.x, p.y, p.r + proximity * 0.8, 0, Math.PI * 2);
+          ctx.fillStyle = `rgba(255,255,255,${alpha})`;
+          ctx.fill();
+        }
+
+        // Connecting lines
+        for (let i = 0; i < particles.length; i++) {
+          for (let j = i + 1; j < particles.length; j++) {
+            const dx = particles[i].x - particles[j].x;
+            const dy = particles[i].y - particles[j].y;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            if (dist < 100) {
+              ctx.beginPath();
+              ctx.moveTo(particles[i].x, particles[i].y);
+              ctx.lineTo(particles[j].x, particles[j].y);
+              ctx.strokeStyle = `rgba(255,255,255,${0.06 * (1 - dist / 100)})`;
+              ctx.lineWidth = 0.5;
+              ctx.stroke();
+            }
+          }
+        }
+
+        requestAnimationFrame(draw);
+      }
+
+      resize();
+      createParticles();
+      draw();
+      window.addEventListener("resize", () => {
+        resize();
+        createParticles();
+      });
+
+      // Title tilt + particle mouse tracking
+      const title = document.getElementById("title");
+
+      document.addEventListener("mousemove", (e) => {
+        mouseX = e.clientX;
+        mouseY = e.clientY;
+
+        const cx = W / 2,
+          cy = H / 2;
+        mx = (e.clientX - cx) / cx;
+        my = (e.clientY - cy) / cy;
+        title.style.transform = `perspective(600px) rotateY(${mx * 6}deg) rotateX(${-my * 4}deg)`;
+      });
+
+      document.addEventListener("mouseleave", () => {
+        mouseX = -9999;
+        mouseY = -9999;
+        title.style.transform =
+          "perspective(600px) rotateY(0deg) rotateX(0deg)";
+      });
+
+      document.addEventListener("touchmove", (e) => {
+        const t = e.touches[0];
+        mouseX = t.clientX;
+        mouseY = t.clientY;
+      }, { passive: true });
+
+      document.addEventListener("touchend", () => {
+        mouseX = -9999;
+        mouseY = -9999;
+      });
+    </script>
+  </body>
+</html>
