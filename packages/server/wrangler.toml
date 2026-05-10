@@ -22,6 +22,11 @@ migrations_dir = "./migrations"
 binding = "MEDIA_BUCKET"
 bucket_name = "worker-blog-media"
 
+# KV Cache (using CI namespace)
+[[kv_namespaces]]
+binding = "CACHE_KV"
+id = "a16f8246fc294d809c90b0fb2df6d363"
+
 # Environment variables
 [vars]
 ENVIRONMENT = "development"
