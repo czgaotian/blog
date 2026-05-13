@@ -6,6 +6,6 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --filter @worker-blog/server dev",
-    "type-check": "./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/shared/tsconfig.json && ./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/admin/tsconfig.json && ./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/server/tsconfig.json"
+    "type-check": "./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/shared/tsconfig.json && ./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/editor/tsconfig.json && ./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/admin/tsconfig.json && ./node_modules/.pnpm/node_modules/.bin/tsc --noEmit -p packages/server/tsconfig.json"
   }
 }
