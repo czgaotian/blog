@@ -21,14 +21,14 @@ export function useFormsList(filters: FormsFilters = {}) {
 
   return useQuery<FormsListResponse>({
     queryKey: ['admin', 'forms', filters],
-    queryFn: () => adminFetch<FormsListResponse>(`/admin/api/forms${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<FormsListResponse>(`/api/admin/forms${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useFormDetail(id: string) {
   return useQuery<FormDetailResponse>({
     queryKey: ['admin', 'forms', id],
-    queryFn: () => adminFetch<FormDetailResponse>(`/admin/api/forms/${id}`),
+    queryFn: () => adminFetch<FormDetailResponse>(`/api/admin/forms/${id}`),
     enabled: Boolean(id),
   })
 }
@@ -37,7 +37,7 @@ export function useCreateForm() {
   const qc = useQueryClient()
   return useMutation<MutateFormResponse, Error, CreateFormRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateFormResponse>('/admin/api/forms', {
+      adminFetch<MutateFormResponse>('/api/admin/forms', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -51,7 +51,7 @@ export function useUpdateForm(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateFormResponse, Error, UpdateFormRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateFormResponse>(`/admin/api/forms/${id}`, {
+      adminFetch<MutateFormResponse>(`/api/admin/forms/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
@@ -65,7 +65,7 @@ export function useDeleteForm(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateFormResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateFormResponse>(`/admin/api/forms/${id}`, { method: 'DELETE' }),
+      adminFetch<MutateFormResponse>(`/api/admin/forms/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'forms'] })
     },

@@ -129,7 +129,7 @@ export function AdminLayout() {
             >
               {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
             </button>
-            <ButtonLink href="/auth/logout" variant="ghost">
+            <ButtonLink href="/api/auth/logout" variant="ghost">
               <LogOut className="h-4 w-4" />
               Sign out
             </ButtonLink>

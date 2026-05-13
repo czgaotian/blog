@@ -48,16 +48,16 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/profile', adminApiProfileRoutes)
+  app.route('/api/admin/profile', adminApiProfileRoutes)
   return app
 }
 
 const baseEnv = { DB: makeMockDb().db, CACHE_KV: { delete: async () => {} } }
 
-describe('GET /admin/api/profile', () => {
+describe('GET /api/admin/profile', () => {
   it('returns profile data', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/profile', {}, baseEnv)
+    const res = await app.request('/api/admin/profile', {}, baseEnv)
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json.email).toBe('admin@test.com')
@@ -69,17 +69,17 @@ describe('GET /admin/api/profile', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/profile', adminApiProfileRoutes)
-    const res = await app.request('/admin/api/profile', {}, baseEnv)
+    app.route('/api/admin/profile', adminApiProfileRoutes)
+    const res = await app.request('/api/admin/profile', {}, baseEnv)
     expect(res.status).toBe(401)
   })
 })
 
-describe('PUT /admin/api/profile', () => {
+describe('PUT /api/admin/profile', () => {
   it('updates profile and returns 200', async () => {
     const { db, runCalls } = makeMockDb()
     const app = createApp()
-    const res = await app.request('/admin/api/profile', {
+    const res = await app.request('/api/admin/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firstName: 'New', lastName: 'Name', username: 'newuser', email: 'new@test.com' }),
@@ -92,7 +92,7 @@ describe('PUT /admin/api/profile', () => {
 
   it('returns 422 on validation failure', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/profile', {
+    const res = await app.request('/api/admin/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firstName: '' }),
@@ -114,7 +114,7 @@ describe('PUT /admin/api/profile', () => {
       }),
     }
     const app = createApp()
-    const res = await app.request('/admin/api/profile', {
+    const res = await app.request('/api/admin/profile', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ firstName: 'A', lastName: 'B', username: 'ab', email: 'taken@test.com' }),
@@ -123,11 +123,11 @@ describe('PUT /admin/api/profile', () => {
   })
 })
 
-describe('POST /admin/api/profile/password', () => {
+describe('POST /api/admin/profile/password', () => {
   it('changes password successfully', async () => {
     const { db, runCalls } = makeMockDb()
     const app = createApp()
-    const res = await app.request('/admin/api/profile/password', {
+    const res = await app.request('/api/admin/profile/password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword: 'oldpass', newPassword: 'newpassword1', confirmPassword: 'newpassword1' }),
@@ -140,7 +140,7 @@ describe('POST /admin/api/profile/password', () => {
 
   it('returns 422 when passwords do not match', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/profile/password', {
+    const res = await app.request('/api/admin/profile/password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword: 'old', newPassword: 'newpass12', confirmPassword: 'different1' }),
@@ -152,7 +152,7 @@ describe('POST /admin/api/profile/password', () => {
     const middleware = await import('../middleware')
     vi.mocked((middleware as any).AuthManager.verifyPassword).mockResolvedValueOnce(false)
     const app = createApp()
-    const res = await app.request('/admin/api/profile/password', {
+    const res = await app.request('/api/admin/profile/password', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ currentPassword: 'wrong', newPassword: 'newpass12', confirmPassword: 'newpass12' }),
@@ -161,13 +161,13 @@ describe('POST /admin/api/profile/password', () => {
   })
 })
 
-describe('POST /admin/api/profile/avatar', () => {
+describe('POST /api/admin/profile/avatar', () => {
   it('updates avatar URL and returns 200', async () => {
     const { db, runCalls } = makeMockDb()
     const app = createApp()
     const fd = new FormData()
     fd.append('avatar', new File(['img'], 'photo.jpg', { type: 'image/jpeg' }))
-    const res = await app.request('/admin/api/profile/avatar', { method: 'POST', body: fd }, { ...baseEnv, DB: db })
+    const res = await app.request('/api/admin/profile/avatar', { method: 'POST', body: fd }, { ...baseEnv, DB: db })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('avatarUrl')
@@ -179,14 +179,14 @@ describe('POST /admin/api/profile/avatar', () => {
     const app = createApp()
     const fd = new FormData()
     fd.append('avatar', new File(['data'], 'file.txt', { type: 'text/plain' }))
-    const res = await app.request('/admin/api/profile/avatar', { method: 'POST', body: fd }, baseEnv)
+    const res = await app.request('/api/admin/profile/avatar', { method: 'POST', body: fd }, baseEnv)
     expect(res.status).toBe(400)
   })
 
   it('returns 400 when no file provided', async () => {
     const app = createApp()
     const fd = new FormData()
-    const res = await app.request('/admin/api/profile/avatar', { method: 'POST', body: fd }, baseEnv)
+    const res = await app.request('/api/admin/profile/avatar', { method: 'POST', body: fd }, baseEnv)
     expect(res.status).toBe(400)
   })
 })

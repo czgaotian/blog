@@ -33,7 +33,7 @@ export function createWorkflowAdminRoutes() {
   adminRoutes.get('/dashboard', async (c) => {
     const user = c.get('user')
     if (!user) {
-      return c.redirect('/auth/login')
+      return c.redirect('/admin/auth/login')
     }
 
     // Check permissions (simplified for now - assume admin has all permissions)
@@ -116,7 +116,7 @@ export function createWorkflowAdminRoutes() {
   adminRoutes.get('/content/:contentId', async (c) => {
     const user = await c.get('user')
     if (!user) {
-      return c.redirect('/auth/login')
+      return c.redirect('/admin/auth/login')
     }
 
     const contentId = c.req.param('contentId')
@@ -174,7 +174,7 @@ export function createWorkflowAdminRoutes() {
   adminRoutes.get('/scheduled', async (c) => {
     const user = await c.get('user')
     if (!user) {
-      return c.redirect('/auth/login')
+      return c.redirect('/admin/auth/login')
     }
 
     const scheduler = new SchedulerService(c.env.DB)

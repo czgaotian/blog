@@ -1,5 +1,12 @@
-import { html } from 'hono/html'
 import type { CollectionInfo } from '../types'
+
+function html(strings: TemplateStringsArray, ...values: unknown[]): string {
+  return strings.reduce((result, string, index) => {
+    const value = values[index]
+    const rendered = Array.isArray(value) ? value.join('') : (value ?? '')
+    return result + string + rendered
+  }, '')
+}
 
 interface SearchModalData {
   collections: CollectionInfo[]

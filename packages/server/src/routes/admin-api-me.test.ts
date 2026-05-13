@@ -15,7 +15,7 @@ import { adminApiRoutes } from './admin-api'
 function createApp() {
   const app = new Hono()
 
-  app.use('/admin/api/*', async (c, next) => {
+  app.use('/api/admin/*', async (c, next) => {
     c.set('user', {
       userId: 'user-1',
       email: 'admin@example.com',
@@ -31,15 +31,15 @@ function createApp() {
     await next()
   })
 
-  app.route('/admin/api', adminApiRoutes)
+  app.route('/api/admin', adminApiRoutes)
   return app
 }
 
-describe('GET /admin/api/me', () => {
+describe('GET /api/admin/me', () => {
   it('returns the current admin session and bootstrap metadata', async () => {
     const app = createApp()
 
-    const res = await app.request('/admin/api/me')
+    const res = await app.request('/api/admin/me')
     const json = await res.json()
 
     expect(res.status).toBe(200)

@@ -122,6 +122,22 @@ export interface WorkerBlogConfig {
 
 export type WorkerBlogApp = Hono<{ Bindings: Bindings; Variables: Variables }>
 
+function registerApiPluginRoutes(
+  app: WorkerBlogApp,
+  routes: Array<{ path: string; handler: Hono }>,
+): void {
+  for (const route of routes) {
+    if (route.path.startsWith('/api/')) {
+      app.route(route.path, route.handler as any)
+      continue
+    }
+
+    if (route.path.startsWith('/auth/')) {
+      app.route(`/api${route.path}`, route.handler as any)
+    }
+  }
+}
+
 // ============================================================================
 // Application Factory
 // ============================================================================
@@ -196,13 +212,13 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
     }
   }
 
-  // Admin panel access control: require authentication and admin role by default
+  // Admin API access control: require authentication and admin role by default
   const adminRoles = config.adminAccessRoles || ['admin']
-  app.use('/admin/*', requireAuth())
-  app.use('/admin/*', requireRole(adminRoles))
+  app.use('/api/admin/*', requireAuth())
+  app.use('/api/admin/*', requireRole(adminRoles))
 
   // Plugin dynamic menu items for admin sidebar
-  app.use('/admin/*', pluginMenuMiddleware())
+  app.use('/api/admin/*', pluginMenuMiddleware())
 
   // Core routes
   // Routes are being imported incrementally from routes/*
@@ -210,65 +226,52 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   app.route('/api', apiRoutes)
   app.route('/api/media', apiMediaRoutes)
   app.route('/api/system', apiSystemRoutes)
-  app.route('/admin/api/collections', adminApiCollectionsRoutes)
-  app.route('/admin/api/profile', adminApiProfileRoutes)
-  app.route('/admin/api', adminApiRoutes)
-  app.route('/forms', publicFormsRoutes)
+  app.route('/api/admin/collections', adminApiCollectionsRoutes)
+  app.route('/api/admin/profile', adminApiProfileRoutes)
+  app.route('/api/admin', adminApiRoutes)
   app.route('/api/forms', publicFormsRoutes) // API endpoint for form submissions
-  app.route('/admin/database-tools', createDatabaseToolsAdminRoutes())
-  app.route('/admin/seed-data', createSeedDataAdminRoutes())
-  app.route('/admin/api/content', adminApiContentRoutes)
-  app.route('/admin/api/forms', adminApiFormsRoutes)
-  app.route('/admin/api/media', adminApiMediaRoutes)
+  app.route('/api/admin/database-tools', createDatabaseToolsAdminRoutes())
+  app.route('/api/admin/seed-data', createSeedDataAdminRoutes())
+  app.route('/api/admin/content', adminApiContentRoutes)
+  app.route('/api/admin/forms', adminApiFormsRoutes)
+  app.route('/api/admin/media', adminApiMediaRoutes)
   // Security audit middleware - logs auth events (login, register, logout)
-  app.use('/auth/*', securityAuditMiddleware())
+  app.use('/api/auth/*', securityAuditMiddleware())
 
   // Plugin routes - Security Audit (MUST be registered BEFORE admin/plugins to avoid route conflict)
   if (securityAuditPlugin.routes && securityAuditPlugin.routes.length > 0) {
-    for (const route of securityAuditPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, securityAuditPlugin.routes as any)
   }
 
   // Plugin routes - AI Search (MUST be registered BEFORE admin/plugins to avoid route conflict)
   // Register AI Search routes first so they take precedence over the generic /:id handler
   if (aiSearchPlugin.routes && aiSearchPlugin.routes.length > 0) {
-    for (const route of aiSearchPlugin.routes) {
-      app.route(route.path, route.handler)
-    }
+    registerApiPluginRoutes(app, aiSearchPlugin.routes as any)
   }
 
   // Plugin routes - Cache (dashboard and management API)
   // Fixes GitHub Issue #461: Cache routes were not registered
-  app.route('/admin/cache', cachePlugin.getRoutes())
+  app.route('/api/admin/cache', cachePlugin.getRoutes())
 
   // Plugin routes - OAuth Providers (MUST be registered BEFORE admin/plugins to avoid route conflict)
   if (oauthProvidersPlugin.routes && oauthProvidersPlugin.routes.length > 0) {
-    for (const route of oauthProvidersPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, oauthProvidersPlugin.routes as any)
   }
 
   // Plugin routes - User Profiles
   if (userProfilesPlugin.routes && userProfilesPlugin.routes.length > 0) {
-    for (const route of userProfilesPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, userProfilesPlugin.routes as any)
   }
 
   // Plugin routes - OTP Login (MUST be registered BEFORE admin/plugins to avoid route conflict)
   // Register OTP Login routes first so they take precedence over the generic /:id handler
   if (otpLoginPlugin.routes && otpLoginPlugin.routes.length > 0) {
-    for (const route of otpLoginPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, otpLoginPlugin.routes as any)
   }
 
   // Plugin routes - Analytics (must be before /admin/plugins catch-all)
   if (analyticsPlugin.routes && analyticsPlugin.routes.length > 0) {
-    for (const route of analyticsPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, analyticsPlugin.routes as any)
   }
 
   // Public event tracking API — POST /api/events (open), GET /api/events (admin)
@@ -276,30 +279,24 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
 
   // Plugin routes - Stripe (must be before /admin/plugins catch-all)
   if (stripePlugin.routes && stripePlugin.routes.length > 0) {
-    for (const route of stripePlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, stripePlugin.routes as any)
   }
 
   app.route('/', createAdminSpaRoutes())
-  app.route('/auth', authRoutes)
+  app.route('/api/auth', authRoutes)
 
   // Test cleanup routes (only for development/test environments)
   app.route('/', testCleanupRoutes)
 
   // Plugin routes - Email
   if (emailPlugin.routes && emailPlugin.routes.length > 0) {
-    for (const route of emailPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, emailPlugin.routes as any)
   }
 
   // Plugin routes - Magic Link Auth (passwordless authentication via email links)
   const magicLinkPlugin = createMagicLinkAuthPlugin()
   if (magicLinkPlugin.routes && magicLinkPlugin.routes.length > 0) {
-    for (const route of magicLinkPlugin.routes) {
-      app.route(route.path, route.handler as any)
-    }
+    registerApiPluginRoutes(app, magicLinkPlugin.routes as any)
   }
 
   // Serve favicon
@@ -358,13 +355,13 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
     }
   }
 
-  // Root redirect to login
+  // Root redirect to the admin SPA
   app.get('/', (c) => {
-    return c.redirect('/auth/login')
+    return c.redirect('/admin')
   })
 
   // Health check
-  app.get('/health', (c) => {
+  app.get('/api/health', (c) => {
     return c.json({
       name: appName,
       version: appVersion,

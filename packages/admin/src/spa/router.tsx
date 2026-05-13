@@ -28,7 +28,7 @@ import { ActivityLogsPage } from './pages/activity-logs'
 export const router = createBrowserRouter(
   [
     {
-      path: '/auth',
+      path: '/admin/auth',
       element: <AuthLayout />,
       children: [
         { path: 'login', element: <LoginPage /> },

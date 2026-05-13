@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { DatabaseToolsService } from './services/database-service'
-import { renderDatabaseTablePage, DatabaseTablePageData } from '@worker-blog/admin/templates/pages/admin-database-table.template'
 import { requireAuth } from '../../../middleware'
 
 type Bindings = {
@@ -22,7 +21,7 @@ export function createDatabaseToolsAdminRoutes() {
   router.use('*', requireAuth())
 
   // Get database statistics
-  router.get('/api/stats', async (c) => {
+  router.get('/stats', async (c) => {
     try {
       const user = c.get('user')
       
@@ -51,7 +50,7 @@ export function createDatabaseToolsAdminRoutes() {
   })
 
   // Truncate all data except admin user
-  router.post('/api/truncate', async (c) => {
+  router.post('/truncate', async (c) => {
     try {
       const user = c.get('user')
       
@@ -96,7 +95,7 @@ export function createDatabaseToolsAdminRoutes() {
   })
 
   // Create backup
-  router.post('/api/backup', async (c) => {
+  router.post('/backup', async (c) => {
     try {
       const user = c.get('user')
       
@@ -128,7 +127,7 @@ export function createDatabaseToolsAdminRoutes() {
   })
 
   // Validate database
-  router.get('/api/validate', async (c) => {
+  router.get('/validate', async (c) => {
     try {
       const user = c.get('user')
 
@@ -157,7 +156,7 @@ export function createDatabaseToolsAdminRoutes() {
   })
 
   // Get table data (API endpoint)
-  router.get('/api/tables/:tableName', async (c) => {
+  router.get('/tables/:tableName', async (c) => {
     try {
       const user = c.get('user')
 
@@ -188,50 +187,6 @@ export function createDatabaseToolsAdminRoutes() {
         success: false,
         error: `Failed to fetch table data: ${error}`
       }, 500)
-    }
-  })
-
-  // View table data page
-  router.get('/tables/:tableName', async (c) => {
-    try {
-      const user = c.get('user')
-
-      if (!user || user.role !== 'admin') {
-        return c.redirect('/admin/login')
-      }
-
-      const tableName = c.req.param('tableName')
-      const page = parseInt(c.req.query('page') || '1')
-      const pageSize = parseInt(c.req.query('pageSize') || '20')
-      const sortColumn = c.req.query('sort')
-      const sortDirection = (c.req.query('dir') || 'asc') as 'asc' | 'desc'
-
-      const offset = (page - 1) * pageSize
-
-      const db = c.env.DB
-      const service = new DatabaseToolsService(db)
-      const tableData = await service.getTableData(tableName, pageSize, offset, sortColumn, sortDirection)
-
-      const pageData: DatabaseTablePageData = {
-        user: {
-          name: user.email.split('@')[0] || 'Unknown',
-          email: user.email,
-          role: user.role
-        },
-        tableName: tableData.tableName,
-        columns: tableData.columns,
-        rows: tableData.rows,
-        totalRows: tableData.totalRows,
-        currentPage: page,
-        pageSize: pageSize,
-        sortColumn: sortColumn,
-        sortDirection: sortDirection
-      }
-
-      return c.html(renderDatabaseTablePage(pageData))
-    } catch (error) {
-      console.error('Error rendering table page:', error)
-      return c.text(`Error: ${error}`, 500)
     }
   })
 

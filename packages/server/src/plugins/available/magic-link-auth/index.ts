@@ -9,7 +9,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import type { Plugin, PluginContext } from '@worker-blog/shared/types'
 import type { D1Database } from '@cloudflare/workers-types'
-import { AuthManager, getJwtExpirySecondsFromDb } from '../../../middleware/auth'
+import { AuthManager, getJwtExpirySecondsFromDb } from '../../../middleware/api/auth'
 
 const magicLinkRequestSchema = z.object({
   email: z.string().email('Valid email is required')
@@ -95,7 +95,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
 
       // Generate magic link URL
       const baseUrl = new URL(c.req.url).origin
-      const magicLink = `${baseUrl}/auth/magic-link/verify?token=${token}`
+      const magicLink = `${baseUrl}/api/auth/magic-link/verify?token=${token}`
 
       // Send email via email plugin
       try {
@@ -135,7 +135,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
       const token = c.req.query('token')
 
       if (!token) {
-        return c.redirect('/auth/login?error=Invalid magic link')
+        return c.redirect('/admin/auth/login?error=Invalid magic link')
       }
 
       const db = c.env.DB as D1Database
@@ -147,12 +147,12 @@ export function createMagicLinkAuthPlugin(): Plugin {
       `).bind(token).first() as any
 
       if (!magicLink) {
-        return c.redirect('/auth/login?error=Invalid or expired magic link')
+        return c.redirect('/admin/auth/login?error=Invalid or expired magic link')
       }
 
       // Check expiration
       if (magicLink.expires_at < Date.now()) {
-        return c.redirect('/auth/login?error=This magic link has expired')
+        return c.redirect('/admin/auth/login?error=This magic link has expired')
       }
 
       // Get or create user
@@ -190,7 +190,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
           role: 'viewer'
         }
       } else if (!user) {
-        return c.redirect('/auth/login?error=No account found for this email')
+        return c.redirect('/admin/auth/login?error=No account found for this email')
       }
 
       // Mark magic link as used
@@ -222,7 +222,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
       return c.redirect('/admin/dashboard?message=Successfully signed in')
     } catch (error) {
       console.error('Magic link verification error:', error)
-      return c.redirect('/auth/login?error=Authentication failed')
+      return c.redirect('/admin/auth/login?error=Authentication failed')
     }
   })
 
@@ -237,7 +237,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
     dependencies: ['email'],
 
     routes: [{
-      path: '/auth/magic-link',
+      path: '/api/auth/magic-link',
       handler: magicLinkRoutes,
       description: 'Magic link authentication endpoints',
       requiresAuth: false
@@ -250,7 +250,7 @@ export function createMagicLinkAuthPlugin(): Plugin {
 
     async activate(context: PluginContext) {
       console.log('Magic link authentication activated')
-      console.log('Users can now sign in via /auth/magic-link/request')
+      console.log('Users can now sign in via /api/auth/magic-link/request')
     },
 
     async deactivate(context: PluginContext) {

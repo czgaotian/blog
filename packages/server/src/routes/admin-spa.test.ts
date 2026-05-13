@@ -54,7 +54,7 @@ describe('admin SPA routes', () => {
   it('does not serve SPA fallback for admin API paths', async () => {
     const { app, assetsFetch } = createApp(new Response('index', { status: 200 }))
 
-    const res = await app.request('/admin/api/me', {
+    const res = await app.request('/api/admin/me', {
       headers: { Accept: 'text/html' },
     })
 

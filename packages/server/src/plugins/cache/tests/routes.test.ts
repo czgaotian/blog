@@ -114,29 +114,29 @@ describe('Cache Routes', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     app = new Hono()
-    app.route('/admin/cache', cacheRoutes)
+    app.route('/api/admin/cache', cacheRoutes)
   })
 
-  describe('GET /admin/cache', () => {
-    it('should return cache dashboard HTML', async () => {
-      const res = await app.request('/admin/cache')
+  describe('GET /api/admin/cache', () => {
+    it('should return cache summary JSON', async () => {
+      const res = await app.request('/api/admin/cache')
 
       expect(res.status).toBe(200)
-      // The response is HTML (either mocked or real)
-      const text = await res.text()
-      expect(text).toContain('html')
+      const json = await res.json()
+      expect(json.success).toBe(true)
+      expect(json.data.stats).toBeDefined()
     })
 
     it('should call getAllCacheStats', async () => {
-      await app.request('/admin/cache')
+      await app.request('/api/admin/cache')
 
       expect(getAllCacheStats).toHaveBeenCalled()
     })
   })
 
-  describe('GET /admin/cache/stats', () => {
+  describe('GET /api/admin/cache/stats', () => {
     it('should return JSON stats for all namespaces', async () => {
-      const res = await app.request('/admin/cache/stats')
+      const res = await app.request('/api/admin/cache/stats')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -148,9 +148,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/stats/:namespace', () => {
+  describe('GET /api/admin/cache/stats/:namespace', () => {
     it('should return stats for a specific namespace', async () => {
-      const res = await app.request('/admin/cache/stats/content')
+      const res = await app.request('/api/admin/cache/stats/content')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -160,7 +160,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 404 for unknown namespace', async () => {
-      const res = await app.request('/admin/cache/stats/unknown')
+      const res = await app.request('/api/admin/cache/stats/unknown')
       const json = await res.json()
 
       expect(res.status).toBe(404)
@@ -169,9 +169,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('POST /admin/cache/clear', () => {
+  describe('POST /api/admin/cache/clear', () => {
     it('should clear all caches', async () => {
-      const res = await app.request('/admin/cache/clear', {
+      const res = await app.request('/api/admin/cache/clear', {
         method: 'POST'
       })
       const json = await res.json()
@@ -183,9 +183,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('POST /admin/cache/clear/:namespace', () => {
+  describe('POST /api/admin/cache/clear/:namespace', () => {
     it('should clear cache for a specific namespace', async () => {
-      const res = await app.request('/admin/cache/clear/content', {
+      const res = await app.request('/api/admin/cache/clear/content', {
         method: 'POST'
       })
       const json = await res.json()
@@ -196,7 +196,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 404 for unknown namespace', async () => {
-      const res = await app.request('/admin/cache/clear/unknown', {
+      const res = await app.request('/api/admin/cache/clear/unknown', {
         method: 'POST'
       })
       const json = await res.json()
@@ -206,9 +206,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('POST /admin/cache/invalidate', () => {
+  describe('POST /api/admin/cache/invalidate', () => {
     it('should invalidate cache entries by pattern', async () => {
-      const res = await app.request('/admin/cache/invalidate', {
+      const res = await app.request('/api/admin/cache/invalidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pattern: 'content:*' })
@@ -222,7 +222,7 @@ describe('Cache Routes', () => {
     })
 
     it('should invalidate in specific namespace', async () => {
-      const res = await app.request('/admin/cache/invalidate', {
+      const res = await app.request('/api/admin/cache/invalidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pattern: '*', namespace: 'content' })
@@ -235,7 +235,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 400 when pattern is missing', async () => {
-      const res = await app.request('/admin/cache/invalidate', {
+      const res = await app.request('/api/admin/cache/invalidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -248,7 +248,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 404 for unknown namespace', async () => {
-      const res = await app.request('/admin/cache/invalidate', {
+      const res = await app.request('/api/admin/cache/invalidate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ pattern: '*', namespace: 'unknown' })
@@ -260,9 +260,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/health', () => {
+  describe('GET /api/admin/cache/health', () => {
     it('should return health check results', async () => {
-      const res = await app.request('/admin/cache/health')
+      const res = await app.request('/api/admin/cache/health')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -273,7 +273,7 @@ describe('Cache Routes', () => {
     })
 
     it('should include namespace health status', async () => {
-      const res = await app.request('/admin/cache/health')
+      const res = await app.request('/api/admin/cache/health')
       const json = await res.json()
 
       const namespaceHealth = json.data.namespaces[0]
@@ -284,9 +284,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/browser', () => {
+  describe('GET /api/admin/cache/browser', () => {
     it('should return cache entries', async () => {
-      const res = await app.request('/admin/cache/browser')
+      const res = await app.request('/api/admin/cache/browser')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -296,7 +296,7 @@ describe('Cache Routes', () => {
     })
 
     it('should filter by namespace', async () => {
-      const res = await app.request('/admin/cache/browser?namespace=content')
+      const res = await app.request('/api/admin/cache/browser?namespace=content')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -304,7 +304,7 @@ describe('Cache Routes', () => {
     })
 
     it('should filter by search query', async () => {
-      const res = await app.request('/admin/cache/browser?search=page')
+      const res = await app.request('/api/admin/cache/browser?search=page')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -312,7 +312,7 @@ describe('Cache Routes', () => {
     })
 
     it('should sort by size', async () => {
-      const res = await app.request('/admin/cache/browser?sort=size')
+      const res = await app.request('/api/admin/cache/browser?sort=size')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -320,7 +320,7 @@ describe('Cache Routes', () => {
     })
 
     it('should sort by key', async () => {
-      const res = await app.request('/admin/cache/browser?sort=key')
+      const res = await app.request('/api/admin/cache/browser?sort=key')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -328,7 +328,7 @@ describe('Cache Routes', () => {
     })
 
     it('should limit results', async () => {
-      const res = await app.request('/admin/cache/browser?limit=10')
+      const res = await app.request('/api/admin/cache/browser?limit=10')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -336,9 +336,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/browser/:namespace/:key', () => {
+  describe('GET /api/admin/cache/browser/:namespace/:key', () => {
     it('should return specific cache entry details', async () => {
-      const res = await app.request('/admin/cache/browser/content/test-key')
+      const res = await app.request('/api/admin/cache/browser/content/test-key')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -348,7 +348,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 404 for unknown namespace', async () => {
-      const res = await app.request('/admin/cache/browser/unknown/test-key')
+      const res = await app.request('/api/admin/cache/browser/unknown/test-key')
       const json = await res.json()
 
       expect(res.status).toBe(404)
@@ -356,7 +356,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 404 for non-existent entry', async () => {
-      const res = await app.request('/admin/cache/browser/content/non-existent-key')
+      const res = await app.request('/api/admin/cache/browser/content/non-existent-key')
       const json = await res.json()
 
       expect(res.status).toBe(404)
@@ -365,9 +365,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/analytics', () => {
+  describe('GET /api/admin/cache/analytics', () => {
     it('should return analytics data', async () => {
-      const res = await app.request('/admin/cache/analytics')
+      const res = await app.request('/api/admin/cache/analytics')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -379,7 +379,7 @@ describe('Cache Routes', () => {
     })
 
     it('should include performance metrics', async () => {
-      const res = await app.request('/admin/cache/analytics')
+      const res = await app.request('/api/admin/cache/analytics')
       const json = await res.json()
 
       expect(json.data.performance.dbQueriesAvoided).toBeDefined()
@@ -388,7 +388,7 @@ describe('Cache Routes', () => {
     })
 
     it('should include overview stats', async () => {
-      const res = await app.request('/admin/cache/analytics')
+      const res = await app.request('/api/admin/cache/analytics')
       const json = await res.json()
 
       expect(json.data.overview.totalHits).toBeDefined()
@@ -398,9 +398,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/analytics/trends', () => {
+  describe('GET /api/admin/cache/analytics/trends', () => {
     it('should return trends data', async () => {
-      const res = await app.request('/admin/cache/analytics/trends')
+      const res = await app.request('/api/admin/cache/analytics/trends')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -410,9 +410,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('GET /admin/cache/analytics/top-keys', () => {
+  describe('GET /api/admin/cache/analytics/top-keys', () => {
     it('should return top keys placeholder', async () => {
-      const res = await app.request('/admin/cache/analytics/top-keys')
+      const res = await app.request('/api/admin/cache/analytics/top-keys')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -422,7 +422,7 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('POST /admin/cache/warm', () => {
+  describe('POST /api/admin/cache/warm', () => {
     it('should warm all caches', async () => {
       // Create app with mock env
       const appWithEnv = new Hono()
@@ -430,9 +430,9 @@ describe('Cache Routes', () => {
         c.env = { DB: {} }
         await next()
       })
-      appWithEnv.route('/admin/cache', cacheRoutes)
+      appWithEnv.route('/api/admin/cache', cacheRoutes)
 
-      const res = await appWithEnv.request('/admin/cache/warm', {
+      const res = await appWithEnv.request('/api/admin/cache/warm', {
         method: 'POST'
       })
       const json = await res.json()
@@ -451,9 +451,9 @@ describe('Cache Routes', () => {
         c.env = { DB: {} }
         await next()
       })
-      appWithEnv.route('/admin/cache', cacheRoutes)
+      appWithEnv.route('/api/admin/cache', cacheRoutes)
 
-      const res = await appWithEnv.request('/admin/cache/warm', {
+      const res = await appWithEnv.request('/api/admin/cache/warm', {
         method: 'POST'
       })
       const json = await res.json()
@@ -464,9 +464,9 @@ describe('Cache Routes', () => {
     })
   })
 
-  describe('POST /admin/cache/warm/:namespace', () => {
+  describe('POST /api/admin/cache/warm/:namespace', () => {
     it('should warm specific namespace', async () => {
-      const res = await app.request('/admin/cache/warm/content', {
+      const res = await app.request('/api/admin/cache/warm/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -485,7 +485,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 400 when entries is missing', async () => {
-      const res = await app.request('/admin/cache/warm/content', {
+      const res = await app.request('/api/admin/cache/warm/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({})
@@ -498,7 +498,7 @@ describe('Cache Routes', () => {
     })
 
     it('should return 400 when entries is not an array', async () => {
-      const res = await app.request('/admin/cache/warm/content', {
+      const res = await app.request('/api/admin/cache/warm/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries: 'not-an-array' })
@@ -512,7 +512,7 @@ describe('Cache Routes', () => {
     it('should handle namespace warming errors', async () => {
       vi.mocked(warmNamespace).mockRejectedValueOnce(new Error('Namespace warming failed'))
 
-      const res = await app.request('/admin/cache/warm/content', {
+      const res = await app.request('/api/admin/cache/warm/content', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ entries: [] })
@@ -531,7 +531,7 @@ describe('Cache Routes - Edge Cases', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     app = new Hono()
-    app.route('/admin/cache', cacheRoutes)
+    app.route('/api/admin/cache', cacheRoutes)
   })
 
   describe('Health status calculation', () => {
@@ -550,7 +550,7 @@ describe('Cache Routes - Edge Cases', () => {
         }
       } as any)
 
-      const res = await app.request('/admin/cache/health')
+      const res = await app.request('/api/admin/cache/health')
       const json = await res.json()
 
       expect(json.data.status).toBe('healthy')
@@ -571,7 +571,7 @@ describe('Cache Routes - Edge Cases', () => {
         }
       } as any)
 
-      const res = await app.request('/admin/cache/health')
+      const res = await app.request('/api/admin/cache/health')
       const json = await res.json()
 
       expect(json.data.status).toBe('warning')
@@ -592,7 +592,7 @@ describe('Cache Routes - Edge Cases', () => {
         }
       } as any)
 
-      const res = await app.request('/admin/cache/health')
+      const res = await app.request('/api/admin/cache/health')
       const json = await res.json()
 
       expect(json.data.status).toBe('unhealthy')
@@ -615,7 +615,7 @@ describe('Cache Routes - Edge Cases', () => {
         }
       } as any)
 
-      const res = await app.request('/admin/cache/analytics')
+      const res = await app.request('/api/admin/cache/analytics')
       const json = await res.json()
 
       expect(res.status).toBe(200)
@@ -635,7 +635,7 @@ describe('Cache Routes - Edge Cases', () => {
         getEntry: vi.fn()
       } as any)
 
-      const res = await app.request('/admin/cache/browser')
+      const res = await app.request('/api/admin/cache/browser')
       const json = await res.json()
 
       expect(res.status).toBe(200)

@@ -21,7 +21,7 @@ export function AcceptInvitationPage() {
         <Alert title="Invalid invitation" tone="danger">
           This invitation link is invalid or has expired.
         </Alert>
-        <Link to="/auth/login" className="text-sm underline underline-offset-4">
+        <Link to="/admin/auth/login" className="text-sm underline underline-offset-4">
           Go to login
         </Link>
       </div>

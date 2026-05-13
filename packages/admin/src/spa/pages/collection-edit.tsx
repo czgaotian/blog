@@ -68,7 +68,7 @@ export function CollectionEditPage() {
   const activeFieldIdRef = useRef<string>('')
   const updateField = useMutation<unknown, Error, UpdateFieldRequest>({
     mutationFn: (data: UpdateFieldRequest) =>
-      adminFetch(`/admin/api/collections/${id}/fields/${activeFieldIdRef.current}`, {
+      adminFetch(`/api/admin/collections/${id}/fields/${activeFieldIdRef.current}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
@@ -76,7 +76,7 @@ export function CollectionEditPage() {
   })
   const deleteField = useMutation<unknown, Error, void>({
     mutationFn: () =>
-      adminFetch(`/admin/api/collections/${id}/fields/${activeFieldIdRef.current}`, {
+      adminFetch(`/api/admin/collections/${id}/fields/${activeFieldIdRef.current}`, {
         method: 'DELETE',
       }),
     onSuccess: () => qc.invalidateQueries({ queryKey: ['admin', 'collections', id] }),

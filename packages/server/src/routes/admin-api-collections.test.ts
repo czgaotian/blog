@@ -114,13 +114,13 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/collections', adminApiCollectionsRoutes)
+  app.route('/api/admin/collections', adminApiCollectionsRoutes)
   return app
 }
 
 function createUnauthApp() {
   const app = new Hono()
-  app.route('/admin/api/collections', adminApiCollectionsRoutes)
+  app.route('/api/admin/collections', adminApiCollectionsRoutes)
   return app
 }
 
@@ -129,10 +129,10 @@ const baseEnv = { DB: makeMockDb().db, CACHE_KV: mockCacheKV }
 // ──────────────────────────────────────────────
 // GET /
 // ──────────────────────────────────────────────
-describe('GET /admin/api/collections', () => {
+describe('GET /api/admin/collections', () => {
   it('returns collections list with correct shape', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections', {}, baseEnv)
+    const res = await app.request('/api/admin/collections', {}, baseEnv)
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('collections')
@@ -151,7 +151,7 @@ describe('GET /admin/api/collections', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = createUnauthApp()
-    const res = await app.request('/admin/api/collections', {}, baseEnv)
+    const res = await app.request('/api/admin/collections', {}, baseEnv)
     expect(res.status).toBe(401)
   })
 })
@@ -159,10 +159,10 @@ describe('GET /admin/api/collections', () => {
 // ──────────────────────────────────────────────
 // GET /:id
 // ──────────────────────────────────────────────
-describe('GET /admin/api/collections/:id', () => {
+describe('GET /api/admin/collections/:id', () => {
   it('returns collection detail with fields from schema', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {}, baseEnv)
+    const res = await app.request('/api/admin/collections/col1', {}, baseEnv)
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('id', 'col1')
@@ -177,7 +177,7 @@ describe('GET /admin/api/collections/:id', () => {
   it('returns 404 for unknown id', async () => {
     const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/unknown', {}, { DB: db, CACHE_KV: mockCacheKV })
+    const res = await app.request('/api/admin/collections/unknown', {}, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(404)
     const json = await res.json() as any
     expect(json).toHaveProperty('error')
@@ -185,7 +185,7 @@ describe('GET /admin/api/collections/:id', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = createUnauthApp()
-    const res = await app.request('/admin/api/collections/col1', {}, baseEnv)
+    const res = await app.request('/api/admin/collections/col1', {}, baseEnv)
     expect(res.status).toBe(401)
   })
 })
@@ -193,7 +193,7 @@ describe('GET /admin/api/collections/:id', () => {
 // ──────────────────────────────────────────────
 // POST /
 // ──────────────────────────────────────────────
-describe('POST /admin/api/collections', () => {
+describe('POST /api/admin/collections', () => {
   it('creates a collection and returns 201', async () => {
     // Make sure no existing collection with that name
     const { db, runCalls } = makeMockDb()
@@ -216,7 +216,7 @@ describe('POST /admin/api/collections', () => {
     }
 
     const app = createApp()
-    const res = await app.request('/admin/api/collections', {
+    const res = await app.request('/api/admin/collections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'new_posts', displayName: 'New Posts' }),
@@ -230,7 +230,7 @@ describe('POST /admin/api/collections', () => {
 
   it('returns 422 on validation failure (missing displayName)', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections', {
+    const res = await app.request('/api/admin/collections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'new_posts' }),
@@ -242,7 +242,7 @@ describe('POST /admin/api/collections', () => {
 
   it('returns 422 on validation failure (invalid name chars)', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections', {
+    const res = await app.request('/api/admin/collections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'Invalid Name!', displayName: 'Invalid' }),
@@ -254,7 +254,7 @@ describe('POST /admin/api/collections', () => {
     // mockDb returns existing by default for "SELECT id FROM collections WHERE name = ?"
     const { db } = makeMockDb({ collectionFirst: { id: 'existing-id' } })
     const app = createApp()
-    const res = await app.request('/admin/api/collections', {
+    const res = await app.request('/api/admin/collections', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name: 'blog_posts', displayName: 'Blog Posts' }),
@@ -266,11 +266,11 @@ describe('POST /admin/api/collections', () => {
 // ──────────────────────────────────────────────
 // PATCH /:id
 // ──────────────────────────────────────────────
-describe('PATCH /admin/api/collections/:id', () => {
+describe('PATCH /api/admin/collections/:id', () => {
   it('updates a collection and returns 200', async () => {
     const { db, runCalls } = makeMockDb()
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {
+    const res = await app.request('/api/admin/collections/col1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ displayName: 'Updated Name' }),
@@ -284,7 +284,7 @@ describe('PATCH /admin/api/collections/:id', () => {
   it('returns 404 for unknown id', async () => {
     const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/unknown', {
+    const res = await app.request('/api/admin/collections/unknown', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ displayName: 'Updated Name' }),
@@ -294,7 +294,7 @@ describe('PATCH /admin/api/collections/:id', () => {
 
   it('returns 400 when no fields to update', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {
+    const res = await app.request('/api/admin/collections/col1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -306,11 +306,11 @@ describe('PATCH /admin/api/collections/:id', () => {
 // ──────────────────────────────────────────────
 // DELETE /:id
 // ──────────────────────────────────────────────
-describe('DELETE /admin/api/collections/:id', () => {
+describe('DELETE /api/admin/collections/:id', () => {
   it('deletes collection with no content', async () => {
     const { db, runCalls } = makeMockDb({ contentCount: 0 })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {
+    const res = await app.request('/api/admin/collections/col1', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(200)
@@ -322,7 +322,7 @@ describe('DELETE /admin/api/collections/:id', () => {
   it('blocks delete when collection has content', async () => {
     const { db } = makeMockDb({ contentCount: 3 })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {
+    const res = await app.request('/api/admin/collections/col1', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(400)
@@ -336,7 +336,7 @@ describe('DELETE /admin/api/collections/:id', () => {
       contentCount: 0,
     })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1', {
+    const res = await app.request('/api/admin/collections/col1', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(400)
@@ -347,7 +347,7 @@ describe('DELETE /admin/api/collections/:id', () => {
   it('returns 404 for unknown id', async () => {
     const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/unknown', {
+    const res = await app.request('/api/admin/collections/unknown', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(404)
@@ -357,7 +357,7 @@ describe('DELETE /admin/api/collections/:id', () => {
 // ──────────────────────────────────────────────
 // POST /:id/fields
 // ──────────────────────────────────────────────
-describe('POST /admin/api/collections/:id/fields', () => {
+describe('POST /api/admin/collections/:id/fields', () => {
   it('adds a field to schema and returns 201', async () => {
     // Collection with no existing "summary" field
     const colNoSummary = {
@@ -366,7 +366,7 @@ describe('POST /admin/api/collections/:id/fields', () => {
     }
     const { db } = makeMockDb({ collectionFirst: colNoSummary })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields', {
+    const res = await app.request('/api/admin/collections/col1/fields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldName: 'summary', fieldLabel: 'Summary', fieldType: 'text' }),
@@ -379,7 +379,7 @@ describe('POST /admin/api/collections/:id/fields', () => {
 
   it('returns 422 when fieldName has invalid chars', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields', {
+    const res = await app.request('/api/admin/collections/col1/fields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldName: 'My Field!', fieldLabel: 'My Field', fieldType: 'text' }),
@@ -390,7 +390,7 @@ describe('POST /admin/api/collections/:id/fields', () => {
   it('returns 409 when field already exists', async () => {
     // Collection with schema that already has "title" field
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields', {
+    const res = await app.request('/api/admin/collections/col1/fields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldName: 'title', fieldLabel: 'Title', fieldType: 'text' }),
@@ -402,7 +402,7 @@ describe('POST /admin/api/collections/:id/fields', () => {
 
   it('returns 422 on missing required fields', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields', {
+    const res = await app.request('/api/admin/collections/col1/fields', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldName: 'summary' }),
@@ -414,10 +414,10 @@ describe('POST /admin/api/collections/:id/fields', () => {
 // ──────────────────────────────────────────────
 // PUT /:id/fields/:fieldId
 // ──────────────────────────────────────────────
-describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
+describe('PUT /api/admin/collections/:id/fields/:fieldId', () => {
   it('updates a schema field (schema- prefix)', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/schema-title', {
+    const res = await app.request('/api/admin/collections/col1/fields/schema-title', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldLabel: 'Updated Title' }),
@@ -430,7 +430,7 @@ describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
   it('returns 404 when collection not found', async () => {
     const { db } = makeMockDb({ collectionFirst: null })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/unknown/fields/schema-title', {
+    const res = await app.request('/api/admin/collections/unknown/fields/schema-title', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldLabel: 'Title' }),
@@ -442,7 +442,7 @@ describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
     // For legacy (non-schema-) fields with no matching fields in body
     const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/field1', {
+    const res = await app.request('/api/admin/collections/col1/fields/field1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -454,10 +454,10 @@ describe('PUT /admin/api/collections/:id/fields/:fieldId', () => {
 // ──────────────────────────────────────────────
 // DELETE /:id/fields/:fieldId
 // ──────────────────────────────────────────────
-describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
+describe('DELETE /api/admin/collections/:id/fields/:fieldId', () => {
   it('deletes a schema field (schema- prefix)', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/schema-title', {
+    const res = await app.request('/api/admin/collections/col1/fields/schema-title', {
       method: 'DELETE',
     }, baseEnv)
     expect(res.status).toBe(200)
@@ -467,7 +467,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
 
   it('returns 404 when schema field not found', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/schema-nonexistent', {
+    const res = await app.request('/api/admin/collections/col1/fields/schema-nonexistent', {
       method: 'DELETE',
     }, baseEnv)
     expect(res.status).toBe(404)
@@ -476,7 +476,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
   it('deletes a legacy content_fields row', async () => {
     const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/field1', {
+    const res = await app.request('/api/admin/collections/col1/fields/field1', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(200)
@@ -485,7 +485,7 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
   it('returns 404 when legacy field not found', async () => {
     const { db } = makeMockDb({ fieldFirst: null })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/field99', {
+    const res = await app.request('/api/admin/collections/col1/fields/field99', {
       method: 'DELETE',
     }, { DB: db, CACHE_KV: mockCacheKV })
     expect(res.status).toBe(404)
@@ -495,11 +495,11 @@ describe('DELETE /admin/api/collections/:id/fields/:fieldId', () => {
 // ──────────────────────────────────────────────
 // POST /:id/fields/reorder
 // ──────────────────────────────────────────────
-describe('POST /admin/api/collections/:id/fields/reorder', () => {
+describe('POST /api/admin/collections/:id/fields/reorder', () => {
   it('reorders content_fields and returns 200', async () => {
     const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }, { id: 'field2' }] })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/reorder', {
+    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldIds: ['field2', 'field1'] }),
@@ -511,7 +511,7 @@ describe('POST /admin/api/collections/:id/fields/reorder', () => {
 
   it('returns 400 when fieldIds is missing', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/reorder', {
+    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({}),
@@ -523,7 +523,7 @@ describe('POST /admin/api/collections/:id/fields/reorder', () => {
     // Only field1 belongs to collection; field99 is filtered out
     const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }] })
     const app = createApp()
-    const res = await app.request('/admin/api/collections/col1/fields/reorder', {
+    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ fieldIds: ['field99', 'field1'] }),

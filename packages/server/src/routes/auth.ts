@@ -2,10 +2,8 @@ import { Hono } from 'hono'
 // import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { getCookie, setCookie } from 'hono/cookie'
-import { html } from 'hono/html'
 import { AuthManager, requireAuth, generateCsrfToken, rateLimit } from '../middleware'
 import { getJwtExpirySecondsFromDb, getJwtRefreshGraceSecondsFromDb } from '../middleware/auth'
-import { serveAdminSpaShell } from './admin-spa'
 import { getCacheService, CACHE_CONFIGS } from '../services'
 import { authValidationService, isRegistrationEnabled, isFirstUserRegistration } from '../services/auth-validation'
 import type { RegistrationData } from '../services/auth-validation'
@@ -41,16 +39,6 @@ function clearCsrfCookie(c: any): void {
 }
 
 const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
-
-// Login page (SPA shell)
-authRoutes.get('/login', async (c) => {
-  return serveAdminSpaShell(c)
-})
-
-// Registration page (SPA shell)
-authRoutes.get('/register', async (c) => {
-  return serveAdminSpaShell(c)
-})
 
 // Login schema
 const loginSchema = z.object({
@@ -314,7 +302,7 @@ authRoutes.get('/logout', (c) => {
   })
   clearCsrfCookie(c)
 
-  return c.redirect('/auth/login?message=You have been logged out successfully')
+  return c.redirect('/admin/auth/login?message=You have been logged out successfully')
 })
 
 // Get current user
@@ -497,21 +485,21 @@ authRoutes.post('/seed-admin',
 })
 
 
-// Accept invitation page (SPA shell)
-authRoutes.get('/accept-invitation', async (c) => {
-  return serveAdminSpaShell(c)
-})
-
 // Process invitation acceptance
 authRoutes.post('/accept-invitation', async (c) => {
   try {
-    const formData = await c.req.formData()
-    const token = formData.get('token')?.toString()
-    const username = formData.get('username')?.toString()?.trim()
-    const password = formData.get('password')?.toString()
-    const confirmPassword = formData.get('confirm_password')?.toString()
+    const body = await c.req.json() as {
+      token?: string
+      username?: string
+      password?: string
+      confirmPassword?: string
+    }
+    const token = body.token
+    const username = body.username?.trim()
+    const password = body.password
+    const confirmPassword = body.confirmPassword || body.password
 
-    if (!token || !username || !password || !confirmPassword) {
+    if (!token || !password || !confirmPassword) {
       return c.json({ error: 'All fields are required' }, 400)
     }
 
@@ -561,7 +549,7 @@ authRoutes.post('/accept-invitation', async (c) => {
     // Activate user account
     const updateStmt = db.prepare(`
       UPDATE users SET 
-        username = ?,
+        username = COALESCE(?, username),
         password_hash = ?,
         is_active = 1,
         email_verified = 1,
@@ -572,7 +560,7 @@ authRoutes.post('/accept-invitation', async (c) => {
     `)
 
     await updateStmt.bind(
-      username,
+      username || null,
       passwordHash,
       Date.now(),
       Date.now(),
@@ -597,8 +585,7 @@ authRoutes.post('/accept-invitation', async (c) => {
     // Log the activity (TODO: implement activity logging)
     // Activity logging is deferred until utils/log-activity is implemented
 
-    // Redirect to admin dashboard
-    return c.redirect('/admin/dashboard?welcome=true')
+    return c.json({ message: 'Invitation accepted successfully' })
 
   } catch (error) {
     console.error('Accept invitation error:', error)
@@ -611,8 +598,8 @@ authRoutes.post('/request-password-reset',
   rateLimit({ max: 3, windowMs: 15 * 60 * 1000, keyPrefix: 'password-reset' }),
   async (c) => {
   try {
-    const formData = await c.req.formData()
-    const email = formData.get('email')?.toString()?.trim()?.toLowerCase()
+    const body = await c.req.json() as { email?: string }
+    const email = body.email?.trim()?.toLowerCase()
 
     if (!email) {
       return c.json({ error: 'Email is required' }, 400)
@@ -666,7 +653,7 @@ authRoutes.post('/request-password-reset',
 
     // In a real implementation, you would send an email here
     // For now, we'll return the reset link for development
-    const resetLink = `${c.req.header('origin') || 'http://localhost:8787'}/auth/reset-password?token=${resetToken}`
+    const resetLink = `${c.req.header('origin') || 'http://localhost:8787'}/admin/auth/reset-password?token=${resetToken}`
 
     return c.json({
       success: true,
@@ -680,18 +667,13 @@ authRoutes.post('/request-password-reset',
   }
 })
 
-// Show password reset form (SPA shell)
-authRoutes.get('/reset-password', async (c) => {
-  return serveAdminSpaShell(c)
-})
-
 // Process password reset
 authRoutes.post('/reset-password', async (c) => {
   try {
-    const formData = await c.req.formData()
-    const token = formData.get('token')?.toString()
-    const password = formData.get('password')?.toString()
-    const confirmPassword = formData.get('confirm_password')?.toString()
+    const body = await c.req.json() as { token?: string; password?: string; confirmPassword?: string }
+    const token = body.token
+    const password = body.password
+    const confirmPassword = body.confirmPassword
 
     if (!token || !password || !confirmPassword) {
       return c.json({ error: 'All fields are required' }, 400)
@@ -763,8 +745,7 @@ authRoutes.post('/reset-password', async (c) => {
     // Log the activity (TODO: implement activity logging)
     // Activity logging is deferred until utils/log-activity is implemented
 
-    // Redirect to login with success message
-    return c.redirect('/auth/login?message=Password reset successfully. Please log in with your new password.')
+    return c.json({ message: 'Password reset successfully' })
 
   } catch (error) {
     console.error('Password reset error:', error)

@@ -11,7 +11,7 @@ import { adminFetch } from './client'
 export function useLogin() {
   return useMutation<LoginResponse, Error, LoginRequest>({
     mutationFn: (data) =>
-      adminFetch<LoginResponse>('/auth/login', {
+      adminFetch<LoginResponse>('/api/auth/login', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -21,7 +21,7 @@ export function useLogin() {
 export function useRegister() {
   return useMutation<RegisterResponse, Error, RegisterRequest>({
     mutationFn: (data) =>
-      adminFetch<RegisterResponse>('/auth/register', {
+      adminFetch<RegisterResponse>('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -31,7 +31,7 @@ export function useRegister() {
 export function useAcceptInvitation() {
   return useMutation<{ message: string }, Error, AcceptInvitationRequest>({
     mutationFn: (data) =>
-      adminFetch('/auth/accept-invitation', {
+      adminFetch('/api/auth/accept-invitation', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -41,7 +41,7 @@ export function useAcceptInvitation() {
 export function useRequestPasswordReset() {
   return useMutation<{ message: string }, Error, RequestPasswordResetRequest>({
     mutationFn: (data) =>
-      adminFetch('/auth/request-password-reset', {
+      adminFetch('/api/auth/request-password-reset', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -51,7 +51,7 @@ export function useRequestPasswordReset() {
 export function useResetPassword() {
   return useMutation<{ message: string }, Error, ResetPasswordRequest>({
     mutationFn: (data) =>
-      adminFetch('/auth/reset-password', {
+      adminFetch('/api/auth/reset-password', {
         method: 'POST',
         body: JSON.stringify(data),
       }),

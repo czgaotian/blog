@@ -1,7 +1,15 @@
-import { html } from 'hono/html'
-import type { HtmlEscapedString } from 'hono/utils/html'
 import type { Redirect } from '../types'
 import { renderAdminLayoutCatalyst } from '@worker-blog/admin/templates'
+
+type HtmlEscapedString = string
+
+function html(strings: TemplateStringsArray, ...values: unknown[]): string {
+  return strings.reduce((result, string, index) => {
+    const value = values[index]
+    const rendered = Array.isArray(value) ? value.join('') : (value ?? '')
+    return result + string + rendered
+  }, '')
+}
 
 export interface RedirectFormPageData {
   /** Whether this is an edit form (true) or create form (false) */

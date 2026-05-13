@@ -60,7 +60,7 @@ export function securityAuditMiddleware() {
     const path = new URL(c.req.url).pathname
 
     // Only intercept auth-related routes
-    if (!path.startsWith('/auth/')) {
+    if (!path.startsWith('/api/auth/')) {
       return next()
     }
 
@@ -76,12 +76,12 @@ export function securityAuditMiddleware() {
     const fingerprint = generateFingerprint(ip, userAgent)
 
     // For login POST, extract email and check lockout before proceeding
-    const isLoginPost = (path === '/auth/login' || path === '/auth/login/form') && method === 'POST'
+    const isLoginPost = (path === '/api/auth/login' || path === '/api/auth/login/form') && method === 'POST'
     let preExtractedEmail = ''
 
     if (isLoginPost) {
       try {
-        if (path === '/auth/login/form') {
+        if (path === '/api/auth/login/form') {
           // Form-based login: clone request to read formData without consuming it
           const clonedReq = c.req.raw.clone()
           const formData = await clonedReq.formData()
@@ -154,8 +154,8 @@ async function logAuthEvent(
   try {
     const service = new SecurityAuditService(db, settings)
     const status = c.res.status
-    const isLoginPost = (path === '/auth/login' || path === '/auth/login/form') && method === 'POST'
-    const isFormLogin = path === '/auth/login/form'
+    const isLoginPost = (path === '/api/auth/login' || path === '/api/auth/login/form') && method === 'POST'
+    const isFormLogin = path === '/api/auth/login/form'
 
     // Login POST
     if (isLoginPost) {
@@ -271,7 +271,7 @@ async function logAuthEvent(
     }
 
     // Registration POST
-    if (path === '/auth/register' && method === 'POST' && settings.logging.logRegistrations) {
+    if (path === '/api/auth/register' && method === 'POST' && settings.logging.logRegistrations) {
       if (status === 201 || status === 200) {
         let email = ''
         let userId = ''
@@ -298,7 +298,7 @@ async function logAuthEvent(
     }
 
     // Logout
-    if (path === '/auth/logout' && settings.logging.logLogouts) {
+    if (path === '/api/auth/logout' && settings.logging.logLogouts) {
       const user = c.get('user')
       await service.logEvent({
         eventType: 'logout',

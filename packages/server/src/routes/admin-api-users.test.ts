@@ -47,14 +47,14 @@ function createApp() {
     c.set('user', { userId: 'u99', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/users', adminApiUsersRoutes)
+  app.route('/api/admin/users', adminApiUsersRoutes)
   return app
 }
 
-describe('GET /admin/api/users', () => {
+describe('GET /api/admin/users', () => {
   it('returns users list', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/users', {}, { DB: mockDb })
+    const res = await app.request('/api/admin/users', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('users')
@@ -67,16 +67,16 @@ describe('GET /admin/api/users', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/users', adminApiUsersRoutes)
-    const res = await app.request('/admin/api/users', {}, { DB: mockDb })
+    app.route('/api/admin/users', adminApiUsersRoutes)
+    const res = await app.request('/api/admin/users', {}, { DB: mockDb })
     expect(res.status).toBe(401)
   })
 })
 
-describe('GET /admin/api/users/:id', () => {
+describe('GET /api/admin/users/:id', () => {
   it('returns single user', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/users/u1', {}, { DB: mockDb })
+    const res = await app.request('/api/admin/users/u1', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('user')
@@ -84,10 +84,10 @@ describe('GET /admin/api/users/:id', () => {
   })
 })
 
-describe('PATCH /admin/api/users/:id', () => {
+describe('PATCH /api/admin/users/:id', () => {
   it('updates user fields', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/users/u1', {
+    const res = await app.request('/api/admin/users/u1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: 'editor' }),
@@ -99,7 +99,7 @@ describe('PATCH /admin/api/users/:id', () => {
 
   it('returns 422 for invalid role', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/users/u1', {
+    const res = await app.request('/api/admin/users/u1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ role: 'superadmin' }),
@@ -108,10 +108,10 @@ describe('PATCH /admin/api/users/:id', () => {
   })
 })
 
-describe('DELETE /admin/api/users/:id', () => {
+describe('DELETE /api/admin/users/:id', () => {
   it('prevents deleting own account', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/users/u99', {
+    const res = await app.request('/api/admin/users/u99', {
       method: 'DELETE',
     }, { DB: mockDb })
     expect(res.status).toBe(400)
@@ -129,7 +129,7 @@ const mockActivityLog = {
   user_email: 'admin@test.com', user_name: 'Admin User',
 }
 
-describe('GET /admin/api/users/activity-logs', () => {
+describe('GET /api/admin/users/activity-logs', () => {
   it('returns activity logs list', async () => {
     const db: any = {
       prepare: (sql: string) => ({
@@ -148,8 +148,8 @@ describe('GET /admin/api/users/activity-logs', () => {
       c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
       await next()
     })
-    app.route('/admin/api/users', adminApiUsersRoutes)
-    const res = await app.request('/admin/api/users/activity-logs', {}, { DB: db })
+    app.route('/api/admin/users', adminApiUsersRoutes)
+    const res = await app.request('/api/admin/users/activity-logs', {}, { DB: db })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('logs')
@@ -166,13 +166,13 @@ describe('GET /admin/api/users/activity-logs', () => {
       c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
       await next()
     })
-    app.route('/admin/api/users', adminApiUsersRoutes)
-    const res = await app.request('/admin/api/users/activity-logs?date_from=not-a-date', {}, { DB: db })
+    app.route('/api/admin/users', adminApiUsersRoutes)
+    const res = await app.request('/api/admin/users/activity-logs?date_from=not-a-date', {}, { DB: db })
     expect(res.status).toBe(400)
   })
 })
 
-describe('GET /admin/api/users/activity-logs/export', () => {
+describe('GET /api/admin/users/activity-logs/export', () => {
   it('returns CSV with correct content-type', async () => {
     const db: any = {
       prepare: () => ({
@@ -186,8 +186,8 @@ describe('GET /admin/api/users/activity-logs/export', () => {
       c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
       await next()
     })
-    app.route('/admin/api/users', adminApiUsersRoutes)
-    const res = await app.request('/admin/api/users/activity-logs/export', {}, { DB: db })
+    app.route('/api/admin/users', adminApiUsersRoutes)
+    const res = await app.request('/api/admin/users/activity-logs/export', {}, { DB: db })
     expect(res.status).toBe(200)
     expect(res.headers.get('content-type')).toContain('text/csv')
     const text = await res.text()

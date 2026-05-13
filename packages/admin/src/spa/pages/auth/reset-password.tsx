@@ -54,7 +54,7 @@ function RequestForm() {
       )}
 
       <div className="text-center text-sm">
-        <Link to="/auth/login" className="text-muted-foreground hover:text-foreground underline underline-offset-4">
+        <Link to="/admin/auth/login" className="text-muted-foreground hover:text-foreground underline underline-offset-4">
           Back to login
         </Link>
       </div>
@@ -74,7 +74,7 @@ function ResetForm({ token }: { token: string }) {
     try {
       await reset.mutateAsync({ token, password, confirmPassword: confirm })
       setDone(true)
-      setTimeout(() => { window.location.href = '/auth/login?message=Password+reset+successfully' }, 1500)
+      setTimeout(() => { window.location.href = '/admin/auth/login?message=Password+reset+successfully' }, 1500)
     } catch {
       // shown via reset.error
     }

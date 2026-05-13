@@ -99,7 +99,7 @@ apiRoutes.get('/suggest', async (c) => {
 })
 
 /**
- * GET /admin/api/search/analytics
+ * GET /api/admin/search/analytics
  * Get search analytics
  */
 apiRoutes.get('/analytics', async (c) => {

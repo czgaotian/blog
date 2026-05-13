@@ -20,14 +20,14 @@ export function useCollectionsList(filters: CollectionsFilters = {}) {
   const qs = params.toString()
   return useQuery<CollectionsListResponse>({
     queryKey: ['admin', 'collections', filters],
-    queryFn: () => adminFetch<CollectionsListResponse>(`/admin/api/collections${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<CollectionsListResponse>(`/api/admin/collections${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useCollectionDetail(id: string) {
   return useQuery<CollectionDetailResponse>({
     queryKey: ['admin', 'collections', id],
-    queryFn: () => adminFetch<CollectionDetailResponse>(`/admin/api/collections/${id}`),
+    queryFn: () => adminFetch<CollectionDetailResponse>(`/api/admin/collections/${id}`),
     enabled: Boolean(id),
   })
 }
@@ -36,7 +36,7 @@ export function useCreateCollection() {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, CreateCollectionRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateCollectionResponse>('/admin/api/collections', {
+      adminFetch<MutateCollectionResponse>('/api/admin/collections', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -50,7 +50,7 @@ export function useUpdateCollection(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, UpdateCollectionRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateCollectionResponse>(`/admin/api/collections/${id}`, {
+      adminFetch<MutateCollectionResponse>(`/api/admin/collections/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
@@ -64,7 +64,7 @@ export function useDeleteCollection(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateCollectionResponse>(`/admin/api/collections/${id}`, { method: 'DELETE' }),
+      adminFetch<MutateCollectionResponse>(`/api/admin/collections/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'collections'] })
     },
@@ -75,7 +75,7 @@ export function useCreateField(collectionId: string) {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, CreateFieldRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateCollectionResponse>(`/admin/api/collections/${collectionId}/fields`, {
+      adminFetch<MutateCollectionResponse>(`/api/admin/collections/${collectionId}/fields`, {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -89,7 +89,7 @@ export function useUpdateField(collectionId: string, fieldId: string) {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, UpdateFieldRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateCollectionResponse>(`/admin/api/collections/${collectionId}/fields/${fieldId}`, {
+      adminFetch<MutateCollectionResponse>(`/api/admin/collections/${collectionId}/fields/${fieldId}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
@@ -103,7 +103,7 @@ export function useDeleteField(collectionId: string, fieldId: string) {
   const qc = useQueryClient()
   return useMutation<MutateCollectionResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateCollectionResponse>(`/admin/api/collections/${collectionId}/fields/${fieldId}`, {
+      adminFetch<MutateCollectionResponse>(`/api/admin/collections/${collectionId}/fields/${fieldId}`, {
         method: 'DELETE',
       }),
     onSuccess: () => {

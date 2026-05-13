@@ -40,7 +40,7 @@ export function createAdminSpaRoutes() {
   routes.get('/admin/*', async (c) => {
     const url = new URL(c.req.url)
 
-    if (url.pathname.startsWith('/admin/api/') || url.pathname.startsWith('/admin/assets/')) {
+    if (url.pathname.startsWith('/admin/assets/')) {
       return c.notFound()
     }
 

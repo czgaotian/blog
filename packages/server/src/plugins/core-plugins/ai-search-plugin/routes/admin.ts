@@ -148,7 +148,7 @@ adminRoutes.post('/', async (c) => {
 })
 
 /**
- * GET /admin/api/ai-search/settings
+ * GET /api/admin/ai-search/settings
  * Get settings API endpoint
  */
 adminRoutes.get('/api/settings', async (c) => {
@@ -167,7 +167,7 @@ adminRoutes.get('/api/settings', async (c) => {
 })
 
 /**
- * GET /admin/api/ai-search/new-collections
+ * GET /api/admin/ai-search/new-collections
  * Get new collections that aren't indexed or dismissed
  */
 adminRoutes.get('/api/new-collections', async (c) => {
@@ -186,7 +186,7 @@ adminRoutes.get('/api/new-collections', async (c) => {
 })
 
 /**
- * GET /admin/api/ai-search/status
+ * GET /api/admin/ai-search/status
  * Get indexing status
  */
 adminRoutes.get('/api/status', async (c) => {
@@ -205,7 +205,7 @@ adminRoutes.get('/api/status', async (c) => {
 })
 
 /**
- * POST /admin/api/ai-search/reindex
+ * POST /api/admin/ai-search/reindex
  * Trigger re-indexing for a collection
  */
 adminRoutes.post('/api/reindex', async (c) => {

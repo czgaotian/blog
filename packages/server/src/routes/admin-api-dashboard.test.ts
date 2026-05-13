@@ -18,19 +18,19 @@ import { adminApiDashboardRoutes } from './admin-api-dashboard'
 
 function createApp() {
   const app = new Hono()
-  app.use('/admin/api/dashboard', async (c, next) => {
+  app.use('/api/admin/dashboard', async (c, next) => {
     c.set('user', { userId: 'u1', email: 'a@example.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.use('/admin/api/dashboard/*', async (c, next) => {
+  app.use('/api/admin/dashboard/*', async (c, next) => {
     c.set('user', { userId: 'u1', email: 'a@example.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/dashboard', adminApiDashboardRoutes)
+  app.route('/api/admin/dashboard', adminApiDashboardRoutes)
   return app
 }
 
-describe('GET /admin/api/dashboard', () => {
+describe('GET /api/admin/dashboard', () => {
   it('returns 200 with stats, recentActivity, and metrics shapes', async () => {
     const db = {
       prepare: (sql: string) => ({
@@ -50,7 +50,7 @@ describe('GET /admin/api/dashboard', () => {
     }
 
     const app = createApp()
-    const res = await app.request('/admin/api/dashboard', {}, { DB: db })
+    const res = await app.request('/api/admin/dashboard', {}, { DB: db })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('stats')
@@ -68,8 +68,8 @@ describe('GET /admin/api/dashboard', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/dashboard', adminApiDashboardRoutes)
-    const res = await app.request('/admin/api/dashboard')
+    app.route('/api/admin/dashboard', adminApiDashboardRoutes)
+    const res = await app.request('/api/admin/dashboard')
     expect(res.status).toBe(401)
   })
 })

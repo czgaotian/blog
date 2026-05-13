@@ -24,14 +24,14 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'a@example.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/api-reference', adminApiRoutesRoutes)
+  app.route('/api/admin/api-reference', adminApiRoutesRoutes)
   return app
 }
 
-describe('GET /admin/api/api-reference', () => {
+describe('GET /api/admin/api-reference', () => {
   it('returns endpoints and version', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/api-reference')
+    const res = await app.request('/api/admin/api-reference')
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('endpoints')
@@ -44,8 +44,8 @@ describe('GET /admin/api/api-reference', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/api-reference', adminApiRoutesRoutes)
-    const res = await app.request('/admin/api/api-reference')
+    app.route('/api/admin/api-reference', adminApiRoutesRoutes)
+    const res = await app.request('/api/admin/api-reference')
     expect(res.status).toBe(401)
   })
 })

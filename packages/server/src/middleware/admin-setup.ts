@@ -6,7 +6,7 @@
  */
 
 import type { Context, Next } from 'hono'
-import { checkAdminUserExists } from '../services/auth-validation'
+import { checkAdminUserExists } from '../services/api/auth-validation'
 
 /**
  * Middleware that redirects to registration when no admin user exists
@@ -17,7 +17,7 @@ export function adminSetupMiddleware() {
     const path = new URL(c.req.url).pathname
 
     // Skip auth routes - always allow access
-    if (path.startsWith('/auth/')) {
+    if (path.startsWith('/api/auth/')) {
       return next()
     }
 
@@ -44,7 +44,7 @@ export function adminSetupMiddleware() {
       // Only redirect admin routes when no admin exists
       // Let other routes proceed normally (including 404s)
       if (path.startsWith('/admin')) {
-        return c.redirect('/auth/register?setup=true')
+        return c.redirect('/admin/auth/register?setup=true')
       }
     }
 

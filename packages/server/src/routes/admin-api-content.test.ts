@@ -44,14 +44,14 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/content', adminApiContentRoutes)
+  app.route('/api/admin/content', adminApiContentRoutes)
   return app
 }
 
-describe('GET /admin/api/content', () => {
+describe('GET /api/admin/content', () => {
   it('returns content list', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content', {}, { DB: mockDb })
+    const res = await app.request('/api/admin/content', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('items')
@@ -63,16 +63,16 @@ describe('GET /admin/api/content', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/content', adminApiContentRoutes)
-    const res = await app.request('/admin/api/content', {}, { DB: mockDb })
+    app.route('/api/admin/content', adminApiContentRoutes)
+    const res = await app.request('/api/admin/content', {}, { DB: mockDb })
     expect(res.status).toBe(401)
   })
 })
 
-describe('GET /admin/api/content/:id', () => {
+describe('GET /api/admin/content/:id', () => {
   it('returns single content item with fields', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content/c1', {}, { DB: mockDb })
+    const res = await app.request('/api/admin/content/c1', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('id', 'c1')
@@ -81,10 +81,10 @@ describe('GET /admin/api/content/:id', () => {
   })
 })
 
-describe('POST /admin/api/content', () => {
+describe('POST /api/admin/content', () => {
   it('creates content with valid body', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content', {
+    const res = await app.request('/api/admin/content', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -102,7 +102,7 @@ describe('POST /admin/api/content', () => {
 
   it('returns 422 for missing required fields', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content', {
+    const res = await app.request('/api/admin/content', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: '' }),
@@ -111,10 +111,10 @@ describe('POST /admin/api/content', () => {
   })
 })
 
-describe('PUT /admin/api/content/:id', () => {
+describe('PUT /api/admin/content/:id', () => {
   it('updates content', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content/c1', {
+    const res = await app.request('/api/admin/content/c1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ title: 'Updated Post' }),
@@ -123,20 +123,20 @@ describe('PUT /admin/api/content/:id', () => {
   })
 })
 
-describe('DELETE /admin/api/content/:id', () => {
+describe('DELETE /api/admin/content/:id', () => {
   it('soft-deletes content', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content/c1', {
+    const res = await app.request('/api/admin/content/c1', {
       method: 'DELETE',
     }, { DB: mockDb })
     expect(res.status).toBe(200)
   })
 })
 
-describe('GET /admin/api/content/:id/versions', () => {
+describe('GET /api/admin/content/:id/versions', () => {
   it('returns versions list', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/content/c1/versions', {}, { DB: mockDb })
+    const res = await app.request('/api/admin/content/c1/versions', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('versions')

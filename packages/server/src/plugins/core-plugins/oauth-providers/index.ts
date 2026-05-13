@@ -5,11 +5,11 @@
  * Phase 1: Core OAuth2 authorization code flow with GitHub and Google providers.
  *
  * Routes:
- *   GET  /auth/oauth/:provider          → Redirect to provider authorization
- *   GET  /auth/oauth/:provider/callback → Handle OAuth callback
- *   POST /auth/oauth/link               → Link OAuth provider to logged-in account
- *   POST /auth/oauth/unlink             → Unlink OAuth provider from account
- *   GET  /auth/oauth/accounts           → List linked OAuth accounts for current user
+ *   GET  /api/auth/oauth/:provider          → Redirect to provider authorization
+ *   GET  /api/auth/oauth/:provider/callback → Handle OAuth callback
+ *   POST /api/auth/oauth/link               → Link OAuth provider to logged-in account
+ *   POST /api/auth/oauth/unlink             → Unlink OAuth provider from account
+ *   GET  /api/auth/oauth/accounts           → List linked OAuth accounts for current user
  */
 
 import { Hono } from 'hono'
@@ -23,7 +23,7 @@ import {
   type OAuthProviderConfig
 } from './oauth-service'
 import { AuthManager } from '../../../middleware'
-import { getJwtExpirySecondsFromDb } from '../../../middleware/auth'
+import { getJwtExpirySecondsFromDb } from '../../../middleware/api/auth'
 
 const STATE_COOKIE_NAME = 'oauth_state'
 const STATE_COOKIE_MAX_AGE = 600 // 10 minutes
@@ -49,7 +49,7 @@ export function createOAuthProvidersPlugin(): Plugin {
   function getCallbackUrl(c: any, provider: string): string {
     const proto = c.req.header('x-forwarded-proto') || 'https'
     const host = c.req.header('host') || 'localhost'
-    return `${proto}://${host}/auth/oauth/${provider}/callback`
+    return `${proto}://${host}/api/auth/oauth/${provider}/callback`
   }
 
   async function loadSettings(db: any): Promise<OAuthPluginSettings | null> {
@@ -80,7 +80,7 @@ export function createOAuthProvidersPlugin(): Plugin {
 
   const oauthAPI = new Hono()
 
-  // GET /auth/oauth/:provider — Redirect to provider authorization
+  // GET /api/auth/oauth/:provider — Redirect to provider authorization
   oauthAPI.get('/:provider', async (c: any) => {
     try {
       const providerId = c.req.param('provider')
@@ -110,7 +110,7 @@ export function createOAuthProvidersPlugin(): Plugin {
         secure: true,
         sameSite: 'Lax', // Lax required for OAuth redirect flow
         maxAge: STATE_COOKIE_MAX_AGE,
-        path: '/auth/oauth'
+        path: '/api/auth/oauth'
       })
 
       const authorizeUrl = oauthService.buildAuthorizeUrl(
@@ -127,14 +127,14 @@ export function createOAuthProvidersPlugin(): Plugin {
     }
   })
 
-  // GET /auth/oauth/:provider/callback — Handle OAuth callback
+  // GET /api/auth/oauth/:provider/callback — Handle OAuth callback
   oauthAPI.get('/:provider/callback', async (c: any) => {
     try {
       const providerId = c.req.param('provider')
       const providerConfig = BUILT_IN_PROVIDERS[providerId]
 
       if (!providerConfig) {
-        return c.redirect('/auth/login?error=Unknown OAuth provider')
+        return c.redirect('/admin/auth/login?error=Unknown OAuth provider')
       }
 
       // Validate state (CSRF protection)
@@ -142,7 +142,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       const stateCookie = getCookie(c, STATE_COOKIE_NAME)
 
       if (!stateParam || !stateCookie || stateParam !== stateCookie) {
-        return c.redirect('/auth/login?error=Invalid OAuth state. Please try again.')
+        return c.redirect('/admin/auth/login?error=Invalid OAuth state. Please try again.')
       }
 
       // Clear the state cookie
@@ -151,19 +151,19 @@ export function createOAuthProvidersPlugin(): Plugin {
         secure: true,
         sameSite: 'Lax',
         maxAge: 0,
-        path: '/auth/oauth'
+        path: '/api/auth/oauth'
       })
 
       // Check for error from provider
       const errorParam = c.req.query('error')
       if (errorParam) {
         const errorDesc = c.req.query('error_description') || errorParam
-        return c.redirect(`/auth/login?error=${encodeURIComponent(errorDesc)}`)
+        return c.redirect(`/admin/auth/login?error=${encodeURIComponent(errorDesc)}`)
       }
 
       const code = c.req.query('code')
       if (!code) {
-        return c.redirect('/auth/login?error=No authorization code received')
+        return c.redirect('/admin/auth/login?error=No authorization code received')
       }
 
       const db = c.env.DB
@@ -171,7 +171,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       const creds = getProviderCredentials(settings, providerId)
 
       if (!creds) {
-        return c.redirect('/auth/login?error=OAuth provider not configured')
+        return c.redirect('/admin/auth/login?error=OAuth provider not configured')
       }
 
       const oauthService = new OAuthService(db)
@@ -190,7 +190,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       const profile = await oauthService.fetchUserProfile(providerConfig, tokens.access_token)
 
       if (!profile.email) {
-        return c.redirect('/auth/login?error=Could not retrieve email from OAuth provider. Please ensure your email is public or grant email permission.')
+        return c.redirect('/admin/auth/login?error=Could not retrieve email from OAuth provider. Please ensure your email is public or grant email permission.')
       }
 
       const tokenExpiresAt = tokens.expires_in
@@ -215,7 +215,7 @@ export function createOAuthProvidersPlugin(): Plugin {
         ).bind(existingOAuth.user_id).first() as any
 
         if (!user || !user.is_active) {
-          return c.redirect('/auth/login?error=Account is deactivated')
+          return c.redirect('/admin/auth/login?error=Account is deactivated')
         }
 
         const tokenTtl = await getJwtExpirySecondsFromDb((c.env as any).DB, c.env as any)
@@ -233,7 +233,7 @@ export function createOAuthProvidersPlugin(): Plugin {
 
       if (existingUser) {
         if (!existingUser.is_active) {
-          return c.redirect('/auth/login?error=Account is deactivated')
+          return c.redirect('/admin/auth/login?error=Account is deactivated')
         }
 
         // Link OAuth to existing account
@@ -282,11 +282,11 @@ export function createOAuthProvidersPlugin(): Plugin {
     } catch (error) {
       console.error('OAuth callback error:', error)
       const message = error instanceof Error ? error.message : 'OAuth authentication failed'
-      return c.redirect(`/auth/login?error=${encodeURIComponent(message)}`)
+      return c.redirect(`/admin/auth/login?error=${encodeURIComponent(message)}`)
     }
   })
 
-  // POST /auth/oauth/link — Link an OAuth provider to the current logged-in user
+  // POST /api/auth/oauth/link — Link an OAuth provider to the current logged-in user
   oauthAPI.post('/link', async (c: any) => {
     try {
       const user = c.get('user')
@@ -320,7 +320,7 @@ export function createOAuthProvidersPlugin(): Plugin {
         secure: true,
         sameSite: 'Lax',
         maxAge: STATE_COOKIE_MAX_AGE,
-        path: '/auth/oauth'
+        path: '/api/auth/oauth'
       })
 
       const authorizeUrl = oauthService.buildAuthorizeUrl(
@@ -337,7 +337,7 @@ export function createOAuthProvidersPlugin(): Plugin {
     }
   })
 
-  // POST /auth/oauth/unlink — Unlink an OAuth provider from the current user
+  // POST /api/auth/oauth/unlink — Unlink an OAuth provider from the current user
   oauthAPI.post('/unlink', async (c: any) => {
     try {
       const user = c.get('user')
@@ -369,7 +369,7 @@ export function createOAuthProvidersPlugin(): Plugin {
     }
   })
 
-  // GET /auth/oauth/accounts — List linked OAuth accounts for current user
+  // GET /api/auth/oauth/accounts — List linked OAuth accounts for current user
   oauthAPI.get('/accounts', async (c: any) => {
     try {
       const user = c.get('user')
@@ -395,7 +395,7 @@ export function createOAuthProvidersPlugin(): Plugin {
   })
 
   // Register routes
-  builder.addRoute('/auth/oauth', oauthAPI, {
+  builder.addRoute('/api/auth/oauth', oauthAPI, {
     description: 'OAuth2 social login endpoints',
     requiresAuth: false,
     priority: 100

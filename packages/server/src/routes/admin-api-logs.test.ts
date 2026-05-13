@@ -35,14 +35,14 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'a@example.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/logs', adminApiLogsRoutes)
+  app.route('/api/admin/logs', adminApiLogsRoutes)
   return app
 }
 
-describe('GET /admin/api/logs', () => {
+describe('GET /api/admin/logs', () => {
   it('returns paginated logs list', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/logs')
+    const res = await app.request('/api/admin/logs')
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('logs')
@@ -56,16 +56,16 @@ describe('GET /admin/api/logs', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/logs', adminApiLogsRoutes)
-    const res = await app.request('/admin/api/logs')
+    app.route('/api/admin/logs', adminApiLogsRoutes)
+    const res = await app.request('/api/admin/logs')
     expect(res.status).toBe(401)
   })
 })
 
-describe('GET /admin/api/logs/config', () => {
+describe('GET /api/admin/logs/config', () => {
   it('returns log configs', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/logs/config')
+    const res = await app.request('/api/admin/logs/config')
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('configs')
@@ -75,10 +75,10 @@ describe('GET /admin/api/logs/config', () => {
   })
 })
 
-describe('GET /admin/api/logs/:id', () => {
+describe('GET /api/admin/logs/:id', () => {
   it('returns single log', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/logs/log-1')
+    const res = await app.request('/api/admin/logs/log-1')
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('log')
@@ -89,7 +89,7 @@ describe('GET /admin/api/logs/:id', () => {
 
   it('returns 404 for unknown id', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/logs/not-found')
+    const res = await app.request('/api/admin/logs/not-found')
     expect(res.status).toBe(404)
   })
 })

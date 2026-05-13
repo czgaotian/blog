@@ -22,14 +22,14 @@ export function useUsersList(filters: UsersFilters = {}) {
 
   return useQuery<UsersListResponse>({
     queryKey: ['admin', 'users', filters],
-    queryFn: () => adminFetch<UsersListResponse>(`/admin/api/users${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<UsersListResponse>(`/api/admin/users${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useUserDetail(id: string) {
   return useQuery<UserDetailResponse>({
     queryKey: ['admin', 'users', id],
-    queryFn: () => adminFetch<UserDetailResponse>(`/admin/api/users/${id}`),
+    queryFn: () => adminFetch<UserDetailResponse>(`/api/admin/users/${id}`),
     enabled: Boolean(id),
   })
 }
@@ -38,7 +38,7 @@ export function useUpdateUser(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateUserResponse, Error, UpdateUserRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateUserResponse>(`/admin/api/users/${id}`, {
+      adminFetch<MutateUserResponse>(`/api/admin/users/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
       }),
@@ -52,7 +52,7 @@ export function useDeleteUser(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateUserResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateUserResponse>(`/admin/api/users/${id}`, { method: 'DELETE' }),
+      adminFetch<MutateUserResponse>(`/api/admin/users/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'users'] })
     },

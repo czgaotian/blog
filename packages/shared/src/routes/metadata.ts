@@ -95,17 +95,16 @@ export const CATEGORY_INFO: Record<string, CategoryInfo> = {
 
 export const ROUTE_METADATA: Record<string, RouteMeta> = {
   // Auth endpoints
-  'POST /auth/login': { description: 'Authenticate user with email and password (returns JWT)', category: 'Auth', authentication: false },
-  'POST /auth/login/form': { description: 'Form-based login (sets session cookie)', category: 'Auth', authentication: false },
-  'POST /auth/register': { description: 'Register a new user account', category: 'Auth', authentication: false },
-  'POST /auth/logout': { description: 'Log out the current user and invalidate session', category: 'Auth', authentication: true },
-  'GET /auth/me': { description: 'Get current authenticated user information', category: 'Auth', authentication: true },
-  'POST /auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
-  'POST /auth/seed-admin': { description: 'Create or reset the admin user account', category: 'Auth', authentication: false },
-  'POST /auth/magic-link/request': { description: 'Request a magic link login email', category: 'Auth', authentication: false },
-  'GET /auth/magic-link/verify': { description: 'Verify magic link token and authenticate', category: 'Auth', authentication: false },
-  'POST /auth/otp/request': { description: 'Request a one-time password via email', category: 'Auth', authentication: false },
-  'POST /auth/otp/verify': { description: 'Verify OTP code and authenticate', category: 'Auth', authentication: false },
+  'POST /api/auth/login': { description: 'Authenticate user with email and password (returns JWT)', category: 'Auth', authentication: false },
+  'POST /api/auth/register': { description: 'Register a new user account', category: 'Auth', authentication: false },
+  'POST /api/auth/logout': { description: 'Log out the current user and invalidate session', category: 'Auth', authentication: true },
+  'GET /api/auth/me': { description: 'Get current authenticated user information', category: 'Auth', authentication: true },
+  'POST /api/auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
+  'POST /api/auth/seed-admin': { description: 'Create or reset the admin user account', category: 'Auth', authentication: false },
+  'POST /api/auth/magic-link/request': { description: 'Request a magic link login email', category: 'Auth', authentication: false },
+  'GET /api/auth/magic-link/verify': { description: 'Verify magic link token and authenticate', category: 'Auth', authentication: false },
+  'POST /api/auth/otp/request': { description: 'Request a one-time password via email', category: 'Auth', authentication: false },
+  'POST /api/auth/otp/verify': { description: 'Verify OTP code and authenticate', category: 'Auth', authentication: false },
 
   // Content endpoints
   'GET /api/collections': { description: 'List all available collections', category: 'Content', authentication: false },
@@ -124,45 +123,45 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'DELETE /api/media/:id': { description: 'Delete a media file from storage', category: 'Media', authentication: true },
 
   // Admin API endpoints
-  'GET /admin/api/stats': { description: 'Get dashboard statistics (collections, content, media, users)', category: 'Admin', authentication: true },
-  'GET /admin/api/storage': { description: 'Get storage usage information', category: 'Admin', authentication: true },
-  'GET /admin/api/activity': { description: 'Get recent activity logs', category: 'Admin', authentication: true },
-  'GET /admin/api/collections': { description: 'List all collections with field counts', category: 'Admin', authentication: true },
-  'POST /admin/api/collections': { description: 'Create a new collection', category: 'Admin', authentication: true },
-  'GET /admin/api/collections/:id': { description: 'Get a specific collection with its fields', category: 'Admin', authentication: true },
-  'PATCH /admin/api/collections/:id': { description: 'Update an existing collection', category: 'Admin', authentication: true },
-  'DELETE /admin/api/collections/:id': { description: 'Delete a collection (must be empty)', category: 'Admin', authentication: true },
-  'GET /admin/api/collections/:id/fields': { description: 'Get fields for a specific collection', category: 'Admin', authentication: true },
-  'POST /admin/api/collections/:id/fields': { description: 'Add a field to a collection', category: 'Admin', authentication: true },
-  'PATCH /admin/api/collections/:id/fields/:fieldId': { description: 'Update a collection field', category: 'Admin', authentication: true },
-  'DELETE /admin/api/collections/:id/fields/:fieldId': { description: 'Remove a field from a collection', category: 'Admin', authentication: true },
-  'POST /admin/api/collections/:id/fields/reorder': { description: 'Reorder fields in a collection', category: 'Admin', authentication: true },
-  'GET /admin/api/migrations/status': { description: 'Get database migration status', category: 'Admin', authentication: true },
-  'POST /admin/api/migrations/run': { description: 'Run pending database migrations', category: 'Admin', authentication: true },
-  'GET /admin/api/content': { description: 'List content items with filtering and pagination', category: 'Admin', authentication: true },
-  'GET /admin/api/content/:id': { description: 'Get a content item for admin editing', category: 'Admin', authentication: true },
-  'POST /admin/api/content': { description: 'Create content via admin API', category: 'Admin', authentication: true },
-  'PUT /admin/api/content/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
-  'DELETE /admin/api/content/:id': { description: 'Delete content via admin API', category: 'Admin', authentication: true },
-  'GET /admin/api/media': { description: 'List media files for admin management', category: 'Admin', authentication: true },
-  'POST /admin/api/media/upload': { description: 'Upload media via admin interface', category: 'Admin', authentication: true },
-  'DELETE /admin/api/media/:id': { description: 'Delete media via admin interface', category: 'Admin', authentication: true },
-  'GET /admin/api/users': { description: 'List all users', category: 'Admin', authentication: true },
-  'POST /admin/api/users': { description: 'Create a new user', category: 'Admin', authentication: true },
-  'PUT /admin/api/users/:id': { description: 'Update a user', category: 'Admin', authentication: true },
-  'DELETE /admin/api/users/:id': { description: 'Delete a user', category: 'Admin', authentication: true },
-  'GET /admin/api/logs': { description: 'Get application logs with filtering', category: 'Admin', authentication: true },
-  'GET /admin/api/plugins': { description: 'List all registered plugins', category: 'Admin', authentication: true },
-  'POST /admin/api/plugins/:id/toggle': { description: 'Enable or disable a plugin', category: 'Admin', authentication: true },
-  'GET /admin/api/settings': { description: 'Get application settings', category: 'Admin', authentication: true },
-  'PUT /admin/api/settings': { description: 'Update application settings', category: 'Admin', authentication: true },
-  'GET /admin/api/forms': { description: 'List all forms', category: 'Admin', authentication: true },
-  'GET /admin/api/forms/:id': { description: 'Get form details and submissions', category: 'Admin', authentication: true },
-  'POST /admin/api/forms': { description: 'Create a new form', category: 'Admin', authentication: true },
-  'PUT /admin/api/forms/:id': { description: 'Update a form', category: 'Admin', authentication: true },
-  'DELETE /admin/api/forms/:id': { description: 'Delete a form', category: 'Admin', authentication: true },
-  'GET /admin/api/forms/:id/submissions': { description: 'Get form submissions', category: 'Admin', authentication: true },
-  'DELETE /admin/api/forms/:id/submissions/:submissionId': { description: 'Delete a form submission', category: 'Admin', authentication: true },
+  'GET /api/admin/stats': { description: 'Get dashboard statistics (collections, content, media, users)', category: 'Admin', authentication: true },
+  'GET /api/admin/storage': { description: 'Get storage usage information', category: 'Admin', authentication: true },
+  'GET /api/admin/activity': { description: 'Get recent activity logs', category: 'Admin', authentication: true },
+  'GET /api/admin/collections': { description: 'List all collections with field counts', category: 'Admin', authentication: true },
+  'POST /api/admin/collections': { description: 'Create a new collection', category: 'Admin', authentication: true },
+  'GET /api/admin/collections/:id': { description: 'Get a specific collection with its fields', category: 'Admin', authentication: true },
+  'PATCH /api/admin/collections/:id': { description: 'Update an existing collection', category: 'Admin', authentication: true },
+  'DELETE /api/admin/collections/:id': { description: 'Delete a collection (must be empty)', category: 'Admin', authentication: true },
+  'GET /api/admin/collections/:id/fields': { description: 'Get fields for a specific collection', category: 'Admin', authentication: true },
+  'POST /api/admin/collections/:id/fields': { description: 'Add a field to a collection', category: 'Admin', authentication: true },
+  'PATCH /api/admin/collections/:id/fields/:fieldId': { description: 'Update a collection field', category: 'Admin', authentication: true },
+  'DELETE /api/admin/collections/:id/fields/:fieldId': { description: 'Remove a field from a collection', category: 'Admin', authentication: true },
+  'POST /api/admin/collections/:id/fields/reorder': { description: 'Reorder fields in a collection', category: 'Admin', authentication: true },
+  'GET /api/admin/migrations/status': { description: 'Get database migration status', category: 'Admin', authentication: true },
+  'POST /api/admin/migrations/run': { description: 'Run pending database migrations', category: 'Admin', authentication: true },
+  'GET /api/admin/content': { description: 'List content items with filtering and pagination', category: 'Admin', authentication: true },
+  'GET /api/admin/content/:id': { description: 'Get a content item for admin editing', category: 'Admin', authentication: true },
+  'POST /api/admin/content': { description: 'Create content via admin API', category: 'Admin', authentication: true },
+  'PUT /api/admin/content/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
+  'DELETE /api/admin/content/:id': { description: 'Delete content via admin API', category: 'Admin', authentication: true },
+  'GET /api/admin/media': { description: 'List media files for admin management', category: 'Admin', authentication: true },
+  'POST /api/admin/media/upload': { description: 'Upload media via admin interface', category: 'Admin', authentication: true },
+  'DELETE /api/admin/media/:id': { description: 'Delete media via admin interface', category: 'Admin', authentication: true },
+  'GET /api/admin/users': { description: 'List all users', category: 'Admin', authentication: true },
+  'POST /api/admin/users': { description: 'Create a new user', category: 'Admin', authentication: true },
+  'PUT /api/admin/users/:id': { description: 'Update a user', category: 'Admin', authentication: true },
+  'DELETE /api/admin/users/:id': { description: 'Delete a user', category: 'Admin', authentication: true },
+  'GET /api/admin/logs': { description: 'Get application logs with filtering', category: 'Admin', authentication: true },
+  'GET /api/admin/plugins': { description: 'List all registered plugins', category: 'Admin', authentication: true },
+  'POST /api/admin/plugins/:id/toggle': { description: 'Enable or disable a plugin', category: 'Admin', authentication: true },
+  'GET /api/admin/settings': { description: 'Get application settings', category: 'Admin', authentication: true },
+  'PUT /api/admin/settings': { description: 'Update application settings', category: 'Admin', authentication: true },
+  'GET /api/admin/forms': { description: 'List all forms', category: 'Admin', authentication: true },
+  'GET /api/admin/forms/:id': { description: 'Get form details and submissions', category: 'Admin', authentication: true },
+  'POST /api/admin/forms': { description: 'Create a new form', category: 'Admin', authentication: true },
+  'PUT /api/admin/forms/:id': { description: 'Update a form', category: 'Admin', authentication: true },
+  'DELETE /api/admin/forms/:id': { description: 'Delete a form', category: 'Admin', authentication: true },
+  'GET /api/admin/forms/:id/submissions': { description: 'Get form submissions', category: 'Admin', authentication: true },
+  'DELETE /api/admin/forms/:id/submissions/:submissionId': { description: 'Delete a form submission', category: 'Admin', authentication: true },
 
   // Search endpoints
   'GET /api/search': { description: 'Search content using AI, FTS5, keyword, or hybrid mode', category: 'Search', authentication: false },
@@ -200,10 +199,10 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'PUT /admin/plugins/ai-search/api/settings': { description: 'Update search plugin settings', category: 'Search', authentication: true },
 
   // API Key endpoints
-  'GET /admin/api-keys/api/keys': { description: 'List all API keys', category: 'API Keys', authentication: true },
-  'POST /admin/api-keys/api/keys': { description: 'Create a new API key', category: 'API Keys', authentication: true },
-  'DELETE /admin/api-keys/api/keys/:id': { description: 'Revoke an API key', category: 'API Keys', authentication: true },
-  'PUT /admin/api-keys/api/keys/:id': { description: 'Update an API key', category: 'API Keys', authentication: true },
+  'GET /api/admin-keys/api/keys': { description: 'List all API keys', category: 'API Keys', authentication: true },
+  'POST /api/admin-keys/api/keys': { description: 'Create a new API key', category: 'API Keys', authentication: true },
+  'DELETE /api/admin-keys/api/keys/:id': { description: 'Revoke an API key', category: 'API Keys', authentication: true },
+  'PUT /api/admin-keys/api/keys/:id': { description: 'Update an API key', category: 'API Keys', authentication: true },
 
   // Cache endpoints
   'GET /admin/cache/api/stats': { description: 'Get cache statistics', category: 'Cache', authentication: true },
@@ -221,14 +220,11 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'GET /workflow/history/:id': { description: 'Get workflow history for a content item', category: 'Workflow', authentication: true },
 
   // Form endpoints (public)
-  'POST /forms/:formId/submit': { description: 'Submit a form (public endpoint)', category: 'Forms', authentication: false },
-  'GET /forms/:formId': { description: 'Get form definition for rendering', category: 'Forms', authentication: false },
   'POST /api/forms/:formId/submit': { description: 'Submit a form via API', category: 'Forms', authentication: false },
   'GET /api/forms/:formId': { description: 'Get form definition via API', category: 'Forms', authentication: false },
 
   // System endpoints
-  'GET /health': { description: 'Health check endpoint for monitoring', category: 'System', authentication: false },
-  'GET /api/health': { description: 'API health check with schema information', category: 'System', authentication: false },
+  'GET /api/health': { description: 'Health check endpoint for monitoring', category: 'System', authentication: false },
   'GET /api': { description: 'API root - returns API information and available endpoints', category: 'System', authentication: false },
   'GET /api/system/info': { description: 'Get system information and version', category: 'System', authentication: false },
   'GET /api/system/schema': { description: 'Get database schema information', category: 'System', authentication: false },
@@ -258,26 +254,17 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
 export const INCLUDED_ROUTE_PATTERNS: RegExp[] = [
   /^\/api\//,                        // All /api/* routes
   /^\/api$/,                         // API root
-  /^\/auth\/(?!login$|register$)/,   // Auth routes except GET login/register HTML pages
-  /^\/auth\/login$/,                 // POST /auth/login (method filtered later)
-  /^\/auth\/register$/,              // POST /auth/register (method filtered later)
-  /^\/admin\/api\//,                 // Admin API endpoints
-  /^\/admin\/api-keys\/api\//,       // API key management
-  /^\/admin\/cache\/api\//,          // Cache management API
-  /^\/admin\/plugins\/.*\/api\//,    // Plugin API endpoints
-  /^\/admin\/database-tools\/api\//, // Database tools API
-  /^\/admin\/seed-data\/api\//,      // Seed data API
+  /^\/api\/auth\/(?!login$|register$)/,  // Auth routes except GET login/register HTML pages
+  /^\/api\/auth\/login$/,                // POST /api/auth/login (method filtered later)
+  /^\/api\/auth\/register$/,             // POST /api/auth/register (method filtered later)
+  /^\/api\/admin\//,                     // Admin API endpoints
   /^\/workflow\//,                   // Workflow endpoints
-  /^\/health$/,                      // Health check
+  /^\/api\/health$/,                      // Health check
   /^\/files\//,                      // File serving
-  /^\/forms\//,                      // Public form endpoints
 ]
 
 // Routes to always exclude (even if they match an include pattern)
-export const EXCLUDED_ROUTES = new Set([
-  'GET /auth/login',
-  'GET /auth/register',
-  'GET /auth/login/form',
+export const EXCLUDED_ROUTES = new Set<string>([
 ])
 
 // ============================================================================
@@ -296,32 +283,31 @@ export function isIncludedRoute(method: string, path: string): boolean {
 }
 
 export function inferCategory(path: string): string {
-  if (path.startsWith('/auth/')) return 'Auth'
+  if (path.startsWith('/api/auth/')) return 'Auth'
   if (path.startsWith('/api/search')) return 'Search'
   if (path.startsWith('/api/media')) return 'Media'
   if (path.startsWith('/api/system')) return 'System'
   if (path.startsWith('/api/content') || path.startsWith('/api/collections')) return 'Content'
   if (path.startsWith('/api/forms')) return 'Forms'
-  if (path.startsWith('/admin/api-keys')) return 'API Keys'
+  if (path.startsWith('/api/admin-keys')) return 'API Keys'
   if (path.startsWith('/admin/cache')) return 'Cache'
   if (path.startsWith('/admin/plugins/ai-search')) return 'Search'
-  if (path.startsWith('/admin/api')) return 'Admin'
+  if (path.startsWith('/api/admin')) return 'Admin'
   if (path.startsWith('/admin/database-tools')) return 'Admin'
   if (path.startsWith('/admin/seed-data')) return 'Admin'
   if (path.startsWith('/admin/plugins/email')) return 'Admin'
   if (path.startsWith('/workflow/')) return 'Workflow'
-  if (path.startsWith('/forms/')) return 'Forms'
-  if (path.startsWith('/files/')) return 'Files'
-  if (path === '/health' || path.startsWith('/api')) return 'System'
+    if (path.startsWith('/files/')) return 'Files'
+  if (path === '/api/health' || path.startsWith('/api')) return 'System'
   return 'Other'
 }
 
 export function inferAuth(path: string): boolean | 'unknown' {
   // Known public routes
-  if (path === '/health' || path === '/api' || path === '/api/health') return false
+  if (path === '/api/health'  || path === '/api/health') return false
   if (path === '/api/system/info' || path === '/api/system/schema') return false
   if (path.startsWith('/files/')) return false
-  if (path.startsWith('/forms/') || path.startsWith('/api/forms/')) return false
+  if (path.startsWith('/api/forms/')) return false
 
   // Admin routes require auth
   if (path.startsWith('/admin/')) return true

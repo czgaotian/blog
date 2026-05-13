@@ -10,8 +10,8 @@
  *
  * Exempt:
  *   - Safe methods (GET, HEAD, OPTIONS)
- *   - Auth routes that create sessions (/auth/login*, /auth/register*, etc.)
- *   - Public form submissions (/forms/*, /api/forms/*) — NOT /admin/forms/*
+ *   - Auth routes that create sessions (/api/auth/login*, /api/auth/register*, etc.)
+ *   - Public form submissions (/api/forms/*) — NOT /admin/forms/*
  *   - Requests with no auth_token cookie (Bearer-only or API-key-only)
  */
 
@@ -116,29 +116,29 @@ export async function validateCsrfToken(token: string, secret: string): Promise<
 // ============================================================================
 
 const DEFAULT_EXEMPT_PATHS = [
-  '/auth/login',
-  '/auth/register',
-  '/auth/seed-admin',
-  '/auth/accept-invitation',
-  '/auth/reset-password',
-  '/auth/request-password-reset',
-  '/auth/otp',
-  '/auth/magic-link',
-  '/auth/verify',
+  '/api/auth/login',
+  '/api/auth/register',
+  '/api/auth/seed-admin',
+  '/api/auth/accept-invitation',
+  '/api/auth/reset-password',
+  '/api/auth/request-password-reset',
+  '/api/auth/otp',
+  '/api/auth/magic-link',
+  '/api/auth/verify',
   '/api/stripe/webhook',
   '/api/events',
 ]
 
 /**
  * Check whether a request path is exempt from CSRF validation.
- * - Exact match or startsWith for auth routes (e.g. /auth/login/form)
- * - /forms/* and /api/forms/* are exempt (public submissions)
+ * - Exact match or startsWith for auth routes (e.g. /api/auth/login/form)
+ * - /api/forms/* are exempt (public submissions)
  * - /api/search* is exempt (read-only POST for complex query params)
  * - /admin/forms/* is NOT exempt
  */
 function isExemptPath(path: string, extraExemptPaths: string[] = []): boolean {
   // Public form routes — NOT /admin/forms/*
-  if (path.startsWith('/forms/') || path.startsWith('/api/forms/') || path === '/forms' || path === '/api/forms') {
+  if (path.startsWith('/api/forms/') || path === '/api/forms') {
     return true
   }
 
@@ -171,7 +171,7 @@ export interface CsrfOptions {
  *
  * - GET/HEAD/OPTIONS: ensure a valid csrf_token cookie exists
  * - POST/PUT/DELETE/PATCH: validate X-CSRF-Token header matches cookie, HMAC valid
- * - Exempt: auth routes, public /forms/*, Bearer-only, API-key-only
+ * - Exempt: auth routes, public Bearer-only, API-key-only
  */
 export function csrfProtection(options: CsrfOptions = {}) {
   return async (c: Context, next: Next): Promise<Response | void> => {

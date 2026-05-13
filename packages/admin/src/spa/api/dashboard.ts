@@ -5,6 +5,6 @@ import { adminFetch } from './client'
 export function useDashboard() {
   return useQuery<DashboardResponse>({
     queryKey: ['admin', 'dashboard'],
-    queryFn: () => adminFetch<DashboardResponse>('/admin/api/dashboard'),
+    queryFn: () => adminFetch<DashboardResponse>('/api/admin/dashboard'),
   })
 }

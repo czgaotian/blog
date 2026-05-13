@@ -62,7 +62,7 @@ export function createOTPLoginPlugin(): Plugin {
 
   const otpAPI = new Hono()
 
-  // POST /auth/otp/request - Request OTP code
+  // POST /api/auth/otp/request - Request OTP code
   otpAPI.post('/request', async (c: any) => {
     try {
       const body = await c.req.json()
@@ -231,7 +231,7 @@ export function createOTPLoginPlugin(): Plugin {
     }
   })
 
-  // POST /auth/otp/verify - Verify OTP code
+  // POST /api/auth/otp/verify - Verify OTP code
   otpAPI.post('/verify', async (c: any) => {
     try {
       const body = await c.req.json()
@@ -352,7 +352,7 @@ export function createOTPLoginPlugin(): Plugin {
     }
   })
 
-  // POST /auth/otp/resend - Resend OTP code
+  // POST /api/auth/otp/resend - Resend OTP code
   otpAPI.post('/resend', async (c: any) => {
     try {
       const body = await c.req.json()
@@ -383,7 +383,7 @@ export function createOTPLoginPlugin(): Plugin {
   })
 
   // Register API routes
-  builder.addRoute('/auth/otp', otpAPI, {
+  builder.addRoute('/api/auth/otp', otpAPI, {
     description: 'OTP authentication endpoints',
     requiresAuth: false,
     priority: 100

@@ -27,7 +27,7 @@ adminApiRoutes.use('*', requireRole(['admin', 'editor']))
 
 /**
  * Get current admin session bootstrap data
- * GET /admin/api/me
+ * GET /api/admin/me
  */
 adminApiRoutes.get('/me', (c) => {
   const user = c.get('user')
@@ -63,7 +63,7 @@ adminApiRoutes.route('/users', adminApiUsersRoutes)
 
 /**
  * Get dashboard statistics
- * GET /admin/api/stats
+ * GET /api/admin/stats
  */
 adminApiRoutes.get('/stats', async (c) => {
   try {
@@ -127,7 +127,7 @@ adminApiRoutes.get('/stats', async (c) => {
 
 /**
  * Get storage usage
- * GET /admin/api/storage
+ * GET /api/admin/storage
  */
 adminApiRoutes.get('/storage', async (c) => {
   try {
@@ -166,7 +166,7 @@ adminApiRoutes.get('/storage', async (c) => {
 
 /**
  * Get recent activity
- * GET /admin/api/activity
+ * GET /api/admin/activity
  */
 adminApiRoutes.get('/activity', async (c) => {
   try {
@@ -249,7 +249,7 @@ const updateCollectionSchema = z.object({
 
 /**
  * Get all collections
- * GET /admin/api/collections
+ * GET /api/admin/collections
  */
 adminApiRoutes.get('/collections', async (c) => {
   try {
@@ -314,7 +314,7 @@ adminApiRoutes.get('/collections', async (c) => {
 
 /**
  * Get single collection
- * GET /admin/api/collections/:id
+ * GET /api/admin/collections/:id
  */
 adminApiRoutes.get('/collections/:id', async (c) => {
   try {
@@ -369,7 +369,7 @@ adminApiRoutes.get('/collections/:id', async (c) => {
 
 /**
  * Get reference options for a collection
- * GET /admin/api/references?collection=<nameOrId>&search=<query>&limit=20&id=<contentId>
+ * GET /api/admin/references?collection=<nameOrId>&search=<query>&limit=20&id=<contentId>
  */
 adminApiRoutes.get('/references', async (c) => {
   try {
@@ -497,7 +497,7 @@ adminApiRoutes.get('/references', async (c) => {
 
 /**
  * Create collection
- * POST /admin/api/collections
+ * POST /api/admin/collections
  */
 adminApiRoutes.post('/collections', async (c) => {
     try {
@@ -599,7 +599,7 @@ adminApiRoutes.post('/collections', async (c) => {
 
 /**
  * Update collection
- * PATCH /admin/api/collections/:id
+ * PATCH /api/admin/collections/:id
  */
 adminApiRoutes.patch('/collections/:id', async (c) => {
     try {
@@ -672,7 +672,7 @@ adminApiRoutes.patch('/collections/:id', async (c) => {
 
 /**
  * Delete collection
- * DELETE /admin/api/collections/:id
+ * DELETE /api/admin/collections/:id
  */
 adminApiRoutes.delete('/collections/:id', async (c) => {
   try {

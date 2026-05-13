@@ -10,19 +10,16 @@ import { getAllCacheStats, clearAllCaches, getCacheService } from './services/ca
 import { CACHE_CONFIGS, parseCacheKey } from './services/cache-config.js'
 import { getRecentInvalidations, getCacheInvalidationStats } from './services/cache-invalidation.js'
 import { warmCommonCaches, warmNamespace } from './services/cache-warming.js'
-import { renderCacheDashboard, CacheDashboardData } from '@worker-blog/admin/templates/pages/admin-cache.template'
 
 const app = new Hono()
 
 /**
- * GET /admin/cache
- * Cache statistics dashboard
+ * GET /api/admin/cache
+ * Cache statistics summary
  */
 app.get('/', async (c: Context) => {
   const stats = getAllCacheStats()
-  const user = c.get('user')
 
-  // Calculate totals
   let totalHits = 0
   let totalMisses = 0
   let totalSize = 0
@@ -38,8 +35,13 @@ app.get('/', async (c: Context) => {
   const totalRequests = totalHits + totalMisses
   const overallHitRate = totalRequests > 0 ? (totalHits / totalRequests) * 100 : 0
 
-  const dashboardData: CacheDashboardData = {
-    stats,
+  return c.json({
+    success: true,
+    data: {
+      stats,
+      namespaces: Object.keys(stats),
+      version: c.get('appVersion'),
+    },
     totals: {
       hits: totalHits,
       misses: totalMisses,
@@ -48,16 +50,8 @@ app.get('/', async (c: Context) => {
       memorySize: totalSize,
       entryCount: totalEntries
     },
-    namespaces: Object.keys(stats),
-    user: user ? {
-      name: user.email,
-      email: user.email,
-      role: user.role
-    } : undefined,
-    version: c.get('appVersion')
-  }
-
-  return c.html(renderCacheDashboard(dashboardData))
+    timestamp: new Date().toISOString()
+  })
 })
 
 /**

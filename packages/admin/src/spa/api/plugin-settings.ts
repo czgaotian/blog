@@ -9,7 +9,7 @@ import { adminFetch } from './client'
 export function usePluginSettings(pluginId: string) {
   return useQuery<PluginSettingsResponse>({
     queryKey: ['admin', 'plugin-settings', pluginId],
-    queryFn: () => adminFetch<PluginSettingsResponse>(`/admin/api/plugin-settings/${pluginId}/settings`),
+    queryFn: () => adminFetch<PluginSettingsResponse>(`/api/admin/plugin-settings/${pluginId}/settings`),
     enabled: Boolean(pluginId),
   })
 }
@@ -18,7 +18,7 @@ export function useUpdatePluginSettings(pluginId: string) {
   const qc = useQueryClient()
   return useMutation<UpdatePluginSettingsResponse, Error, UpdatePluginSettingsRequest>({
     mutationFn: (data) =>
-      adminFetch<UpdatePluginSettingsResponse>(`/admin/api/plugin-settings/${pluginId}/settings`, {
+      adminFetch<UpdatePluginSettingsResponse>(`/api/admin/plugin-settings/${pluginId}/settings`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),

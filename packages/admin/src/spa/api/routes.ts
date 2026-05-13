@@ -5,6 +5,6 @@ import { adminFetch } from './client'
 export function useApiReference() {
   return useQuery<ApiReferenceResponse>({
     queryKey: ['admin', 'api-reference'],
-    queryFn: () => adminFetch<ApiReferenceResponse>('/admin/api/api-reference'),
+    queryFn: () => adminFetch<ApiReferenceResponse>('/api/admin/api-reference'),
   })
 }

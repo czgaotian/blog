@@ -11,7 +11,7 @@ import { adminFetch } from './client'
 export function useProfile() {
   return useQuery<UserProfileResponse>({
     queryKey: ['admin', 'profile'],
-    queryFn: () => adminFetch<UserProfileResponse>('/admin/api/profile'),
+    queryFn: () => adminFetch<UserProfileResponse>('/api/admin/profile'),
   })
 }
 
@@ -19,7 +19,7 @@ export function useUpdateProfile() {
   const qc = useQueryClient()
   return useMutation<MutateProfileResponse, Error, UpdateProfileRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateProfileResponse>('/admin/api/profile', {
+      adminFetch<MutateProfileResponse>('/api/admin/profile', {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
@@ -32,7 +32,7 @@ export function useUpdateProfile() {
 export function useChangePassword() {
   return useMutation<MutateProfileResponse, Error, ChangePasswordRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateProfileResponse>('/admin/api/profile/password', {
+      adminFetch<MutateProfileResponse>('/api/admin/profile/password', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
@@ -45,7 +45,7 @@ export function useUploadAvatar() {
     mutationFn: (file) => {
       const fd = new FormData()
       fd.append('avatar', file)
-      return adminFetch<{ message: string; avatarUrl: string }>('/admin/api/profile/avatar', {
+      return adminFetch<{ message: string; avatarUrl: string }>('/api/admin/profile/avatar', {
         method: 'POST',
         body: fd,
       })
@@ -78,7 +78,7 @@ export function useActivityLogs(filters: ActivityLogsFilters = {}) {
   const qs = params.toString()
   return useQuery<ActivityLogsListResponse>({
     queryKey: ['admin', 'activity-logs', filters],
-    queryFn: () => adminFetch<ActivityLogsListResponse>(`/admin/api/users/activity-logs${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<ActivityLogsListResponse>(`/api/admin/users/activity-logs${qs ? `?${qs}` : ''}`),
   })
 }
 
@@ -90,5 +90,5 @@ export function activityLogsExportUrl(filters: ActivityLogsFilters = {}) {
   if (filters.dateTo) params.set('date_to', filters.dateTo)
   if (filters.userId) params.set('user_id', filters.userId)
   const qs = params.toString()
-  return `/admin/api/users/activity-logs/export${qs ? `?${qs}` : ''}`
+  return `/api/admin/users/activity-logs/export${qs ? `?${qs}` : ''}`
 }

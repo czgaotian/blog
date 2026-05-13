@@ -36,14 +36,14 @@ function createApp() {
     c.set('user', { userId: 'u1', email: 'admin@test.com', role: 'admin', exp: 0, iat: 0 })
     await next()
   })
-  app.route('/admin/api/settings', adminApiSettingsRoutes)
+  app.route('/api/admin/settings', adminApiSettingsRoutes)
   return app
 }
 
-describe('GET /admin/api/settings', () => {
+describe('GET /api/admin/settings', () => {
   it('returns general and security settings', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/settings', {}, { DB: {} })
+    const res = await app.request('/api/admin/settings', {}, { DB: {} })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('general')
@@ -54,16 +54,16 @@ describe('GET /admin/api/settings', () => {
 
   it('returns 401 when unauthenticated', async () => {
     const app = new Hono()
-    app.route('/admin/api/settings', adminApiSettingsRoutes)
-    const res = await app.request('/admin/api/settings', {}, { DB: {} })
+    app.route('/api/admin/settings', adminApiSettingsRoutes)
+    const res = await app.request('/api/admin/settings', {}, { DB: {} })
     expect(res.status).toBe(401)
   })
 })
 
-describe('PUT /admin/api/settings/general', () => {
+describe('PUT /api/admin/settings/general', () => {
   it('saves valid general settings', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/settings/general', {
+    const res = await app.request('/api/admin/settings/general', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...mockGeneralSettings }),
@@ -75,7 +75,7 @@ describe('PUT /admin/api/settings/general', () => {
 
   it('returns 422 for invalid body', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/settings/general', {
+    const res = await app.request('/api/admin/settings/general', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ siteName: '' }),
@@ -84,10 +84,10 @@ describe('PUT /admin/api/settings/general', () => {
   })
 })
 
-describe('PUT /admin/api/settings/security', () => {
+describe('PUT /api/admin/settings/security', () => {
   it('saves valid security settings', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/settings/security', {
+    const res = await app.request('/api/admin/settings/security', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jwtExpiresIn: '30d', jwtRefreshGraceSeconds: 600 }),
@@ -97,7 +97,7 @@ describe('PUT /admin/api/settings/security', () => {
 
   it('returns 422 for invalid jwtExpiresIn', async () => {
     const app = createApp()
-    const res = await app.request('/admin/api/settings/security', {
+    const res = await app.request('/api/admin/settings/security', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ jwtExpiresIn: 'not-valid!', jwtRefreshGraceSeconds: 0 }),

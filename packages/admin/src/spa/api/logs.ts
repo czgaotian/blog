@@ -27,14 +27,14 @@ export function useLogsList(filters: LogsFilters = {}) {
 
   return useQuery<LogsListResponse>({
     queryKey: ['admin', 'logs', filters],
-    queryFn: () => adminFetch<LogsListResponse>(`/admin/api/logs${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<LogsListResponse>(`/api/admin/logs${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useLogDetails(id: string) {
   return useQuery<LogDetailsResponse>({
     queryKey: ['admin', 'logs', id],
-    queryFn: () => adminFetch<LogDetailsResponse>(`/admin/api/logs/${id}`),
+    queryFn: () => adminFetch<LogDetailsResponse>(`/api/admin/logs/${id}`),
     enabled: Boolean(id),
   })
 }
@@ -42,6 +42,6 @@ export function useLogDetails(id: string) {
 export function useLogConfig() {
   return useQuery<LogConfigResponse>({
     queryKey: ['admin', 'logs', 'config'],
-    queryFn: () => adminFetch<LogConfigResponse>('/admin/api/logs/config'),
+    queryFn: () => adminFetch<LogConfigResponse>('/api/admin/logs/config'),
   })
 }
