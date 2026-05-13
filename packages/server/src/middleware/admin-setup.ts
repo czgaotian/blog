@@ -6,7 +6,7 @@
  */
 
 import type { Context, Next } from 'hono'
-import { checkAdminUserExists } from '../services/api/auth-validation'
+import { checkAdminUserExists } from '../services/auth-validation'
 
 /**
  * Middleware that redirects to registration when no admin user exists

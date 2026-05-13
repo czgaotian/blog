@@ -9,7 +9,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import type { Plugin, PluginContext } from '@worker-blog/shared/types'
 import type { D1Database } from '@cloudflare/workers-types'
-import { AuthManager, getJwtExpirySecondsFromDb } from '../../../middleware/api/auth'
+import { AuthManager, getJwtExpirySecondsFromDb } from '../../../middleware'
 
 const magicLinkRequestSchema = z.object({
   email: z.string().email('Valid email is required')

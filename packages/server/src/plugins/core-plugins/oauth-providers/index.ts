@@ -23,7 +23,7 @@ import {
   type OAuthProviderConfig
 } from './oauth-service'
 import { AuthManager } from '../../../middleware'
-import { getJwtExpirySecondsFromDb } from '../../../middleware/api/auth'
+import { getJwtExpirySecondsFromDb } from '../../../middleware/auth'
 
 const STATE_COOKIE_NAME = 'oauth_state'
 const STATE_COOKIE_MAX_AGE = 600 // 10 minutes

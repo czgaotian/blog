@@ -8,8 +8,11 @@
     "worker-blog-db-reset": "./bin/db-reset.js"
   },
   "scripts": {
-    "dev": "wrangler dev",
-    "deploy": "wrangler deploy",
+    "dev": "pnpm --filter @worker-blog/admin dev",
+    "build": "pnpm --filter @worker-blog/admin build",
+    "check": "pnpm --filter @worker-blog/admin check",
+    "preview": "pnpm --filter @worker-blog/admin preview",
+    "deploy": "pnpm --filter @worker-blog/admin deploy",
     "db:migrate": "wrangler d1 migrations apply DB",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:reset": "worker-blog-db-reset",
