@@ -30,7 +30,8 @@ Modify the `admin` and `server` packages to follow the current Cloudflare `vite-
 
 Goal: Summarize how plugins are used across the project, especially `packages/admin` and `packages/server`.
 
-6. [in_progress] Inspect package structure and plugin-related files.
-7. [pending] Map server plugin registration, routing, lifecycle, and available/core plugin layout.
-8. [pending] Map admin SPA/plugin UI usage and API integration.
-9. [pending] Produce concise Chinese summary for the user.
+6. [complete] Inspect package structure and plugin-related files.
+7. [complete] Map server plugin registration, routing, lifecycle, and available/core plugin layout.
+8. [complete] Map admin SPA/plugin UI usage and API integration.
+9. [complete] Produce concise Chinese summary for the user.
+10. [complete] Document frontend plugin inventory, backend plugin manifest inventory, and plugin database tables.
