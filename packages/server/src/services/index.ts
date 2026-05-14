@@ -41,11 +41,6 @@ export type { Migration, MigrationStatus } from './migrations'
 export { Logger, getLogger, initLogger } from './logger'
 export type { LogLevel, LogCategory, LogEntry, LogFilter } from './logger'
 
-// Plugin Services
-export { PluginService } from './plugin-service'
-export { PluginBootstrapService } from './plugin-bootstrap'
-export type { CorePlugin } from './plugin-bootstrap'
-
 // Cache Service
 export { CacheService, getCacheService, CACHE_CONFIGS } from './cache'
 export type { CacheConfig } from './cache'

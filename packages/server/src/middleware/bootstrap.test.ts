@@ -21,22 +21,9 @@ vi.mock('../services/migrations', () => {
   }
 })
 
-vi.mock('../services/plugin-bootstrap', () => {
-  const mockIsBootstrapNeeded = vi.fn().mockResolvedValue(true)
-  const mockBootstrapCorePlugins = vi.fn().mockResolvedValue(undefined)
-  return {
-    PluginBootstrapService: vi.fn().mockImplementation(function() {
-      this.isBootstrapNeeded = mockIsBootstrapNeeded
-      this.bootstrapCorePlugins = mockBootstrapCorePlugins
-      return this
-    })
-  }
-})
-
 // Import the mocked modules after mocking
 import { syncCollections } from '../services/collection-sync'
 import { MigrationService } from '../services/migrations'
-import { PluginBootstrapService } from '../services/plugin-bootstrap'
 
 // Create mock environment
 function createMockEnv() {
@@ -91,7 +78,6 @@ describe('bootstrapMiddleware', () => {
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
     expect(MigrationService).toHaveBeenCalled()
     expect(syncCollections).toHaveBeenCalled()
-    expect(PluginBootstrapService).toHaveBeenCalled()
   })
 
   it('should skip bootstrap on subsequent requests', async () => {
@@ -213,23 +199,6 @@ describe('bootstrapMiddleware', () => {
     expect(res.status).toBe(200)
     expect(errorSpy).toHaveBeenCalledWith('[Bootstrap] Error syncing collections:', expect.any(Error))
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
-  })
-
-  it('should skip plugin bootstrap when disableAll is true', async () => {
-    const app = new Hono()
-    const env = createMockEnv()
-
-    app.use('*', async (c, next) => {
-      c.env = env as any
-      await next()
-    })
-    app.use('*', bootstrapMiddleware({ plugins: { disableAll: true } }))
-    app.get('/test', (c) => c.json({ ok: true }))
-
-    await app.request('/test')
-
-    expect(PluginBootstrapService).not.toHaveBeenCalled()
-    expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] Plugin bootstrap skipped (disableAll is true)')
   })
 
   it('should continue on fatal bootstrap error', async () => {

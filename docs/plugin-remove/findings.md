@@ -22,15 +22,15 @@
 
 | Area | Files | Purpose | Current role |
 |------|-------|---------|--------------|
-| Generic plugin list | `packages/admin/src/spa/pages/plugins-list.tsx`, `packages/admin/src/spa/api/plugins.ts` | Fetches `/api/admin/plugins` and renders installed/registry plugins with status counters. | Transitional admin UI; no install/uninstall actions in the current React SPA. |
-| Generic plugin settings | `packages/admin/src/spa/pages/plugin-settings.tsx`, `packages/admin/src/spa/api/plugin-settings.ts` | Fetches/saves `/api/admin/plugin-settings/:id/settings` based on manifest `settingsSchema`. | Transitional settings UI backed by plugin manifests and `plugins.settings`. |
-| Admin navigation | `packages/admin/src/spa/layouts/admin-layout.tsx`, `packages/admin/src/spa/router.tsx` | Adds `/admin/plugins` and `/admin/plugins/:id/settings`; optionally renders `pluginMenu` from `/api/admin/me`. | Plugin entry point in SPA; dynamic plugin menu likely empty because server middleware path check is mismatched. |
-| EasyMDE adapter | `packages/admin/src/plugins/easy-mdx.ts`, `packages/admin/src/plugins/available/easy-mdx/index.ts` | Emits EasyMDE CDN CSS/JS and an init stub. | Legacy/template editor adapter used by `admin-content-form.template.ts`, not current React content pages. |
-| TinyMCE adapter | `packages/admin/src/plugins/tinymce-plugin.ts`, `packages/admin/src/plugins/available/tinymce-plugin/index.ts` | Emits TinyMCE CDN script and initializes textareas with `data-editor-provider="tinymce"`. | Legacy/template editor adapter used by `admin-content-form.template.ts`. |
-| Quill adapter | `packages/admin/src/plugins/core-plugins/quill-editor/index.ts` | Emits Quill CDN CSS/JS and an init stub. | Legacy/template editor adapter used by `admin-content-form.template.ts`. |
-| Legacy template plugin pages | `packages/admin/src/templates/pages/admin-plugins-list.template.ts`, `packages/admin/src/templates/pages/admin-plugin-settings.template.ts` | Older server-rendered plugin list/settings screens with install/uninstall/activate/deactivate assumptions and custom settings renderers. | Legacy surface; not the current React SPA path, but still documents old platform semantics. |
+| Generic plugin list | `packages/admin/src/spa/pages/plugins-list.tsx`, `packages/admin/src/spa/api/plugins.ts` | Fetches `/api/admin/plugins` and renders installed/registry plugins with status counters. | Remove from frontend and remove the backend `/api/admin/plugins` endpoint. |
+| Generic plugin settings | `packages/admin/src/spa/pages/plugin-settings.tsx`, `packages/admin/src/spa/api/plugin-settings.ts` | Fetches/saves `/api/admin/plugin-settings/:id/settings` based on manifest `settingsSchema`. | Remove from frontend and remove the backend plugin settings endpoint. |
+| Admin navigation | `packages/admin/src/spa/layouts/admin-layout.tsx`, `packages/admin/src/spa/router.tsx` | Adds `/admin/plugins` and `/admin/plugins/:id/settings`; optionally renders `pluginMenu` from `/api/admin/me`. | Remove Plugins nav/routes and remove dynamic plugin menu rendering. |
+| EasyMDE adapter | `packages/admin/src/plugins/easy-mdx.ts`, `packages/admin/src/plugins/available/easy-mdx/index.ts` | Emits EasyMDE CDN CSS/JS and an init stub. | Keep for now with TODO; handle later with the content editor direction. |
+| TinyMCE adapter | `packages/admin/src/plugins/tinymce-plugin.ts`, `packages/admin/src/plugins/available/tinymce-plugin/index.ts` | Emits TinyMCE CDN script and initializes textareas with `data-editor-provider="tinymce"`. | Keep for now with TODO; handle later with the content editor direction. |
+| Quill adapter | `packages/admin/src/plugins/core-plugins/quill-editor/index.ts` | Emits Quill CDN CSS/JS and an init stub. | Keep for now with TODO; handle later with the content editor direction. |
+| Legacy template plugin pages | `packages/admin/src/templates/pages/admin-plugins-list.template.ts`, `packages/admin/src/templates/pages/admin-plugin-settings.template.ts` | Older server-rendered plugin list/settings screens with install/uninstall/activate/deactivate assumptions and custom settings renderers. | Remove or mark TODO legacy if references need a staged cleanup. |
 
-Conclusion: frontend "plugins" are not independently loaded modules. They are either generic plugin-management screens or editor helper scripts embedded into legacy templates.
+Conclusion: frontend "plugins" are not independently loaded modules. Remove the generic plugin-management screens now; keep editor helper scripts temporarily with TODOs for a later content editor cleanup.
 
 ## Backend Plugin Manifest Inventory
 
@@ -68,16 +68,18 @@ Back-end plugin manifests currently found under `packages/server/src/plugins/**/
 
 Important nuance: these manifests overstate runtime dynamism. Many of the corresponding routes/services are imported manually from `packages/server/src/app.ts`, and `/admin/plugins/...` HTML routes declared by plugins are not broadly mounted by the current helper.
 
+Migration decision: keep backend functionality, but migrate it out of plugin-platform semantics into built-in modules. The target shape is explicit `features/*` modules with direct Hono route registration and explicit services. Do not keep a backend plugin configuration API, do not add `FeatureSettingsService`, and do not use `plugins.status`/`plugins.settings` as feature switches.
+
 ## Plugin Database Tables
 
 Plugin-related tables are created by `packages/server/migrations/006_plugin_system.sql` and mirrored in `packages/server/src/db/schema.ts`:
 
 | Table | Purpose | Current migration recommendation |
 |-------|---------|----------------------------------|
-| `plugins` | Main registry/status/settings table. Stores id, name, display metadata, version, status, `is_core`, `settings`, permissions, dependencies, install/update timestamps, and error state. | Keep during migration as the compatibility source for feature settings/status. |
+| `plugins` | Main registry/status/settings table. Stores id, name, display metadata, version, status, `is_core`, `settings`, permissions, dependencies, install/update timestamps, and error state. | Do not keep as a configuration source; remove after runtime references are cleared. |
 | `plugin_hooks` | Intended DB registry for plugin hook handlers by hook name, priority, and active flag. | Candidate for removal once hook-system/platform layer is retired; verify no live data dependency first. |
 | `plugin_routes` | Intended DB registry for plugin routes by path/method/handler. | Candidate for removal; actual route mounting is code-based/manual today. |
 | `plugin_assets` | Intended DB registry for plugin CSS/JS/image/font assets and load order. | Candidate for removal if no asset loader consumes it. |
-| `plugin_activity_log` | Audit trail for plugin install/activate/deactivate/settings/error activity via `PluginService`. | Can be retired after plugin management actions are removed or renamed to feature settings audit. |
+| `plugin_activity_log` | Audit trail for plugin install/activate/deactivate/settings/error activity via `PluginService`. | Remove with the plugin management layer. |
 
-No `plugin_settings` table is defined in the migrations/schema inspected here. One database tools service excludes a `plugin_settings` table name, but the actual persisted settings are in `plugins.settings`.
+No `plugin_settings` table is defined in the migrations/schema inspected here. One database tools service excludes a `plugin_settings` table name, but the actual persisted settings are in `plugins.settings`; under the current decision, that settings model should not be carried forward.

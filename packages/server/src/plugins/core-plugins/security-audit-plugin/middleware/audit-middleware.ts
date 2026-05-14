@@ -2,7 +2,6 @@ import type { Context, Next } from 'hono'
 import type { Bindings, Variables } from '../../../../app'
 import { SecurityAuditService } from '../services/security-audit-service'
 import { BruteForceDetector } from '../services/brute-force-detector'
-import { PluginService } from '../../../../services'
 import type { SecurityAuditSettings, SecurityEventType } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
 
@@ -30,29 +29,8 @@ function generateFingerprint(ip: string, userAgent: string): string {
   return Math.abs(hash).toString(36)
 }
 
-async function getPluginSettings(db: any): Promise<SecurityAuditSettings> {
-  try {
-    const pluginService = new PluginService(db)
-    const plugin = await pluginService.getPlugin('security-audit')
-    if (plugin?.settings) {
-      const settings = typeof plugin.settings === 'string' ? JSON.parse(plugin.settings) : plugin.settings
-      return { ...DEFAULT_SETTINGS, ...settings }
-    }
-  } catch {
-    // Plugin not installed or DB not ready
-  }
+async function getPluginSettings(_db: any): Promise<SecurityAuditSettings> {
   return DEFAULT_SETTINGS
-}
-
-async function isPluginActive(db: any): Promise<boolean> {
-  try {
-    const result = await db.prepare(
-      "SELECT status FROM plugins WHERE id = 'security-audit'"
-    ).first() as { status: string } | null
-    return result?.status === 'active'
-  } catch {
-    return false
-  }
 }
 
 export function securityAuditMiddleware() {
@@ -65,11 +43,6 @@ export function securityAuditMiddleware() {
     }
 
     const db = c.env.DB
-
-    // Check if plugin is active
-    if (!await isPluginActive(db)) {
-      return next()
-    }
 
     const settings = await getPluginSettings(db)
     const { ip, userAgent, countryCode, method } = extractRequestInfo(c)

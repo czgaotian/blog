@@ -26,58 +26,24 @@ export function createEmailPlugin(): Plugin {
     compatibility: '^2.0.0'
   })
 
-  // Create the Email Settings route (POST only - GET is handled by generic plugin settings page)
   const emailRoutes = new Hono()
-
-  // Note: Admin UI is now handled by the generic plugin settings page
-  // with custom component at admin-plugin-settings.template.ts
-
-  // POST endpoint for saving settings
-  emailRoutes.post('/settings', async (c: any) => {
-    try {
-      const body = await c.req.json()
-      const db = c.env.DB
-
-      // Update plugin settings in database
-      await db.prepare(`
-        UPDATE plugins
-        SET settings = ?,
-            updated_at = unixepoch()
-        WHERE id = 'email'
-      `).bind(JSON.stringify(body)).run()
-
-      return c.json({ success: true })
-    } catch (error) {
-      console.error('Error saving email settings:', error)
-      return c.json({ success: false, error: 'Failed to save settings' }, 500)
-    }
-  })
 
   // POST endpoint for test email
   emailRoutes.post('/test', async (c: any) => {
     try {
-      const db = c.env.DB
       const body = await c.req.json()
 
-      // Load settings from database
-      const plugin = await db.prepare(`
-        SELECT settings FROM plugins WHERE id = 'email'
-      `).first() as { settings: string | null } | null
-
-      if (!plugin?.settings) {
-        return c.json({
-          success: false,
-          error: 'Email settings not configured. Please save your settings first.'
-        }, 400)
+      const settings = {
+        apiKey: c.env.RESEND_API_KEY || c.env.SENDGRID_API_KEY || '',
+        fromEmail: c.env.DEFAULT_FROM_EMAIL || '',
+        fromName: c.env.DEFAULT_FROM_NAME || 'Worker Blog',
+        replyTo: c.env.DEFAULT_FROM_EMAIL || '',
       }
 
-      const settings = JSON.parse(plugin.settings)
-
-      // Validate required settings
       if (!settings.apiKey || !settings.fromEmail || !settings.fromName) {
         return c.json({
           success: false,
-          error: 'Missing required settings. Please configure API Key, From Email, and From Name.'
+          error: 'Missing required email environment variables.'
         }, 400)
       }
 

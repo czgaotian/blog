@@ -32,24 +32,10 @@ export class AISearchService {
   }
 
   /**
-   * Get plugin settings
+   * Get built-in search settings.
    */
   async getSettings(): Promise<AISearchSettings | null> {
-    try {
-      const plugin = await this.db
-        .prepare(`SELECT settings FROM plugins WHERE id = ? LIMIT 1`)
-        .bind('ai-search')
-        .first<{ settings: string | null }>()
-
-      if (!plugin || !plugin.settings) {
-        return this.getDefaultSettings()
-      }
-
-      return JSON.parse(plugin.settings) as AISearchSettings
-    } catch (error) {
-      console.error('Error fetching AI Search settings:', error)
-      return this.getDefaultSettings()
-    }
+    return this.getDefaultSettings()
   }
 
   /**
@@ -69,31 +55,14 @@ export class AISearchService {
   }
 
   /**
-   * Update plugin settings
+   * Return merged settings for legacy callers. Settings are no longer persisted
+   * through the plugin table.
    */
   async updateSettings(settings: Partial<AISearchSettings>): Promise<AISearchSettings> {
     const existing = await this.getSettings()
-    const updated: AISearchSettings = {
+    return {
       ...existing!,
       ...settings,
-    }
-
-    try {
-      // Update plugin settings in plugins table
-      await this.db
-        .prepare(`
-          UPDATE plugins
-          SET settings = ?,
-              updated_at = unixepoch()
-          WHERE id = 'ai-search'
-        `)
-        .bind(JSON.stringify(updated))
-        .run()
-
-      return updated
-    } catch (error) {
-      console.error('Error updating AI Search settings:', error)
-      throw error
     }
   }
 

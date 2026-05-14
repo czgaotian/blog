@@ -1,3 +1,5 @@
+// TODO(plugin-remove): keep this legacy editor adapter until the content editor
+// direction is settled, then migrate or remove it with the editor stack.
 export function getQuillCDN(_version?: string): string {
   return `
     <link href="https://cdn.quilljs.com/1.3.6/quill.snow.css" rel="stylesheet">

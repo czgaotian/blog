@@ -52,17 +52,20 @@ export function createOAuthProvidersPlugin(): Plugin {
     return `${proto}://${host}/api/auth/oauth/${provider}/callback`
   }
 
-  async function loadSettings(db: any): Promise<OAuthPluginSettings | null> {
-    const row = await db.prepare(
-      `SELECT settings FROM plugins WHERE id = 'oauth-providers'`
-    ).first() as { settings: string | null } | null
-
-    if (!row?.settings) return null
-
-    try {
-      return JSON.parse(row.settings) as OAuthPluginSettings
-    } catch {
-      return null
+  function loadSettings(env: any): OAuthPluginSettings {
+    return {
+      providers: {
+        github: {
+          clientId: env.GITHUB_OAUTH_CLIENT_ID || '',
+          clientSecret: env.GITHUB_OAUTH_CLIENT_SECRET || '',
+          enabled: Boolean(env.GITHUB_OAUTH_CLIENT_ID && env.GITHUB_OAUTH_CLIENT_SECRET),
+        },
+        google: {
+          clientId: env.GOOGLE_OAUTH_CLIENT_ID || '',
+          clientSecret: env.GOOGLE_OAUTH_CLIENT_SECRET || '',
+          enabled: Boolean(env.GOOGLE_OAUTH_CLIENT_ID && env.GOOGLE_OAUTH_CLIENT_SECRET),
+        },
+      },
     }
   }
 
@@ -91,7 +94,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       }
 
       const db = c.env.DB
-      const settings = await loadSettings(db)
+      const settings = loadSettings(c.env)
       const creds = getProviderCredentials(settings, providerId)
 
       if (!creds) {
@@ -167,7 +170,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       }
 
       const db = c.env.DB
-      const settings = await loadSettings(db)
+      const settings = loadSettings(c.env)
       const creds = getProviderCredentials(settings, providerId)
 
       if (!creds) {
@@ -304,7 +307,7 @@ export function createOAuthProvidersPlugin(): Plugin {
       // Redirect the user to the OAuth flow — the callback will auto-link
       // since the user already exists by email
       const db = c.env.DB
-      const settings = await loadSettings(db)
+      const settings = loadSettings(c.env)
       const creds = getProviderCredentials(settings, provider)
 
       if (!creds) {

@@ -25,27 +25,10 @@ export type {
 let adminExistsCache: boolean | null = null
 
 /**
- * Check if user registration is enabled in the auth plugin settings
- * @param db - D1 database instance
- * @returns true if registration is enabled, false if disabled
+ * Registration is a built-in capability now; it is no longer driven by plugin settings.
  */
-export async function isRegistrationEnabled(db: D1Database): Promise<boolean> {
-  try {
-    const plugin = await db.prepare('SELECT settings FROM plugins WHERE id = ?')
-      .bind('core-auth')
-      .first() as { settings: string } | null
-
-    if (plugin?.settings) {
-      // Parse settings and check registration.enabled
-      // SQLite stores booleans as 0/1, so check for both false and 0
-      const settings = JSON.parse(plugin.settings)
-      const enabled = settings?.registration?.enabled
-      return enabled !== false && enabled !== 0
-    }
-    return true // Default to enabled if no settings
-  } catch {
-    return true // Default to enabled on error
-  }
+export async function isRegistrationEnabled(_db: D1Database): Promise<boolean> {
+  return true
 }
 
 /**

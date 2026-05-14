@@ -20,111 +20,51 @@ global.fetch = vi.fn()
 describe('TurnstileService', () => {
   let db: D1Database
   let turnstileService: TurnstileService
+  const env = {
+    TURNSTILE_SITE_KEY: 'test-site-key',
+    TURNSTILE_SECRET_KEY: 'test-secret-key',
+  }
 
   beforeEach(() => {
     db = createMockDb()
-    turnstileService = new TurnstileService(db)
+    turnstileService = new TurnstileService(db, env)
     vi.clearAllMocks()
   })
 
   describe('getSettings', () => {
-    it('should return null when plugin has no settings', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      })
+    it('should return null when env keys are missing', async () => {
+      turnstileService = new TurnstileService(db)
 
       const settings = await turnstileService.getSettings()
       expect(settings).toBeNull()
+      expect(db.prepare).not.toHaveBeenCalled()
     })
 
-    it('should return parsed settings when they exist', async () => {
-      const mockSettings = {
+    it('should return built-in settings from env', async () => {
+      const settings = await turnstileService.getSettings()
+      expect(settings).toEqual({
         siteKey: 'test-site-key',
         secretKey: 'test-secret-key',
-        theme: 'auto' as const,
-        size: 'normal' as const,
+        theme: 'auto',
+        size: 'normal',
+        mode: 'managed',
+        appearance: 'always',
         enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
       })
-
-      const settings = await turnstileService.getSettings()
-      expect(settings).toEqual(mockSettings)
-    })
-
-    it('should handle JSON parse errors gracefully', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: 'invalid-json',
-          }),
-        }),
-      })
-
-      const settings = await turnstileService.getSettings()
-      expect(settings).toBeNull()
+      expect(db.prepare).not.toHaveBeenCalled()
     })
   })
 
   describe('verifyToken', () => {
     it('should return error when Turnstile is not configured', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      })
+      turnstileService = new TurnstileService(db)
 
       const result = await turnstileService.verifyToken('test-token')
       expect(result.success).toBe(false)
       expect(result.error).toBe('Turnstile not configured')
     })
 
-    it('should allow through when Turnstile is disabled', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify({
-              siteKey: 'test-key',
-              secretKey: 'test-secret',
-              enabled: false,
-            }),
-          }),
-        }),
-      })
-
-      const result = await turnstileService.verifyToken('test-token')
-      expect(result.success).toBe(true)
-    })
-
     it('should verify token successfully with Cloudflare API', async () => {
-      const mockSettings = {
-        siteKey: 'test-site-key',
-        secretKey: 'test-secret-key',
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
-      })
-
       // Mock successful Cloudflare API response
       ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
@@ -141,21 +81,6 @@ describe('TurnstileService', () => {
     })
 
     it('should handle verification failure with error codes', async () => {
-      const mockSettings = {
-        siteKey: 'test-site-key',
-        secretKey: 'test-secret-key',
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
-      })
-
       // Mock failed Cloudflare API response
       ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
@@ -171,21 +96,6 @@ describe('TurnstileService', () => {
     })
 
     it('should include remoteip when provided', async () => {
-      const mockSettings = {
-        siteKey: 'test-site-key',
-        secretKey: 'test-secret-key',
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
-      })
-
       ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -200,21 +110,6 @@ describe('TurnstileService', () => {
     })
 
     it('should use correct Cloudflare API endpoint', async () => {
-      const mockSettings = {
-        siteKey: 'test-site-key',
-        secretKey: 'test-secret-key',
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
-      })
-
       ;(global.fetch as ReturnType<typeof vi.fn>).mockResolvedValueOnce({
         ok: true,
         json: async () => ({ success: true }),
@@ -228,21 +123,6 @@ describe('TurnstileService', () => {
     })
 
     it('should handle network errors gracefully', async () => {
-      const mockSettings = {
-        siteKey: 'test-site-key',
-        secretKey: 'test-secret-key',
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify(mockSettings),
-          }),
-        }),
-      })
-
       ;(global.fetch as ReturnType<typeof vi.fn>).mockRejectedValueOnce(
         new Error('Network error')
       )
@@ -253,97 +133,18 @@ describe('TurnstileService', () => {
     })
   })
 
-  describe('saveSettings', () => {
-    it('should save settings to database', async () => {
-      const mockSettings = {
-        siteKey: 'new-site-key',
-        secretKey: 'new-secret-key',
-        theme: 'dark' as const,
-        size: 'compact' as const,
-        enabled: true,
-      }
-
-      const runMock = vi.fn()
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          run: runMock,
-        }),
-      })
-
-      await turnstileService.saveSettings(mockSettings)
-
-      expect(prepare).toHaveBeenCalledWith(
-        expect.stringContaining('UPDATE plugins')
-      )
-      expect(runMock).toHaveBeenCalled()
-    })
-
-    it('should handle save errors', async () => {
-      const mockSettings = {
-        siteKey: 'new-site-key',
-        secretKey: 'new-secret-key',
-        theme: 'auto' as const,
-        size: 'normal' as const,
-        enabled: true,
-      }
-
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          run: vi.fn().mockRejectedValue(new Error('Database error')),
-        }),
-      })
-
-      await expect(turnstileService.saveSettings(mockSettings)).rejects.toThrow(
-        'Failed to save Turnstile settings'
-      )
-    })
-  })
-
   describe('isEnabled', () => {
-    it('should return false when settings are null', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue(null),
-        }),
-      })
-
-      const result = await turnstileService.isEnabled()
-      expect(result).toBe(false)
-    })
-
-    it('should return false when enabled is false', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify({
-              siteKey: 'test-key',
-              secretKey: 'test-secret',
-              enabled: false,
-            }),
-          }),
-        }),
-      })
+    it('should return false when env keys are missing', async () => {
+      turnstileService = new TurnstileService(db)
 
       const result = await turnstileService.isEnabled()
       expect(result).toBe(false)
     })
 
     it('should return false when keys are missing', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify({
-              siteKey: '',
-              secretKey: '',
-              enabled: true,
-            }),
-          }),
-        }),
+      turnstileService = new TurnstileService(db, {
+        TURNSTILE_SITE_KEY: '',
+        TURNSTILE_SECRET_KEY: '',
       })
 
       const result = await turnstileService.isEnabled()
@@ -351,19 +152,6 @@ describe('TurnstileService', () => {
     })
 
     it('should return true when properly configured and enabled', async () => {
-      const prepare = db.prepare as ReturnType<typeof vi.fn>
-      prepare.mockReturnValueOnce({
-        bind: vi.fn().mockReturnValue({
-          first: vi.fn().mockResolvedValue({
-            settings: JSON.stringify({
-              siteKey: 'test-key',
-              secretKey: 'test-secret',
-              enabled: true,
-            }),
-          }),
-        }),
-      })
-
       const result = await turnstileService.isEnabled()
       expect(result).toBe(true)
     })

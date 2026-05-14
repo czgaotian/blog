@@ -569,13 +569,6 @@ function renderCatalystSidebar(
       </svg>`,
     },
     {
-      label: "Plugins",
-      path: "/admin/plugins",
-      icon: `<svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"/>
-      </svg>`,
-    },
-    {
       label: "Cache",
       path: "/admin/cache",
       icon: `<svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -592,22 +585,8 @@ function renderCatalystSidebar(
     </svg>`,
   };
 
-  // Combine base menu items with dynamic menu items
   const allMenuItems = [...baseMenuItems];
-  if (dynamicMenuItems && dynamicMenuItems.length > 0) {
-    // Insert dynamic menu items after Users menu item
-    const usersIndex = allMenuItems.findIndex(
-      (item) => item.path === "/admin/users"
-    );
-    if (usersIndex !== -1) {
-      allMenuItems.splice(usersIndex + 1, 0, ...dynamicMenuItems);
-    } else {
-      // Fallback: add to end if Users not found
-      allMenuItems.push(...dynamicMenuItems);
-    }
-  }
-  // Marker for middleware-injected plugin menu items (used when dynamicMenuItems is not passed explicitly)
-  const pluginMenuMarker = (!dynamicMenuItems || dynamicMenuItems.length === 0) ? '<!-- DYNAMIC_PLUGIN_MENU -->' : '';
+  void dynamicMenuItems;
 
   const closeButton = isMobile
     ? `
@@ -672,7 +651,6 @@ function renderCatalystSidebar(
             `;
             })
             .join("")}
-          ${pluginMenuMarker}
         </div>
       </div>
 

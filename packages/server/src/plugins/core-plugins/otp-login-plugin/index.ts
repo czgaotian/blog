@@ -42,6 +42,16 @@ const DEFAULT_SETTINGS: OTPSettings = {
   loginButtonText: ''
 }
 
+function getEmailSettings(env: any) {
+  const fromEmail = env.DEFAULT_FROM_EMAIL || ''
+  return {
+    apiKey: env.RESEND_API_KEY || env.SENDGRID_API_KEY || '',
+    fromEmail,
+    fromName: env.DEFAULT_FROM_NAME || 'Worker Blog',
+    replyTo: fromEmail,
+  }
+}
+
 export function createOTPLoginPlugin(): Plugin {
   const builder = PluginBuilder.create({
     name: 'otp-login',
@@ -80,19 +90,7 @@ export function createOTPLoginPlugin(): Plugin {
       const db = c.env.DB
       const otpService = new OTPService(db)
 
-      // Load plugin settings from database
-      let settings: OTPSettings = { ...DEFAULT_SETTINGS }
-      const pluginRow = await db.prepare(`
-        SELECT settings FROM plugins WHERE id = 'otp-login'
-      `).first() as { settings: string | null } | null
-      if (pluginRow?.settings) {
-        try {
-          const savedSettings = JSON.parse(pluginRow.settings)
-          settings = { ...DEFAULT_SETTINGS, ...savedSettings }
-        } catch (e) {
-          console.warn('Failed to parse OTP plugin settings, using defaults')
-        }
-      }
+      const settings: OTPSettings = { ...DEFAULT_SETTINGS }
 
       // Get site name from general settings
       const settingsService = new SettingsService(db)
@@ -166,44 +164,31 @@ export function createOTPLoginPlugin(): Plugin {
           loginButtonText: settings.loginButtonText || ''
         })
 
-        // Load email plugin settings from database
-        // Note: We don't check status='active' because the email plugin's
-        // settings UI works regardless of status, so we follow the same pattern
-        const emailPlugin = await db.prepare(`
-          SELECT settings FROM plugins WHERE id = 'email'
-        `).first() as { settings: string | null } | null
+        const emailSettings = getEmailSettings(c.env)
 
-        if (emailPlugin?.settings) {
-          const emailSettings = JSON.parse(emailPlugin.settings)
-
-          if (emailSettings.apiKey && emailSettings.fromEmail && emailSettings.fromName) {
-            // Send email via Resend API
-            const emailResponse = await fetch('https://api.resend.com/emails', {
-              method: 'POST',
-              headers: {
-                'Authorization': `Bearer ${emailSettings.apiKey}`,
-                'Content-Type': 'application/json'
-              },
-              body: JSON.stringify({
-                from: `${emailSettings.fromName} <${emailSettings.fromEmail}>`,
-                to: [normalizedEmail],
-                subject: `Your login code for ${siteName}`,
-                html: emailContent.html,
-                text: emailContent.text,
-                reply_to: emailSettings.replyTo || emailSettings.fromEmail
-              })
+        if (emailSettings.apiKey && emailSettings.fromEmail && emailSettings.fromName) {
+          const emailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${emailSettings.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: `${emailSettings.fromName} <${emailSettings.fromEmail}>`,
+              to: [normalizedEmail],
+              subject: `Your login code for ${siteName}`,
+              html: emailContent.html,
+              text: emailContent.text,
+              reply_to: emailSettings.replyTo || emailSettings.fromEmail
             })
+          })
 
-            if (!emailResponse.ok) {
-              const errorData = await emailResponse.json() as { message?: string }
-              console.error('Failed to send OTP email via Resend:', errorData)
-              // Don't expose error to user for security - just log it
-            }
-          } else {
-            console.warn('Email plugin is not fully configured (missing apiKey, fromEmail, or fromName)')
+          if (!emailResponse.ok) {
+            const errorData = await emailResponse.json() as { message?: string }
+            console.error('Failed to send OTP email via Resend:', errorData)
           }
         } else {
-          console.warn('Email plugin is not active or has no settings configured')
+          console.warn('Email environment variables are not fully configured (missing apiKey, fromEmail, or fromName)')
         }
 
         const response: any = {
@@ -249,19 +234,7 @@ export function createOTPLoginPlugin(): Plugin {
       const db = c.env.DB
       const otpService = new OTPService(db)
 
-      // Load plugin settings from database
-      let settings = { ...DEFAULT_SETTINGS }
-      const pluginRow = await db.prepare(`
-        SELECT settings FROM plugins WHERE id = 'otp-login'
-      `).first() as { settings: string | null } | null
-      if (pluginRow?.settings) {
-        try {
-          const savedSettings = JSON.parse(pluginRow.settings)
-          settings = { ...DEFAULT_SETTINGS, ...savedSettings }
-        } catch (e) {
-          console.warn('Failed to parse OTP plugin settings, using defaults')
-        }
-      }
+      const settings = { ...DEFAULT_SETTINGS }
 
       // Verify the code
       const verification = await otpService.verifyCode(normalizedEmail, code, settings)
@@ -389,10 +362,7 @@ export function createOTPLoginPlugin(): Plugin {
     priority: 100
   })
 
-  // Note: Admin UI is now handled by the generic plugin settings page
-  // with custom component at admin-plugin-settings.template.ts
-
-  // Add menu item (points to generic plugin settings page)
+  // TODO(plugin-remove): move this admin UI to an explicit built-in auth page.
   builder.addMenuItem('OTP Login', '/admin/plugins/otp-login', {
     icon: 'key',
     order: 85,

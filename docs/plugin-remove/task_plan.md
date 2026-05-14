@@ -35,3 +35,19 @@ Goal: Summarize how plugins are used across the project, especially `packages/ad
 8. [complete] Map admin SPA/plugin UI usage and API integration.
 9. [complete] Produce concise Chinese summary for the user.
 10. [complete] Document frontend plugin inventory, backend plugin manifest inventory, and plugin database tables.
+11. [complete] Update deprecation plan with decision to remove frontend generic plugin UI, keep editor adapters as TODO, and migrate backend plugins into built-in feature modules.
+12. [complete] Update plan with decision to remove backend plugin configuration APIs and treat all migrated functionality as built-in with no plugin settings layer.
+
+## Follow-up: Plugin Removal Execution
+
+Goal: Start removing the generic plugin management surface while preserving existing feature behavior as built-in modules.
+
+13. [complete] Remove React SPA `/admin/plugins` and `/admin/plugins/:id/settings` pages, routes, API clients, nav entry, and dynamic plugin menu rendering.
+14. [complete] Keep editor adapters in place with TODO comments for later editor-stack cleanup.
+15. [complete] Remove backend generic plugin management/config routes and shared admin-api contracts.
+16. [complete] Remove server plugin menu middleware and plugin bootstrap/service runtime wiring.
+17. [complete] Convert runtime feature checks/settings away from `plugins.status` and `plugins.settings` for the touched built-in modules.
+18. [complete] Remove old server-rendered generic plugin list/settings templates and legacy plugin nav/menu injection.
+19. [complete] Update route metadata and tests for the new built-in/no-config behavior.
+20. [complete] Run type-check and targeted server tests.
+21. [pending] Delete remaining platform-layer code once feature routes are explicitly migrated: plugin SDK/builder/validator/manifest registry, shared plugin types, schema/migrations for plugin tables.

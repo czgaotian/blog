@@ -12,7 +12,6 @@ import {
   LogOut,
   Menu,
   Moon,
-  Plug,
   Settings,
   Sun,
   User,
@@ -33,7 +32,6 @@ const navItems = [
   { label: 'Forms', href: '/admin/forms', icon: ClipboardList },
   { label: 'Collections', href: '/admin/collections', icon: Database },
   { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'Plugins', href: '/admin/plugins', icon: Plug },
   { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
   { label: 'SPA Test', href: '/admin/spa-test', icon: Activity },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
@@ -56,7 +54,6 @@ export function AdminLayout() {
 
   const appName = meQuery.data?.app.name || 'Worker Blog'
   const appVersion = meQuery.data?.app.version
-  const pluginMenu = meQuery.data?.pluginMenu || []
   const nextTheme = theme === 'dark' ? 'light' : 'dark'
 
   useEffect(() => {
@@ -87,23 +84,6 @@ export function AdminLayout() {
               </NavLink>
             )
           })}
-          {pluginMenu.length > 0 ? (
-            <div className="pt-4">
-              <p className="px-2 pb-2 text-xs font-medium text-muted-foreground">Plugins</p>
-              <div className="space-y-1">
-                {pluginMenu.map((item) => (
-                  <a
-                    key={item.path}
-                    className="flex h-10 items-center gap-3 rounded-md px-2 text-sm font-medium outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
-                    href={item.path}
-                  >
-                    <Plug className="h-4 w-4" />
-                    <span className="truncate">{item.label}</span>
-                  </a>
-                ))}
-              </div>
-            </div>
-          ) : null}
         </nav>
       </aside>
 

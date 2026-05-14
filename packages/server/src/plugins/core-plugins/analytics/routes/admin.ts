@@ -148,8 +148,7 @@ adminRoutes.get('/', async (c) => {
       email: user.email,
       role: user.role
     } : undefined,
-    content,
-    dynamicMenuItems: c.get('pluginMenuItems')
+    content
   }))
 })
 

@@ -1,3 +1,5 @@
+// TODO(plugin-remove): keep this legacy editor adapter until the content editor
+// direction is settled, then migrate or remove it with the editor stack.
 export function getTinyMCEScript(apiKey: string = 'no-api-key'): string {
   return `<script src="https://cdn.tiny.cloud/1/${apiKey}/tinymce/6/tinymce.min.js" referrerpolicy="origin"></script>`
 }

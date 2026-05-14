@@ -39,7 +39,6 @@ import { securityAuditPlugin } from './plugins/core-plugins/security-audit-plugi
 import { securityAuditMiddleware } from './plugins/core-plugins/security-audit-plugin'
 import { stripePlugin } from './plugins/core-plugins/stripe-plugin'
 import { requireAuth, requireRole } from './middleware/auth'
-import { pluginMenuMiddleware } from './middleware/plugin-menu'
 import { analyticsPlugin } from './plugins/core-plugins/analytics'
 import { eventsApiRoutes } from './plugins/core-plugins/analytics/routes/api'
 import cachePlugin from './plugins/cache'
@@ -57,7 +56,9 @@ export interface Bindings {
   ASSETS: Fetcher
   EMAIL_QUEUE?: Queue
   SENDGRID_API_KEY?: string
+  RESEND_API_KEY?: string
   DEFAULT_FROM_EMAIL?: string
+  DEFAULT_FROM_NAME?: string
   IMAGES_ACCOUNT_ID?: string
   IMAGES_API_TOKEN?: string
   ENVIRONMENT?: string
@@ -67,6 +68,18 @@ export interface Bindings {
   JWT_REFRESH_GRACE_SECONDS?: string
   BUCKET_NAME?: string
   GOOGLE_MAPS_API_KEY?: string
+  STRIPE_PUBLISHABLE_KEY?: string
+  STRIPE_SECRET_KEY?: string
+  STRIPE_WEBHOOK_SECRET?: string
+  STRIPE_PRICE_ID?: string
+  STRIPE_SUCCESS_URL?: string
+  STRIPE_CANCEL_URL?: string
+  GITHUB_OAUTH_CLIENT_ID?: string
+  GITHUB_OAUTH_CLIENT_SECRET?: string
+  GOOGLE_OAUTH_CLIENT_ID?: string
+  GOOGLE_OAUTH_CLIENT_SECRET?: string
+  TURNSTILE_SITE_KEY?: string
+  TURNSTILE_SECRET_KEY?: string
 }
 
 export interface Variables {
@@ -82,7 +95,6 @@ export interface Variables {
   appName?: string
   appVersion?: string
   csrfToken?: string
-  pluginMenuItems?: Array<{ label: string; path: string; icon: string }>
 }
 
 export interface WorkerBlogConfig {
@@ -216,9 +228,6 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   const adminRoles = config.adminAccessRoles || ['admin']
   app.use('/api/admin/*', requireAuth())
   app.use('/api/admin/*', requireRole(adminRoles))
-
-  // Plugin dynamic menu items for admin sidebar
-  app.use('/api/admin/*', pluginMenuMiddleware())
 
   // Core routes
   // Routes are being imported incrementally from routes/*

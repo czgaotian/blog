@@ -151,8 +151,6 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'PUT /api/admin/users/:id': { description: 'Update a user', category: 'Admin', authentication: true },
   'DELETE /api/admin/users/:id': { description: 'Delete a user', category: 'Admin', authentication: true },
   'GET /api/admin/logs': { description: 'Get application logs with filtering', category: 'Admin', authentication: true },
-  'GET /api/admin/plugins': { description: 'List all registered plugins', category: 'Admin', authentication: true },
-  'POST /api/admin/plugins/:id/toggle': { description: 'Enable or disable a plugin', category: 'Admin', authentication: true },
   'GET /api/admin/settings': { description: 'Get application settings', category: 'Admin', authentication: true },
   'PUT /api/admin/settings': { description: 'Update application settings', category: 'Admin', authentication: true },
   'GET /api/admin/forms': { description: 'List all forms', category: 'Admin', authentication: true },

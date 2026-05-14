@@ -2,7 +2,6 @@ import { Hono } from 'hono'
 import { requireAuth } from '../../../../middleware'
 import { SecurityAuditService } from '../services/security-audit-service'
 import { BruteForceDetector } from '../services/brute-force-detector'
-import { PluginService } from '../../../../services'
 import type { Bindings, Variables } from '../../../../app'
 import type { SecurityAuditSettings, SecurityEventFilters, SecurityEventType, SecuritySeverity } from '../types'
 import { DEFAULT_SETTINGS } from '../types'
@@ -20,15 +19,7 @@ apiRoutes.use('*', async (c, next) => {
   return next()
 })
 
-async function getSettings(db: any): Promise<SecurityAuditSettings> {
-  try {
-    const pluginService = new PluginService(db)
-    const plugin = await pluginService.getPlugin('security-audit')
-    if (plugin?.settings) {
-      const settings = typeof plugin.settings === 'string' ? JSON.parse(plugin.settings) : plugin.settings
-      return { ...DEFAULT_SETTINGS, ...settings }
-    }
-  } catch { /* ignore */ }
+async function getSettings(_db: any): Promise<SecurityAuditSettings> {
   return DEFAULT_SETTINGS
 }
 

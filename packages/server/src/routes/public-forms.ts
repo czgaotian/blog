@@ -67,7 +67,7 @@ publicFormsRoutes.get('/:identifier/turnstile-config', async (c) => {
       return c.json({ error: 'Form not found' }, 404)
     }
 
-    const turnstileService = new TurnstileService(db)
+    const turnstileService = new TurnstileService(db, c.env as any)
     const globalSettings = await turnstileService.getSettings()
     
     const formSettings = form.turnstile_settings 
@@ -154,7 +154,7 @@ publicFormsRoutes.post('/:identifier/submit', async (c) => {
 
     // Validate Turnstile if enabled (or inheriting global settings)
     if (turnstileEnabled || turnstileSettings.inherit) {
-      const turnstileService = new TurnstileService(db)
+      const turnstileService = new TurnstileService(db, c.env as any)
       
       // Check if Turnstile is globally enabled
       const globalEnabled = await turnstileService.isEnabled()

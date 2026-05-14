@@ -1,6 +1,4 @@
 import type { D1Database } from '@cloudflare/workers-types'
-import manifest from '../manifest.json'
-
 export interface TurnstileSettings {
   siteKey: string
   secretKey: string
@@ -22,31 +20,28 @@ export interface TurnstileVerificationResponse {
 }
 
 export class TurnstileService {
-  private db: D1Database
   private readonly VERIFY_URL = 'https://challenges.cloudflare.com/turnstile/v0/siteverify'
 
-  constructor(db: D1Database) {
-    this.db = db
+  constructor(_db: D1Database, private env?: Record<string, string | undefined>) {
   }
 
   /**
-   * Get Turnstile settings from database
+   * Get built-in Turnstile settings from environment variables.
    */
   async getSettings(): Promise<TurnstileSettings | null> {
-    try {
-      const plugin = await this.db
-        .prepare(`SELECT settings FROM plugins WHERE id = ? LIMIT 1`)
-        .bind(manifest.id)
-        .first<{ settings: string }>()
-
-      if (!plugin || !plugin.settings) {
-        return null
-      }
-
-      return JSON.parse(plugin.settings) as TurnstileSettings
-    } catch (error) {
-      console.error('Error getting Turnstile settings:', error)
+    const siteKey = this.env?.TURNSTILE_SITE_KEY
+    const secretKey = this.env?.TURNSTILE_SECRET_KEY
+    if (!siteKey || !secretKey) {
       return null
+    }
+    return {
+      siteKey,
+      secretKey,
+      theme: 'auto',
+      size: 'normal',
+      mode: 'managed',
+      appearance: 'always',
+      enabled: true,
     }
   }
 
@@ -97,22 +92,6 @@ export class TurnstileService {
     } catch (error) {
       console.error('Error verifying Turnstile token:', error)
       return { success: false, error: 'Turnstile verification error' }
-    }
-  }
-
-  /**
-   * Save Turnstile settings to database
-   */
-  async saveSettings(settings: TurnstileSettings): Promise<void> {
-    try {
-      await this.db
-        .prepare(`UPDATE plugins SET settings = ?, updated_at = ? WHERE id = ?`)
-        .bind(JSON.stringify(settings), Date.now(), manifest.id)
-        .run()
-      console.log('Turnstile settings saved successfully')
-    } catch (error) {
-      console.error('Error saving Turnstile settings:', error)
-      throw new Error('Failed to save Turnstile settings')
     }
   }
 

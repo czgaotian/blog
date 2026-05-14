@@ -21,7 +21,7 @@ export async function verifyTurnstile(c: Context, next: Next) {
     return c.json({ error: 'Database not available' }, 500)
   }
 
-  const turnstileService = new TurnstileService(db)
+  const turnstileService = new TurnstileService(db, (c as any).env)
 
   // Check if Turnstile is enabled
   const isEnabled = await turnstileService.isEnabled()
@@ -86,7 +86,7 @@ export function createTurnstileMiddleware(options?: {
         c.json({ error: 'Database not available' }, 500)
     }
 
-    const turnstileService = new TurnstileService(db)
+    const turnstileService = new TurnstileService(db, (c as any).env)
     const isEnabled = await turnstileService.isEnabled()
     
     if (!isEnabled) {

@@ -2,7 +2,6 @@ import { Context, Next } from "hono";
 import { syncCollections } from "../services/collection-sync";
 import { syncAllFormCollections } from "../services/form-collection-sync";
 import { MigrationService } from "../services/migrations";
-import { PluginBootstrapService } from "../services/plugin-bootstrap";
 import type { WorkerBlogConfig } from "../app";
 
 type Bindings = {
@@ -122,20 +121,6 @@ export function bootstrapMiddleware(config: WorkerBlogConfig = {}) {
         await syncAllFormCollections(c.env.DB);
       } catch (error) {
         console.error("[Bootstrap] Error syncing form collections:", error);
-      }
-
-      // 3. Bootstrap core plugins (unless disableAll is set)
-      if (!config.plugins?.disableAll) {
-        console.log("[Bootstrap] Bootstrapping core plugins...");
-        const bootstrapService = new PluginBootstrapService(c.env.DB);
-
-        // Check if bootstrap is needed
-        const needsBootstrap = await bootstrapService.isBootstrapNeeded();
-        if (needsBootstrap) {
-          await bootstrapService.bootstrapCorePlugins();
-        }
-      } else {
-        console.log("[Bootstrap] Plugin bootstrap skipped (disableAll is true)");
       }
 
       // Mark bootstrap as complete for this worker instance

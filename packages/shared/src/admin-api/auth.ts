@@ -1,11 +1,5 @@
 import { z } from 'zod'
 
-export const adminPluginMenuItemSchema = z.object({
-  label: z.string(),
-  path: z.string(),
-  icon: z.string(),
-})
-
 export const adminMeResponseSchema = z.object({
   user: z.object({
     id: z.string(),
@@ -17,10 +11,8 @@ export const adminMeResponseSchema = z.object({
     name: z.string(),
     version: z.string(),
   }),
-  pluginMenu: z.array(adminPluginMenuItemSchema),
 })
 
-export type AdminPluginMenuItem = z.infer<typeof adminPluginMenuItemSchema>
 export type AdminMeResponse = z.infer<typeof adminMeResponseSchema>
 
 export const loginSchema = z.object({

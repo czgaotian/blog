@@ -1,6 +1,5 @@
 import { Hono } from 'hono'
 import { requireAuth } from '../../../../middleware'
-import { PluginService } from '../../../../services'
 import { SubscriptionService } from '../services/subscription-service'
 import { StripeEventService } from '../services/stripe-event-service'
 import { StripeAPI } from '../services/stripe-api'
@@ -22,16 +21,16 @@ const apiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 // Helpers
 // ============================================================================
 
-async function getSettings(db: any): Promise<StripePluginSettings> {
-  try {
-    const pluginService = new PluginService(db)
-    const plugin = await pluginService.getPlugin('stripe')
-    if (plugin?.settings) {
-      const settings = typeof plugin.settings === 'string' ? JSON.parse(plugin.settings) : plugin.settings
-      return { ...DEFAULT_SETTINGS, ...settings }
-    }
-  } catch { /* ignore */ }
-  return DEFAULT_SETTINGS
+function getSettings(env: Bindings): StripePluginSettings {
+  return {
+    ...DEFAULT_SETTINGS,
+    stripePublishableKey: env.STRIPE_PUBLISHABLE_KEY || '',
+    stripeSecretKey: env.STRIPE_SECRET_KEY || '',
+    stripeWebhookSecret: env.STRIPE_WEBHOOK_SECRET || '',
+    stripePriceId: env.STRIPE_PRICE_ID || '',
+    successUrl: env.STRIPE_SUCCESS_URL || DEFAULT_SETTINGS.successUrl,
+    cancelUrl: env.STRIPE_CANCEL_URL || DEFAULT_SETTINGS.cancelUrl,
+  }
 }
 
 function mapStripeStatus(status: string): SubscriptionStatus {
@@ -54,7 +53,7 @@ function mapStripeStatus(status: string): SubscriptionStatus {
 
 apiRoutes.post('/webhook', async (c) => {
   const db = c.env.DB
-  const settings = await getSettings(db)
+  const settings = getSettings(c.env)
 
   if (!settings.stripeWebhookSecret) {
     return c.json({ error: 'Webhook secret not configured' }, 500)
@@ -216,7 +215,7 @@ apiRoutes.post('/create-checkout-session', requireAuth(), async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Unauthorized' }, 401)
 
-  const settings = await getSettings(db)
+  const settings = getSettings(c.env)
   if (!settings.stripeSecretKey) {
     return c.json({ error: 'Stripe not configured' }, 500)
   }
@@ -325,7 +324,7 @@ apiRoutes.post('/sync-subscriptions', requireAuth(), async (c) => {
   if (user?.role !== 'admin') return c.json({ error: 'Access denied' }, 403)
 
   const db = c.env.DB
-  const settings = await getSettings(db)
+  const settings = getSettings(c.env)
 
   if (!settings.stripeSecretKey) {
     return c.json({ error: 'Stripe secret key not configured' }, 400)

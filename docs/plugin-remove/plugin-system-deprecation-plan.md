@@ -26,7 +26,32 @@
 
 不要一开始就删除所有 plugin 代码。
 
-推荐先做“冻结 + 兼容”，再逐步迁移功能模块，最后删除平台层。
+推荐先做“前端去入口 + 后端保功能”，再逐步迁移功能模块，最后删除平台层。
+
+当前明确决策：
+
+- 前端移除 `/admin/plugins`、`/admin/plugins/:id/settings` 这类通用插件管理 UI。
+- 前端编辑器相关适配暂时保留，标记 TODO，后续单独处理内容编辑器路线。
+- 后端不按“插件平台”继续修补；保留现有功能，把插件实现逐步改成内建模块。
+- 后端 plugin 配置接口也移除；所有功能先作为内建能力存在，不提供插件启停/配置入口。
+
+## 当前执行状态
+
+已开始按上述决策执行：
+
+- React SPA 的通用 plugin 管理页面、路由、API client、导航入口和 `pluginMenu` 渲染已移除。
+- 旧服务端渲染的通用 plugin 列表/settings 模板已移除，legacy admin layout 中的 Plugins 菜单和动态 plugin menu 注入也已移除。
+- 后端 `/api/admin/plugins`、`/api/admin/plugin-settings/:id/settings` 以及对应 shared admin-api contract 已移除。
+- `PluginBootstrapService`、`PluginService`、plugin menu middleware 的运行时挂载已移除。
+- 已处理一批运行时功能，使其不再通过 `plugins.status`/`plugins.settings` 控制行为或读取配置。
+- EasyMDE/TinyMCE/Quill 编辑器适配已保留并加 TODO，等待后续内容编辑器路线决定。
+- `pnpm type-check` 和相关 server 测试已通过。
+
+仍需后续阶段处理：
+
+- `packages/server/src/plugins/sdk/*`、`plugin-validator`、`manifest-registry`、shared plugin 类型等平台层代码仍保留。
+- plugin DB 表定义、历史 migration、`migrations-bundle` 里的 plugin SQL 仍保留。
+- 部分功能仍在 `packages/server/src/plugins/*` 目录下，后续应迁移到明确的 built-in feature 目录和路由命名。
 
 ## 当前插件盘点
 
@@ -36,13 +61,13 @@
 
 | 类型 | 位置 | 用途 | 处理建议 |
 |------|------|------|----------|
-| 插件列表页 | `packages/admin/src/spa/pages/plugins-list.tsx`、`packages/admin/src/spa/api/plugins.ts` | 调 `/api/admin/plugins` 展示插件/功能状态。 | 改名为 Features/System Features，作为过渡只读或设置入口。 |
-| 插件设置页 | `packages/admin/src/spa/pages/plugin-settings.tsx`、`packages/admin/src/spa/api/plugin-settings.ts` | 调 `/api/admin/plugin-settings/:id/settings`，按 manifest schema 渲染通用表单。 | 短期保留，长期迁到明确 feature settings 页面。 |
-| SPA 导航 | `packages/admin/src/spa/layouts/admin-layout.tsx`、`packages/admin/src/spa/router.tsx` | 注册 `/admin/plugins`、`/admin/plugins/:id/settings`，并尝试渲染 `pluginMenu`。 | 主导航改名或隐藏；动态 plugin menu 不应继续作为核心机制。 |
-| EasyMDE | `packages/admin/src/plugins/easy-mdx.ts`、`packages/admin/src/plugins/available/easy-mdx/index.ts` | 输出 EasyMDE CDN 和初始化脚本。 | 旧模板编辑器适配，随旧 template admin 迁移/删除。 |
-| TinyMCE | `packages/admin/src/plugins/tinymce-plugin.ts`、`packages/admin/src/plugins/available/tinymce-plugin/index.ts` | 输出 TinyMCE CDN 和初始化脚本。 | 旧模板编辑器适配，保留到内容编辑器路线明确后再处理。 |
-| Quill | `packages/admin/src/plugins/core-plugins/quill-editor/index.ts` | 输出 Quill CDN 和初始化脚本。 | 旧模板编辑器适配，随旧 template admin 迁移/删除。 |
-| 旧模板插件页面 | `packages/admin/src/templates/pages/admin-plugins-list.template.ts`、`packages/admin/src/templates/pages/admin-plugin-settings.template.ts` | 旧服务端渲染插件列表/设置页面，包含 install/uninstall/activate/deactivate 语义。 | 标记 legacy；不要继续扩展。 |
+| 插件列表页 | `packages/admin/src/spa/pages/plugins-list.tsx`、`packages/admin/src/spa/api/plugins.ts` | 调 `/api/admin/plugins` 展示插件/功能状态。 | 删除；后端对应 `/api/admin/plugins` 也删除。 |
+| 插件设置页 | `packages/admin/src/spa/pages/plugin-settings.tsx`、`packages/admin/src/spa/api/plugin-settings.ts` | 调 `/api/admin/plugin-settings/:id/settings`，按 manifest schema 渲染通用表单。 | 删除；后端对应 plugin settings API 也删除。 |
+| SPA 导航 | `packages/admin/src/spa/layouts/admin-layout.tsx`、`packages/admin/src/spa/router.tsx` | 注册 `/admin/plugins`、`/admin/plugins/:id/settings`，并尝试渲染 `pluginMenu`。 | 移除 Plugins 导航、路由和动态 plugin menu 渲染。 |
+| EasyMDE | `packages/admin/src/plugins/easy-mdx.ts`、`packages/admin/src/plugins/available/easy-mdx/index.ts` | 输出 EasyMDE CDN 和初始化脚本。 | 暂时保留；加 TODO，后续按内容编辑器路线统一处理。 |
+| TinyMCE | `packages/admin/src/plugins/tinymce-plugin.ts`、`packages/admin/src/plugins/available/tinymce-plugin/index.ts` | 输出 TinyMCE CDN 和初始化脚本。 | 暂时保留；加 TODO，后续按内容编辑器路线统一处理。 |
+| Quill | `packages/admin/src/plugins/core-plugins/quill-editor/index.ts` | 输出 Quill CDN 和初始化脚本。 | 暂时保留；加 TODO，后续按内容编辑器路线统一处理。 |
+| 旧模板插件页面 | `packages/admin/src/templates/pages/admin-plugins-list.template.ts`、`packages/admin/src/templates/pages/admin-plugin-settings.template.ts` | 旧服务端渲染插件列表/设置页面，包含 install/uninstall/activate/deactivate 语义。 | 删除或标记为待删除 legacy；不要继续扩展。 |
 
 ### 后端插件清单
 
@@ -86,22 +111,29 @@
 
 | 表 | 用途 | 退场处理 |
 |----|------|----------|
-| `plugins` | 主插件/功能表，存 display metadata、status、`is_core`、`settings`、permissions、dependencies、安装/更新时间等。 | 暂时保留，作为 feature settings/status 兼容层。 |
+| `plugins` | 主插件/功能表，存 display metadata、status、`is_core`、`settings`、permissions、dependencies、安装/更新时间等。 | 不再作为配置来源；确认功能不依赖后删除。 |
 | `plugin_hooks` | 记录插件 hook handler、优先级和启用状态。 | 平台层退场后删除候选。 |
 | `plugin_routes` | 记录插件 route path/method/handler。 | 当前路由主要是代码显式挂载，后续删除候选。 |
 | `plugin_assets` | 记录插件 CSS/JS/image/font 资产和加载顺序。 | 如果没有实际 asset loader 消费，可删除。 |
-| `plugin_activity_log` | 记录 install/activate/deactivate/settings/error 等插件活动。 | 移除插件管理语义后，可迁到 feature settings audit 或删除。 |
+| `plugin_activity_log` | 记录 install/activate/deactivate/settings/error 等插件活动。 | 移除插件管理语义后删除。 |
 
-当前未看到真实定义的 `plugin_settings` 表；插件设置主要存在 `plugins.settings`。
+当前未看到真实定义的 `plugin_settings` 表；现有插件设置主要存在 `plugins.settings`，但后续不再保留 plugin 配置模型。
 
 ## 阶段 1：冻结插件平台
 
-短期先停止把它当作可扩展平台维护。
+短期先停止把它当作可扩展平台维护，并移除前端通用插件管理入口。
 
 建议动作：
 
 - 不再新增第三方插件安装能力。
 - 不再扩展 install、uninstall、activate、deactivate 这些平台能力。
+- 删除 React SPA 中的 `/admin/plugins`、`/admin/plugins/:id/settings` 路由和导航入口。
+- 删除对应的通用插件列表/settings 页面和 SPA API hook。
+- 删除后端通用 plugin 管理 API：`/api/admin/plugins`、`/api/admin/plugin-settings/:id/settings`。
+- 删除 `PluginService` 中仅服务于插件安装、启停、配置、hook/route 注册、activity log 的平台能力。
+- 移除 AdminLayout 对 `pluginMenu` 的动态渲染依赖。
+- 旧模板插件管理页面可以同步删除；如果短期担心引用遗漏，先标记 TODO/legacy 并从路由断开。
+- EasyMDE/TinyMCE/Quill 编辑器适配暂时保留，只加 TODO，不纳入本轮 plugin UI 删除。
 - 新功能不要继续放进 `packages/server/src/plugins/*`。
 - 新功能应放到明确的功能目录，例如：
   - `packages/server/src/features/*`
@@ -139,6 +171,14 @@
 - database tools
 - seed data
 
+迁移原则：
+
+- 功能保留，平台语义退场。
+- 后端目录、导出、路由逐步从 `plugins/*` 迁到 `features/*`。
+- 每个功能暴露明确的 route 和 service，而不是通过 `PluginBuilder`、manifest、`PluginService` 间接声明。
+- 所有迁移后的功能先按内建能力默认存在，不通过 `plugins.status` 或 plugin settings 启停/配置。
+- 不新增 `FeatureSettingsService`；当前决策是不保留 plugin 配置层。
+
 建议逐步迁移到类似结构：
 
 ```text
@@ -148,7 +188,7 @@ packages/server/src/features/stripe
 packages/server/src/features/cache
 ```
 
-admin 侧也改为显式页面/API：
+admin 侧只在确实需要产品页面时新增显式页面/API，不再提供通用 plugin settings 页面：
 
 ```text
 packages/admin/src/spa/pages/ai-search.tsx
@@ -157,23 +197,18 @@ packages/admin/src/spa/api/ai-search.ts
 packages/admin/src/spa/api/security-audit.ts
 ```
 
-## 阶段 3：保留 DB 兼容层
+## 阶段 3：移除 Plugin 配置层和 DB 依赖
 
-不建议立刻删除 `plugins` 表。
-
-短期可以继续把它当作 feature settings/status 的兼容层。
+不再保留 plugin 配置接口，也不再把 `plugins.settings` 作为功能配置来源。
 
 建议：
 
-- 保留 `plugins.settings` 用于读取旧配置。
-- 不再把 `plugins.status` 当作真正的运行时启停开关。
-- 对关键功能使用显式配置，例如：
-  - `feature_settings`
-  - `system_settings`
-  - 或专用设置表
-- 如果暂时不迁表，可以先封装一个 `FeatureSettingsService`，内部仍然读取旧 `plugins` 表。
-
-这样可以避免一次性迁移所有 settings 数据。
+- 删除 `/api/admin/plugins` 和 `/api/admin/plugin-settings/:id/settings`。
+- 删除前端对这些接口的调用。
+- 移除 `PluginBootstrapService` 对插件表的自动安装/激活逻辑。
+- 清理运行时对 `plugins.status` 的依赖；功能默认内建可用。
+- 清理运行时对 `plugins.settings` 的依赖；如确有必要，改为代码默认值或环境变量，但不要新建“插件配置”模型。
+- 待所有引用清理完成后，删除 `plugins`、`plugin_hooks`、`plugin_routes`、`plugin_assets`、`plugin_activity_log` 表及相关迁移/清理逻辑。
 
 ## 阶段 4：调整 Admin 体验
 
@@ -186,9 +221,11 @@ packages/admin/src/spa/api/security-audit.ts
 
 建议处理方式：
 
-- 将 “Plugins” 页面改名为 “Features” 或 “System Features”，或者先从主导航隐藏。
-- 移除 install/uninstall/activate/deactivate 的产品语义。
-- 保留只读列表或设置入口，作为过渡期管理页面。
+- 直接移除 React SPA 的 “Plugins” 页面、设置页、路由、导航和对应 API hook。
+- 不再保留通用插件列表作为过渡入口。
+- 移除 install/uninstall/activate/deactivate 的产品语义和可见入口。
+- 同步移除后端 `/api/admin/plugins`、`/api/admin/plugin-settings/:id/settings`，不再保留 plugin 配置接口。
+- 编辑器适配代码本轮不删，只加 TODO，后续和内容编辑器重构一起处理。
 - 对重要功能逐个改成独立页面：
   - `/admin/ai-search`
   - `/admin/security`
@@ -196,7 +233,7 @@ packages/admin/src/spa/api/security-audit.ts
   - `/admin/billing`
   - `/admin/cache`
 
-长期目标是让 admin SPA 不再依赖通用 plugin settings 页面，而是每个功能有明确页面和 API 契约。
+长期目标是让 admin SPA 不再依赖任何通用 plugin 管理/配置页面；功能页面只围绕实际产品能力存在。
 
 ## 阶段 5：显式化 Server 路由
 
@@ -244,7 +281,7 @@ app.route('/api/admin/security-audit', securityAuditAdminApiRoutes)
 - 不再使用的 `plugin_routes`
 - 不再使用的 `plugin_assets`
 
-`plugins` 表可以最后处理，因为它可能仍承载 settings 兼容数据。
+`plugins` 表不再作为配置兼容层；等运行时引用清空后随平台层一起删除。
 
 ## 当前已知问题
 
@@ -277,20 +314,22 @@ React admin 当前只有：
 ## 推荐迁移顺序
 
 1. 冻结 plugin 平台，不再新增基于插件系统的能力。
-2. 隐藏或改名 admin 的 Plugins 入口。
-3. 先迁移最常用、最核心的功能：
+2. 删除前端通用 Plugins UI：导航、路由、页面、SPA API hook、动态 plugin menu 渲染。
+3. 编辑器适配保留 TODO，不在本轮删除。
+4. 先迁移最常用、最核心的后端功能：
    - auth
    - media
    - cache
    - ai search
    - analytics
-4. 为这些功能建立显式 server route 和 admin API。
-5. 把 settings 从 `plugins.settings` 包一层兼容 service。
-6. 逐步删除未使用的 server HTML admin plugin routes。
-7. 最后删除 PluginBuilder/PluginManager/registry/hook 等平台层。
+5. 为这些功能建立显式 server route；仅在产品确实需要时新增 feature-specific admin API。
+6. 删除后端通用 plugin admin API：`adminApiPluginsRoutes`、`adminApiPluginSettingsRoutes`。
+7. 清理 `plugins.status`、`plugins.settings`、`PluginBootstrapService`、`PluginService` 等运行时依赖，功能改为内建默认可用。
+8. 逐步删除未使用的 server HTML admin plugin routes。
+9. 删除 manifest registry、PluginBuilder/PluginManager/registry/hook 和 plugin DB 表等平台层。
 
 ## 结论
 
 推荐方案不是“修好 plugin 系统”，而是“让 plugin 系统退场”。
 
-保留现有功能，但把它们重新定义为内建模块。短期兼容旧 DB 和旧路径，中期迁移到显式 feature route 和 admin page，长期删除插件平台抽象。
+保留现有功能，但把它们重新定义为内建模块。前端先删除通用 plugin 管理 UI；后端同步删除 plugin 管理/配置接口，不再用 `plugins.status` 或 `plugins.settings` 驱动功能。中期迁移到显式 feature route，长期删除插件平台抽象和 plugin DB 表。

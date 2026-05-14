@@ -1,7 +1,7 @@
 /**
- * Plugin Middleware
+ * Legacy compatibility helpers.
  *
- * Provides middleware functions for checking plugin status and enforcing plugin requirements
+ * Plugin status is no longer a runtime switch; migrated functionality is built in.
  */
 
 import type { D1Database } from '@cloudflare/workers-types'
@@ -13,17 +13,9 @@ import type { D1Database } from '@cloudflare/workers-types'
  * @returns Promise<boolean> - True if the plugin is active, false otherwise
  */
 export async function isPluginActive(db: D1Database, pluginId: string): Promise<boolean> {
-  try {
-    const result = await db
-      .prepare('SELECT status FROM plugins WHERE id = ?')
-      .bind(pluginId)
-      .first()
-
-    return result?.status === 'active'
-  } catch (error) {
-    console.error(`[isPluginActive] Error checking plugin status for ${pluginId}:`, error)
-    return false
-  }
+  void db
+  void pluginId
+  return true
 }
 
 /**
@@ -59,15 +51,6 @@ export async function requireActivePlugins(db: D1Database, pluginIds: string[]):
  * @returns Promise<any[]> - Array of active plugin records
  */
 export async function getActivePlugins(db: D1Database): Promise<any[]> {
-  try {
-    const { results } = await db
-      .prepare('SELECT * FROM plugins WHERE status = ?')
-      .bind('active')
-      .all()
-
-    return results || []
-  } catch (error) {
-    console.error('[getActivePlugins] Error fetching active plugins:', error)
-    return []
-  }
+  void db
+  return []
 }

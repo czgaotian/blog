@@ -1,3 +1,5 @@
+// TODO(plugin-remove): keep this legacy editor adapter until the content editor
+// direction is settled, then migrate or remove it with the editor stack.
 export function getMDXEditorScripts(): string {
   return `
     <link rel="stylesheet" href="https://unpkg.com/easymde/dist/easymde.min.css">

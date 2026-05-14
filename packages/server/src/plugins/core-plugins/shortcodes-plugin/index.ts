@@ -87,17 +87,6 @@ function esc(s: string): string {
 
 const apiRoutes = new Hono()
 
-apiRoutes.use('*', async (c: any, next: any) => {
-  try {
-    const db = c.env?.DB
-    if (db) {
-      const row = await db.prepare("SELECT status FROM plugins WHERE id = 'shortcodes' AND status = 'active'").first()
-      if (!row) return c.json({ error: 'Plugin not active' }, 404)
-    }
-  } catch { /* allow */ }
-  await next()
-})
-
 apiRoutes.get('/', async (c: any) => {
   try {
     const db = c.env.DB
@@ -223,17 +212,6 @@ apiRoutes.delete('/:id', async (c: any) => {
 
 const adminRoutes = new Hono()
 
-adminRoutes.use('*', async (c: any, next: any) => {
-  try {
-    const db = c.env?.DB
-    if (db) {
-      const row = await db.prepare("SELECT status FROM plugins WHERE id = 'shortcodes' AND status = 'active'").first()
-      if (!row) return c.html('<html><body><h1>Plugin not active</h1><p>Enable the Shortcodes plugin from <a href="/admin/plugins">Plugins</a>.</p></body></html>', 404)
-    }
-  } catch { /* allow */ }
-  await next()
-})
-
 adminRoutes.get('/', async (c: any) => {
   const db = c.env.DB
   let shortcodes: any[] = []
@@ -242,21 +220,9 @@ adminRoutes.get('/', async (c: any) => {
     shortcodes = (results || []).map(formatShortcode)
   } catch { /* table may not exist */ }
 
-  // Fetch editor integration status
-  let editorActive = false
-  let activeEditorName = ''
-  let enableEditorIntegration = true
-  try {
-    const qeRow = await db.prepare("SELECT status FROM plugins WHERE (id = 'quill-editor' OR name = 'quill-editor') AND status = 'active'").first()
-    const tmRow = await db.prepare("SELECT status FROM plugins WHERE (id = 'tinymce-plugin' OR name = 'tinymce-plugin') AND status = 'active'").first()
-    if (qeRow) { editorActive = true; activeEditorName = 'Quill Editor' }
-    else if (tmRow) { editorActive = true; activeEditorName = 'TinyMCE' }
-    const scRow = await db.prepare("SELECT settings FROM plugins WHERE id = 'shortcodes'").first() as any
-    if (scRow?.settings) {
-      const settings = typeof scRow.settings === 'string' ? JSON.parse(scRow.settings) : scRow.settings
-      enableEditorIntegration = settings.enableEditorIntegration !== false
-    }
-  } catch { /* ignore */ }
+  const editorActive = true
+  const activeEditorName = 'Built-in editor integration'
+  const enableEditorIntegration = true
 
   return c.html(renderAdminPage(shortcodes, { editorActive, activeEditorName, enableEditorIntegration }))
 })
@@ -285,20 +251,6 @@ adminRoutes.post('/', async (c: any) => {
 
   c.header('HX-Redirect', '/admin/shortcodes')
   return c.body(null, 204)
-})
-
-// Toggle editor integration setting
-adminRoutes.post('/settings/editor-integration', async (c: any) => {
-  const db = c.env.DB
-  try {
-    const row = await db.prepare("SELECT settings FROM plugins WHERE id = 'shortcodes'").first() as any
-    const settings = row?.settings ? (typeof row.settings === 'string' ? JSON.parse(row.settings) : row.settings) : {}
-    settings.enableEditorIntegration = !settings.enableEditorIntegration
-    await db.prepare("UPDATE plugins SET settings = ? WHERE id = 'shortcodes'").bind(JSON.stringify(settings)).run()
-    return c.json({ success: true, enableEditorIntegration: settings.enableEditorIntegration })
-  } catch {
-    return c.json({ success: false, error: 'Failed to update setting' }, 500)
-  }
 })
 
 // HTMX: delete

@@ -15,15 +15,14 @@ import {
 function createMockDb(options: {
   adminExists?: boolean
   userCount?: number
-  registrationEnabled?: boolean
   shouldThrow?: boolean
 } = {}) {
-  const { adminExists = false, userCount = 0, registrationEnabled = true, shouldThrow = false } = options
+  const { adminExists = false, userCount = 0, shouldThrow = false } = options
 
   return {
     prepare: vi.fn((sql: string) => {
       // For queries that need bind()
-      if (sql.includes('role = ?') || sql.includes('plugins WHERE id')) {
+      if (sql.includes('role = ?')) {
         return {
           bind: vi.fn(() => ({
             first: vi.fn(async () => {
@@ -34,13 +33,6 @@ function createMockDb(options: {
               // Check for admin user query
               if (sql.includes('role = ?')) {
                 return adminExists ? { id: 'admin-id' } : null
-              }
-
-              // Check for plugin settings query
-              if (sql.includes('plugins WHERE id')) {
-                return registrationEnabled
-                  ? { settings: JSON.stringify({ registration: { enabled: true } }) }
-                  : { settings: JSON.stringify({ registration: { enabled: false } }) }
               }
 
               return null
@@ -176,50 +168,20 @@ describe('Auth Validation Service', () => {
   })
 
   describe('isRegistrationEnabled', () => {
-    it('should return true when registration is enabled', async () => {
-      const db = createMockDb({ registrationEnabled: true })
+    it('should return true without reading plugin settings', async () => {
+      const db = createMockDb()
       const result = await isRegistrationEnabled(db)
+
       expect(result).toBe(true)
+      expect(db.prepare).not.toHaveBeenCalled()
     })
 
-    it('should return false when registration is disabled', async () => {
-      const db = createMockDb({ registrationEnabled: false })
-      const result = await isRegistrationEnabled(db)
-      expect(result).toBe(false)
-    })
-
-    it('should return true on database error (default)', async () => {
+    it('should return true even when the database would throw', async () => {
       const db = createMockDb({ shouldThrow: true })
       const result = await isRegistrationEnabled(db)
+
       expect(result).toBe(true)
-    })
-
-    it('should return true when no plugin settings exist', async () => {
-      const db = {
-        prepare: vi.fn(() => ({
-          bind: vi.fn(() => ({
-            first: vi.fn(async () => null) // No plugin found
-          }))
-        }))
-      } as any
-
-      const result = await isRegistrationEnabled(db)
-      expect(result).toBe(true)
-    })
-
-    it('should return false when registration.enabled is 0 (SQLite boolean)', async () => {
-      const db = {
-        prepare: vi.fn(() => ({
-          bind: vi.fn(() => ({
-            first: vi.fn(async () => ({
-              settings: JSON.stringify({ registration: { enabled: 0 } })
-            }))
-          }))
-        }))
-      } as any
-
-      const result = await isRegistrationEnabled(db)
-      expect(result).toBe(false)
+      expect(db.prepare).not.toHaveBeenCalled()
     })
   })
 })
