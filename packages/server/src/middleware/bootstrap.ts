@@ -6,7 +6,7 @@ import type { WorkerBlogConfig } from "../app";
 
 type Bindings = {
   DB: D1Database;
-  KV: KVNamespace;
+  CACHE_KV: KVNamespace;
   JWT_SECRET?: string;
   CORS_ORIGINS?: string;
   ENVIRONMENT?: string;

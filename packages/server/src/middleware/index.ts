@@ -30,6 +30,16 @@ export { csrfProtection, generateCsrfToken, validateCsrfToken } from './csrf'
 // Rate limiting middleware
 export { rateLimit } from './rate-limit'
 
+// Legacy plugin compatibility helpers.
+// Migrated functionality is built in, so plugin checks are no longer runtime
+// gates backed by plugin tables.
+export {
+  getActivePlugins,
+  isPluginActive,
+  requireActivePlugin,
+  requireActivePlugins,
+} from './plugin-middleware'
+
 // Re-export types and functions that are referenced but implemented in monolith
 // These are placeholder exports to maintain API compatibility
 export type Permission = string
@@ -52,7 +62,3 @@ export const PermissionManager: any = {}
 export const requirePermission: any = () => async (_c: any, next: any) => await next()
 export const requireAnyPermission: any = () => async (_c: any, next: any) => await next()
 export const logActivity: any = () => {}
-export const requireActivePlugin: any = () => async (_c: any, next: any) => await next()
-export const requireActivePlugins: any = () => async (_c: any, next: any) => await next()
-export const getActivePlugins: any = () => []
-export const isPluginActive: any = () => false

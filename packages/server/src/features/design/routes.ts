@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 
 type Bindings = {
   DB: D1Database
-  KV: KVNamespace
+  CACHE_KV: KVNamespace
 }
 
 type Variables = {

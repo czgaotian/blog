@@ -5,7 +5,7 @@ import { NotificationService } from './services/notifications'
 
 type Bindings = {
   DB: D1Database
-  KV: KVNamespace
+  CACHE_KV: KVNamespace
   MEDIA_BUCKET: R2Bucket
   EMAIL_QUEUE?: Queue
   SENDGRID_API_KEY?: string

@@ -36,7 +36,7 @@ function createMockEnv() {
         run: vi.fn().mockResolvedValue({ success: true })
       })
     },
-    KV: {
+    CACHE_KV: {
       get: vi.fn().mockResolvedValue(null),
       put: vi.fn().mockResolvedValue(undefined)
     }

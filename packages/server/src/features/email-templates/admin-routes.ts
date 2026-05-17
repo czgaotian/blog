@@ -8,7 +8,7 @@ import { EmailTemplateRenderer } from './services/email-renderer';
 
 type Bindings = {
   DB: D1Database;
-  KV: KVNamespace;
+  CACHE_KV: KVNamespace;
   MEDIA_BUCKET: R2Bucket;
   EMAIL_QUEUE?: Queue;
   SENDGRID_API_KEY?: string;
