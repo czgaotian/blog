@@ -60,3 +60,9 @@
 - Added migration `010` to `src/db/migrations-bundle.ts` and removed non-canonical SQL files from `src/db/migrations`.
 - Added `packages/server/scripts/check-migrations-bundle.js` plus `pnpm --filter @worker-blog/server db:migrations:check` to fail on canonical/bundled migration drift or non-canonical SQL files.
 - Verified with `pnpm --filter @worker-blog/server db:migrations:check`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued into Phase 9 observability polish.
+- Added `packages/server/src/middleware/request-context.ts` to assign a canonical request id and request start time to Hono context, preserve incoming `X-Request-ID`, and return `X-Request-ID` plus `X-Response-Time` response headers.
+- Replaced the app registration logging placeholder with the real request context middleware.
+- Exported `requestContextMiddleware` from the middleware barrel for direct reuse.
+- Added `packages/server/src/middleware/request-context.test.ts` to lock generated request ids, incoming request id preservation, and route-level response-time header preservation.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.

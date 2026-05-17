@@ -16,6 +16,7 @@ import {
 } from './routes'
 import { bootstrapMiddleware } from './middleware/bootstrap'
 import { metricsMiddleware } from './middleware/metrics'
+import { requestContextMiddleware } from './middleware/request-context'
 import { csrfProtection } from './middleware/csrf'
 import { securityHeadersMiddleware } from './middleware/security-headers'
 import { requireAuth, requireRole } from './middleware/auth'
@@ -66,11 +67,8 @@ export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogCon
     }
   }
 
-  // Logging middleware
-  app.use('*', async (_c, next) => {
-    // Logging logic here
-    await next()
-  })
+  // Request context middleware
+  app.use('*', requestContextMiddleware())
 
   // Security middleware
   app.use('*', securityHeadersMiddleware())

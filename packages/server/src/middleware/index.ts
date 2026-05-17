@@ -24,6 +24,9 @@ export {
 // Metrics middleware
 export { metricsMiddleware } from './metrics'
 
+// Request context middleware
+export { requestContextMiddleware } from './request-context'
+
 // CSRF protection middleware
 export { csrfProtection, generateCsrfToken, validateCsrfToken } from './csrf'
 
