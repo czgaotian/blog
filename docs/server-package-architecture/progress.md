@@ -72,3 +72,8 @@
 - Exposed `averageResponseMs` and `statusClassCounts` from the admin dashboard metrics payload.
 - Added `packages/server/src/middleware/metrics.test.ts` and updated dashboard route tests for the expanded metrics shape.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued Phase 9 diagnostics hardening.
+- Added `packages/server/src/utils/env-diagnostics.ts` to summarize environment bindings without emitting raw secret/config values.
+- Replaced the redirect admin missing-DB console diagnostic that printed full `c.env` with the sanitized binding summary and context DB presence flag.
+- Added `packages/server/src/utils/env-diagnostics.test.ts`.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.

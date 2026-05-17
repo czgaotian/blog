@@ -207,7 +207,7 @@ Expected result:
 
 Priority: medium-low.
 
-Status: first pass implemented for request context middleware and low-cardinality request metrics.
+Status: first pass implemented for request context middleware, low-cardinality request metrics, and sanitized environment diagnostics.
 
 Actions:
 

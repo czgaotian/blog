@@ -29,3 +29,4 @@ export type {
   QueryResult
 } from '@worker-blog/shared/utils'
 export * from './version'
+export * from './env-diagnostics'

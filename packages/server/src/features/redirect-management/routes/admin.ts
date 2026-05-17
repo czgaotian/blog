@@ -1,5 +1,6 @@
 import { Hono } from 'hono'
 import { RedirectService } from '../services/redirect'
+import { summarizeEnvironmentBindings } from '../../../utils/env-diagnostics'
 import { renderRedirectListPage } from '../templates/redirect-list.template'
 import { renderRedirectFormPage } from '../templates/redirect-form.template'
 import { generateCSV, buildExportFilename, parseCSV, validateCSVBatch, generateErrorCSV } from '../services/csv.service'
@@ -31,7 +32,10 @@ export function createRedirectAdminRoutes(): Hono {
       // Get DB from context (Cloudflare Workers env)
       const db = c.env?.DB || c.get('db')
       if (!db) {
-        console.error('[Redirect Admin] Database not available. c.env:', c.env, 'c.get(db):', c.get('db'))
+        console.error('[Redirect Admin] Database not available.', {
+          env: summarizeEnvironmentBindings(c.env),
+          hasContextDb: Boolean(c.get('db')),
+        })
         return c.html('<h1>Database not available</h1>', 500)
       }
 
