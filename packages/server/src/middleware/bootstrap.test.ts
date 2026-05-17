@@ -5,10 +5,15 @@
 import { describe, it, expect, beforeEach, vi, afterEach } from 'vitest'
 import { Hono } from 'hono'
 import { bootstrapMiddleware, resetBootstrap } from './bootstrap'
+import { getBootstrapStatus } from '../services/bootstrap'
 
 // Mock the services that bootstrap depends on
 vi.mock('../services/collection-sync', () => ({
   syncCollections: vi.fn().mockResolvedValue([])
+}))
+
+vi.mock('../services/form-collection-sync', () => ({
+  syncAllFormCollections: vi.fn().mockResolvedValue(undefined)
 }))
 
 vi.mock('../services/migrations', () => {
@@ -23,6 +28,7 @@ vi.mock('../services/migrations', () => {
 
 // Import the mocked modules after mocking
 import { syncCollections } from '../services/collection-sync'
+import { syncAllFormCollections } from '../services/form-collection-sync'
 import { MigrationService } from '../services/migrations'
 
 // Create mock environment
@@ -78,6 +84,20 @@ describe('bootstrapMiddleware', () => {
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
     expect(MigrationService).toHaveBeenCalled()
     expect(syncCollections).toHaveBeenCalled()
+    expect(syncAllFormCollections).toHaveBeenCalled()
+
+    const status = getBootstrapStatus()
+    expect(status.complete).toBe(true)
+    expect(status.running).toBe(false)
+    expect(status.lastStartedAt).toBeDefined()
+    expect(status.lastCompletedAt).toBeDefined()
+    expect(status.totalDurationMs).toBeGreaterThanOrEqual(0)
+    expect(status.steps.map((step) => step.state)).toEqual([
+      'success',
+      'success',
+      'success',
+      'success',
+    ])
   })
 
   it('should skip bootstrap on subsequent requests', async () => {
@@ -134,6 +154,25 @@ describe('bootstrapMiddleware', () => {
     app.get('/health', (c) => c.json({ ok: true }))
 
     await app.request('/health')
+    expect(MigrationService).not.toHaveBeenCalled()
+  })
+
+  it('should skip bootstrap for app health check and admin assets', async () => {
+    const app = new Hono()
+    const env = createMockEnv()
+
+    app.use('*', async (c, next) => {
+      c.env = env as any
+      await next()
+    })
+    app.use('*', bootstrapMiddleware())
+    app.get('/api/health', (c) => c.json({ ok: true }))
+    app.get('/admin/assets/app.js', (c) => c.text('console.log("admin")'))
+
+    await app.request('/api/health')
+    expect(MigrationService).not.toHaveBeenCalled()
+
+    await app.request('/admin/assets/app.js')
     expect(MigrationService).not.toHaveBeenCalled()
   })
 
@@ -199,6 +238,13 @@ describe('bootstrapMiddleware', () => {
     expect(res.status).toBe(200)
     expect(errorSpy).toHaveBeenCalledWith('[Bootstrap] Error syncing collections:', expect.any(Error))
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
+
+    const status = getBootstrapStatus()
+    expect(status.complete).toBe(true)
+    expect(status.steps.find((step) => step.name === 'collections')).toMatchObject({
+      state: 'error',
+      error: 'Sync failed'
+    })
   })
 
   it('should continue on fatal bootstrap error', async () => {
@@ -206,9 +252,9 @@ describe('bootstrapMiddleware', () => {
     const env = createMockEnv()
 
     // Make MigrationService constructor throw
-    vi.mocked(MigrationService).mockImplementationOnce(() => {
+    vi.mocked(MigrationService).mockImplementationOnce(function() {
       throw new Error('Fatal error')
-    })
+    } as any)
 
     app.use('*', async (c, next) => {
       c.env = env as any
@@ -222,6 +268,14 @@ describe('bootstrapMiddleware', () => {
     // Should still return 200 - app continues despite bootstrap error
     expect(res.status).toBe(200)
     expect(errorSpy).toHaveBeenCalledWith('[Bootstrap] Error during system initialization:', expect.any(Error))
+
+    const status = getBootstrapStatus()
+    expect(status.complete).toBe(false)
+    expect(status.lastError).toBe('Fatal error')
+    expect(status.steps.find((step) => step.name === 'migrations')).toMatchObject({
+      state: 'error',
+      error: 'Fatal error'
+    })
   })
 })
 

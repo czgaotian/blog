@@ -31,3 +31,9 @@
 - Updated core cache call sites in public API content, content CRUD, and auth login routes to pass `c.env.CACHE_KV` into the compatibility cache service.
 - Added cache tests proving same-namespace reuse and KV namespace forwarding.
 - Verified again with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 3 bootstrap observability.
+- Added `packages/server/src/services/bootstrap.ts` to own bootstrap execution state, step timing, step errors, security verification, and reset/status helpers.
+- Simplified `packages/server/src/middleware/bootstrap.ts` so middleware handles request skipping and delegates execution to `runBootstrap()`.
+- Added `/api/admin/system/bootstrap` to expose current Worker-instance bootstrap status behind the existing admin API guard.
+- Expanded bootstrap tests for step status, form collection sync, fatal migration status, `/api/health` skip, and `/admin/assets/*` skip.
+- Verified with `pnpm --filter @worker-blog/server test` and `pnpm type-check`.

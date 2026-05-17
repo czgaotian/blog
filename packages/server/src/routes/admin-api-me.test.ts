@@ -54,3 +54,19 @@ describe('GET /api/admin/me', () => {
     })
   })
 })
+
+describe('GET /api/admin/system/bootstrap', () => {
+  it('returns bootstrap status', async () => {
+    const app = createApp()
+
+    const res = await app.request('/api/admin/system/bootstrap')
+    const json = await res.json() as any
+
+    expect(res.status).toBe(200)
+    expect(json.success).toBe(true)
+    expect(json.data).toHaveProperty('complete')
+    expect(json.data).toHaveProperty('running')
+    expect(json.data).toHaveProperty('steps')
+    expect(Array.isArray(json.data.steps)).toBe(true)
+  })
+})

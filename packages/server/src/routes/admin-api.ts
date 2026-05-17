@@ -15,6 +15,7 @@ import { adminApiLogsRoutes } from './admin-api-logs'
 import { adminApiRoutesRoutes } from './admin-api-routes'
 import { adminApiSettingsRoutes } from './admin-api-settings'
 import { adminApiUsersRoutes } from './admin-api-users'
+import { getBootstrapStatus } from '../services/bootstrap'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -735,6 +736,13 @@ adminApiRoutes.get('/migrations/status', async (c) => {
       error: 'Failed to fetch migration status'
     }, 500)
   }
+})
+
+adminApiRoutes.get('/system/bootstrap', (c) => {
+  return c.json({
+    success: true,
+    data: getBootstrapStatus()
+  })
 })
 
 // Run pending migrations
