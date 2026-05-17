@@ -39,10 +39,10 @@
     "dist",
     "**/*.test.ts",
     "**/*.spec.ts",
-    "src/plugins/available/email-templates-plugin/fix-email-case.ts",
-    "src/plugins/available/email-templates-plugin/initialize-email-system.ts",
-    "src/plugins/core-plugins/turnstile-plugin/headless-helpers.ts",
-    "src/plugins/core-plugins/turnstile-plugin/react-hooks.tsx",
-    "src/plugins/core-plugins/turnstile-plugin/formio-component-client.js"
+    "src/features/email-templates/fix-email-case.ts",
+    "src/features/email-templates/initialize-email-system.ts",
+    "src/features/turnstile/headless-helpers.ts",
+    "src/features/turnstile/react-hooks.tsx",
+    "src/features/turnstile/formio-component-client.js"
   ]
 }

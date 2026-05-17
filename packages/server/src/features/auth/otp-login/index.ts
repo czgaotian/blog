@@ -1,0 +1,347 @@
+/**
+ * OTP Login Plugin
+ *
+ * Passwordless authentication via email one-time codes
+ * Users receive a secure 6-digit code to sign in without passwords
+ */
+
+import { Hono } from 'hono'
+import { setCookie } from 'hono/cookie'
+import { z } from 'zod'
+import { OTPService, type OTPSettings } from './otp-service'
+import { renderOTPEmail } from './email-templates'
+import { AuthManager } from '../../../middleware'
+import { getJwtExpirySecondsFromDb } from '../../../middleware/auth'
+import { SettingsService } from '../../../services/settings'
+import { getCustomData } from '../../user-profiles'
+
+// Validation schemas
+const otpRequestSchema = z.object({
+  email: z.string().email('Valid email is required')
+})
+
+const otpVerifySchema = z.object({
+  email: z.string().email('Valid email is required'),
+  code: z.string().min(4).max(8)
+})
+
+// Default settings (site name comes from general settings)
+const DEFAULT_SETTINGS: OTPSettings = {
+  codeLength: 6,
+  codeExpiryMinutes: 10,
+  maxAttempts: 3,
+  rateLimitPerHour: 5,
+  allowNewUserRegistration: false,
+  logoUrl: '',
+  logoWidth: 150,
+  logoBorderWidth: 0,
+  logoBorderColor: '#ffffff',
+  loginUrl: '',
+  loginButtonText: ''
+}
+
+function getEmailSettings(env: any) {
+  const fromEmail = env.DEFAULT_FROM_EMAIL || ''
+  return {
+    apiKey: env.RESEND_API_KEY || env.SENDGRID_API_KEY || '',
+    fromEmail,
+    fromName: env.DEFAULT_FROM_NAME || 'Worker Blog',
+    replyTo: fromEmail,
+  }
+}
+
+export function createOTPLoginFeature() {
+  const otpAPI = new Hono()
+
+  // POST /api/auth/otp/request - Request OTP code
+  otpAPI.post('/request', async (c: any) => {
+    try {
+      const body = await c.req.json()
+      const validation = otpRequestSchema.safeParse(body)
+
+      if (!validation.success) {
+        return c.json({
+          error: 'Validation failed',
+          details: validation.error.issues
+        }, 400)
+      }
+
+      const { email } = validation.data
+      const normalizedEmail = email.toLowerCase()
+      const db = c.env.DB
+      const otpService = new OTPService(db)
+
+      const settings: OTPSettings = { ...DEFAULT_SETTINGS }
+
+      // Get site name from general settings
+      const settingsService = new SettingsService(db)
+      const generalSettings = await settingsService.getGeneralSettings()
+      const siteName = generalSettings.siteName
+
+      // Check rate limiting
+      const canRequest = await otpService.checkRateLimit(normalizedEmail, settings)
+      if (!canRequest) {
+        return c.json({
+          error: 'Too many requests. Please try again in an hour.'
+        }, 429)
+      }
+
+      // Check if user exists
+      const user = await db.prepare(`
+        SELECT id, email, role, is_active
+        FROM users
+        WHERE email = ?
+      `).bind(normalizedEmail).first() as any
+
+      if (!user && !settings.allowNewUserRegistration) {
+        // Don't reveal if user exists or not (security)
+        return c.json({
+          message: 'If an account exists for this email, you will receive a verification code shortly.',
+          expiresIn: settings.codeExpiryMinutes * 60
+        })
+      }
+
+      if (user && !user.is_active) {
+        return c.json({
+          error: 'This account has been deactivated.'
+        }, 403)
+      }
+
+      // Get IP and user agent
+      const ipAddress = c.req.header('cf-connecting-ip') || c.req.header('x-forwarded-for') || 'unknown'
+      const userAgent = c.req.header('user-agent') || 'unknown'
+
+      // Create OTP code
+      const otpCode = await otpService.createOTPCode(
+        normalizedEmail,
+        settings,
+        ipAddress,
+        userAgent
+      )
+
+      // Send email via Email plugin
+      try {
+        const isDevMode = c.env.ENVIRONMENT === 'development'
+
+        if (isDevMode) {
+          console.log(`[DEV] OTP Code for ${normalizedEmail}: ${otpCode.code}`)
+        }
+
+        // Prepare email content
+        const emailContent = renderOTPEmail({
+          code: otpCode.code,
+          expiryMinutes: settings.codeExpiryMinutes,
+          codeLength: settings.codeLength,
+          maxAttempts: settings.maxAttempts,
+          email: normalizedEmail,
+          ipAddress,
+          timestamp: new Date().toISOString(),
+          appName: siteName,
+          logoUrl: settings.logoUrl || '',
+          logoWidth: settings.logoWidth,
+          logoBorderWidth: settings.logoBorderWidth,
+          logoBorderColor: settings.logoBorderColor || '',
+          loginUrl: settings.loginUrl || '',
+          loginButtonText: settings.loginButtonText || ''
+        })
+
+        const emailSettings = getEmailSettings(c.env)
+
+        if (emailSettings.apiKey && emailSettings.fromEmail && emailSettings.fromName) {
+          const emailResponse = await fetch('https://api.resend.com/emails', {
+            method: 'POST',
+            headers: {
+              'Authorization': `Bearer ${emailSettings.apiKey}`,
+              'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+              from: `${emailSettings.fromName} <${emailSettings.fromEmail}>`,
+              to: [normalizedEmail],
+              subject: `Your login code for ${siteName}`,
+              html: emailContent.html,
+              text: emailContent.text,
+              reply_to: emailSettings.replyTo || emailSettings.fromEmail
+            })
+          })
+
+          if (!emailResponse.ok) {
+            const errorData = await emailResponse.json() as { message?: string }
+            console.error('Failed to send OTP email via Resend:', errorData)
+          }
+        } else {
+          console.warn('Email environment variables are not fully configured (missing apiKey, fromEmail, or fromName)')
+        }
+
+        const response: any = {
+          message: 'If an account exists for this email, you will receive a verification code shortly.',
+          expiresIn: settings.codeExpiryMinutes * 60
+        }
+
+        // In development, include the code
+        if (isDevMode) {
+          response.dev_code = otpCode.code
+        }
+
+        return c.json(response)
+      } catch (emailError) {
+        console.error('Error sending OTP email:', emailError)
+        return c.json({
+          error: 'Failed to send verification code. Please try again.'
+        }, 500)
+      }
+    } catch (error) {
+      console.error('OTP request error:', error)
+      return c.json({
+        error: 'An error occurred. Please try again.'
+      }, 500)
+    }
+  })
+
+  // POST /api/auth/otp/verify - Verify OTP code
+  otpAPI.post('/verify', async (c: any) => {
+    try {
+      const body = await c.req.json()
+      const validation = otpVerifySchema.safeParse(body)
+
+      if (!validation.success) {
+        return c.json({
+          error: 'Validation failed',
+          details: validation.error.issues
+        }, 400)
+      }
+
+      const { email, code } = validation.data
+      const normalizedEmail = email.toLowerCase()
+      const db = c.env.DB
+      const otpService = new OTPService(db)
+
+      const settings = { ...DEFAULT_SETTINGS }
+
+      // Verify the code
+      const verification = await otpService.verifyCode(normalizedEmail, code, settings)
+
+      if (!verification.valid) {
+        // Increment attempts on failure
+        await otpService.incrementAttempts(normalizedEmail, code)
+
+        return c.json({
+          error: verification.error || 'Invalid code',
+          attemptsRemaining: verification.attemptsRemaining
+        }, 401)
+      }
+
+      // Code is valid - get user
+      let user = await db.prepare(`
+        SELECT id, email, username, first_name, last_name, role, is_active, created_at
+        FROM users
+        WHERE email = ?
+      `).bind(normalizedEmail).first() as any
+
+      if (!user && settings.allowNewUserRegistration) {
+        // Auto-create new user on first OTP verification
+        const userId = crypto.randomUUID()
+        const now = Date.now()
+        const username = normalizedEmail.split('@')[0] + '_' + userId.slice(0, 6)
+
+        await db.prepare(`
+          INSERT INTO users (
+            id, email, username, first_name, last_name,
+            password_hash, role, is_active, email_verified, created_at, updated_at
+          ) VALUES (?, ?, ?, '', '', NULL, 'viewer', 1, 1, ?, ?)
+        `).bind(userId, normalizedEmail, username, now, now).run()
+
+        user = {
+          id: userId,
+          email: normalizedEmail,
+          username,
+          first_name: '',
+          last_name: '',
+          role: 'viewer',
+          is_active: 1,
+          created_at: now,
+        }
+      }
+
+      if (!user) {
+        return c.json({
+          error: 'User not found'
+        }, 404)
+      }
+
+      if (!user.is_active) {
+        return c.json({
+          error: 'Account is deactivated'
+        }, 403)
+      }
+
+      // Generate JWT token
+      const tokenTtl = await getJwtExpirySecondsFromDb(db, c.env as any)
+      const token = await AuthManager.generateToken(user.id, user.email, user.role, (c.env as any).JWT_SECRET, tokenTtl)
+
+      // Set HTTP-only cookie
+      setCookie(c, 'auth_token', token, {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Strict',
+        maxAge: tokenTtl
+      })
+
+      const customData = await getCustomData(db, user.id)
+      const { is_active, ...publicUser } = user
+
+      return c.json({
+        success: true,
+        user: {
+          ...publicUser,
+          ...customData,
+        },
+        token,
+        message: 'Authentication successful'
+      })
+    } catch (error) {
+      console.error('OTP verify error:', error)
+      return c.json({
+        error: 'An error occurred. Please try again.'
+      }, 500)
+    }
+  })
+
+  // POST /api/auth/otp/resend - Resend OTP code
+  otpAPI.post('/resend', async (c: any) => {
+    try {
+      const body = await c.req.json()
+      const validation = otpRequestSchema.safeParse(body)
+
+      if (!validation.success) {
+        return c.json({
+          error: 'Validation failed',
+          details: validation.error.issues
+        }, 400)
+      }
+
+      // Reuse the request endpoint logic
+      return otpAPI.fetch(
+        new Request(c.req.url.replace('/resend', '/request'), {
+          method: 'POST',
+          headers: c.req.raw.headers,
+          body: JSON.stringify({ email: validation.data.email })
+        }),
+        c.env
+      )
+    } catch (error) {
+      console.error('OTP resend error:', error)
+      return c.json({
+        error: 'An error occurred. Please try again.'
+      }, 500)
+    }
+  })
+
+  return {
+    routes: [{
+      path: '/api/auth/otp',
+      handler: otpAPI,
+    }],
+  }
+}
+
+export const otpLoginFeature = createOTPLoginFeature()

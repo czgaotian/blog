@@ -27,22 +27,22 @@ import { bootstrapMiddleware } from './middleware/bootstrap'
 import { metricsMiddleware } from './middleware/metrics'
 import { csrfProtection } from './middleware/csrf'
 import { securityHeadersMiddleware } from './middleware/security-headers'
-import { createDatabaseToolsAdminRoutes } from './plugins/core-plugins/database-tools-plugin/admin-routes'
-import { createSeedDataAdminRoutes } from './plugins/core-plugins/seed-data-plugin/admin-routes'
-import { emailFeature } from './plugins/core-plugins/email-plugin'
-import { otpLoginFeature } from './plugins/core-plugins/otp-login-plugin'
-import { oauthProvidersFeature } from './plugins/core-plugins/oauth-providers'
-import { userProfilesFeature } from './plugins/core-plugins/user-profiles'
-import { aiSearchFeature } from './plugins/core-plugins/ai-search-plugin'
-import { createMagicLinkAuthFeature } from './plugins/available/magic-link-auth'
-import { securityAuditFeature } from './plugins/core-plugins/security-audit-plugin'
-import { securityAuditMiddleware } from './plugins/core-plugins/security-audit-plugin'
-import { stripeFeature } from './plugins/core-plugins/stripe-plugin'
+import { createDatabaseToolsAdminRoutes } from './features/database-tools/admin-routes'
+import { createSeedDataAdminRoutes } from './features/seed-data/admin-routes'
+import { emailFeature } from './features/email'
+import { otpLoginFeature } from './features/auth/otp-login'
+import { oauthProvidersFeature } from './features/auth/oauth-providers'
+import { userProfilesFeature } from './features/user-profiles'
+import { aiSearchFeature } from './features/ai-search'
+import { createMagicLinkAuthFeature } from './features/auth/magic-link'
+import { securityAuditFeature } from './features/security-audit'
+import { securityAuditMiddleware } from './features/security-audit'
+import { stripeFeature } from './features/stripe'
 import { requireAuth, requireRole } from './middleware/auth'
-import { analyticsFeature } from './plugins/core-plugins/analytics'
-import { eventsApiRoutes } from './plugins/core-plugins/analytics/routes/api'
-import { workflowFeature } from './plugins/core-plugins/workflow-plugin'
-import cachePlugin from './plugins/cache'
+import { analyticsFeature } from './features/analytics'
+import { eventsApiRoutes } from './features/analytics/routes/api'
+import { workflowFeature } from './features/workflow'
+import cacheFeature from './features/cache'
 import { faviconSvg } from './assets/favicon'
 import { setAppInstance } from './services/route-metadata'
 
@@ -105,13 +105,6 @@ export interface WorkerBlogConfig {
     autoSync?: boolean
   }
 
-  // Plugins configuration
-  plugins?: {
-    directory?: string
-    autoLoad?: boolean
-    disableAll?: boolean  // Disable all plugins including core plugins
-  }
-
   // Custom routes
   routes?: Array<{
     path: string
@@ -170,10 +163,6 @@ function registerBuiltInFeatureRoutes(
  *     directory: './src/collections',
  *     autoSync: true
  *   },
- *   plugins: {
- *     directory: './src/plugins',
- *     autoLoad: true
- *   }
  * })
  *
  * export default app
@@ -196,7 +185,7 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   // Metrics middleware - track all requests for real-time analytics
   app.use('*', metricsMiddleware())
 
-  // Bootstrap middleware - runs migrations, syncs collections, and initializes plugins
+  // Bootstrap middleware - runs migrations and syncs collections
   app.use('*', bootstrapMiddleware(config))
 
   // Custom middleware - before auth
@@ -254,7 +243,7 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
 
   // Cache dashboard and management API.
   // Fixes GitHub Issue #461: Cache routes were not registered
-  app.route('/api/admin/cache', cachePlugin.getRoutes())
+  app.route('/api/admin/cache', cacheFeature.getRoutes())
 
   registerBuiltInFeatureRoutes(app, oauthProvidersFeature.routes as any)
   registerBuiltInFeatureRoutes(app, userProfilesFeature.routes as any)

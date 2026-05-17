@@ -8,7 +8,7 @@ import { getCacheService, CACHE_CONFIGS } from '../services'
 import { authValidationService, isRegistrationEnabled, isFirstUserRegistration } from '../services/auth-validation'
 import type { RegistrationData } from '../services/auth-validation'
 import type { Bindings, Variables } from '../app'
-import { getUserProfileConfig, getRegistrationFields, getProfileFieldDefaults, sanitizeCustomData, saveCustomData, getCustomData } from '../plugins/core-plugins/user-profiles'
+import { getUserProfileConfig, getRegistrationFields, getProfileFieldDefaults, sanitizeCustomData, saveCustomData, getCustomData } from '../features/user-profiles'
 
 const JWT_SECRET_FALLBACK = 'your-super-secret-jwt-key-change-in-production'
 

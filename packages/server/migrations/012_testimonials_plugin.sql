@@ -1,6 +1,6 @@
 -- Testimonials Plugin Migration
 -- Creates testimonials table for the testimonials plugin
--- This demonstrates a code-based collection defined in src/plugins/core-plugins/testimonials-plugin.ts
+-- This demonstrates a code-based collection defined in src/features/testimonials.ts
 
 CREATE TABLE IF NOT EXISTS testimonials (
   id INTEGER PRIMARY KEY AUTOINCREMENT,

@@ -5,7 +5,7 @@ import { Hono } from 'hono'
 let capturedSubmissionData: string | null = null
 
 // Mock TurnstileService — disabled by default so submissions go through
-vi.mock('../plugins/core-plugins/turnstile-plugin/services/turnstile', () => ({
+vi.mock('../features/turnstile/services/turnstile', () => ({
   TurnstileService: class MockTurnstileService {
     getSettings = vi.fn().mockResolvedValue(null)
     isEnabled = vi.fn().mockResolvedValue(false)

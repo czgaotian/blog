@@ -1,5 +1,5 @@
 import { Hono } from 'hono'
-import { TurnstileService } from '../plugins/core-plugins/turnstile-plugin/services/turnstile'
+import { TurnstileService } from '../features/turnstile/services/turnstile'
 import { sanitizeInput } from '@worker-blog/shared/utils/sanitize'
 import { createContentFromSubmission } from '../services/form-collection-sync'
 

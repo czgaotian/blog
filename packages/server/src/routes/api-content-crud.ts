@@ -2,7 +2,7 @@ import { Hono } from 'hono'
 import { requireAuth, requireRole } from '../middleware'
 import { getCacheService, CACHE_CONFIGS } from '../services'
 import type { Bindings, Variables } from '../app'
-import { resolveContentVariables } from '../plugins/core-plugins/global-variables-plugin/variable-resolver'
+import { resolveContentVariables } from '../features/global-variables/variable-resolver'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
