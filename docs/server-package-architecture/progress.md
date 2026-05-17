@@ -77,3 +77,5 @@
 - Replaced the redirect admin missing-DB console diagnostic that printed full `c.env` with the sanitized binding summary and context DB presence flag.
 - Added `packages/server/src/utils/env-diagnostics.test.ts`.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Wrote `server-optimization-round-2-plan.md` for the second-round deepening work after Phase 1-9 first-pass completion.
+- The round 2 plan focuses on completing content/collection domain ownership, centralizing cache keys, maturing the feature registry, making bootstrap policy configurable, adding opt-in durable request logging, expanding route smoke tests, and quarantining legacy surfaces.
