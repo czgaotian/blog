@@ -1,5 +1,5 @@
--- Migration 034: OAuth Accounts
--- Stores linked OAuth provider accounts for social login
+-- Migration 010: OAuth Accounts
+-- Stores linked OAuth provider accounts for social login.
 
 CREATE TABLE IF NOT EXISTS oauth_accounts (
   id TEXT PRIMARY KEY,

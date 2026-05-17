@@ -138,8 +138,8 @@ Migrations:
 
 - Top-level SQL migrations live in `packages/server/migrations`.
 - Worker runtime uses generated `src/db/migrations-bundle.ts`.
-- Bundled IDs seen: 001-009 and 011-037.
-- `src/db/migrations/0010_oauth_accounts.sql` exists outside the top-level migration list; verify intent before changing OAuth migration behavior.
+- Bundled IDs seen after Phase 8 cleanup: 001-037.
+- Top-level `packages/server/migrations/*.sql` is the canonical source. `pnpm --filter @worker-blog/server db:migrations:check` verifies bundle filename/order parity and fails if SQL files appear under `src/db/migrations`.
 
 ## Content And Collections
 

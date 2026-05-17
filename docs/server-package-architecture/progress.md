@@ -55,3 +55,8 @@
 - Added `packages/server/src/features/registry.ts` with typed built-in feature descriptors, route metadata, compatibility alias flags, and binding metadata.
 - Updated `app-registration.ts` to mount built-in feature routes from the registry while preserving the existing registration order around cache routes and public events.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 8 migration source of truth.
+- Promoted OAuth accounts migration from non-canonical `src/db/migrations/0010_oauth_accounts.sql` into canonical `packages/server/migrations/010_oauth_accounts.sql`.
+- Added migration `010` to `src/db/migrations-bundle.ts` and removed non-canonical SQL files from `src/db/migrations`.
+- Added `packages/server/scripts/check-migrations-bundle.js` plus `pnpm --filter @worker-blog/server db:migrations:check` to fail on canonical/bundled migration drift or non-canonical SQL files.
+- Verified with `pnpm --filter @worker-blog/server db:migrations:check`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

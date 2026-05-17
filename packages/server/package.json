@@ -15,6 +15,7 @@
     "deploy": "pnpm --filter @worker-blog/admin deploy",
     "db:migrate": "wrangler d1 migrations apply DB",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
+    "db:migrations:check": "node scripts/check-migrations-bundle.js",
     "db:reset": "worker-blog-db-reset",
     "db:studio": "drizzle-kit studio",
     "test": "vitest --run",
