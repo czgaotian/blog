@@ -29,17 +29,17 @@ import { csrfProtection } from './middleware/csrf'
 import { securityHeadersMiddleware } from './middleware/security-headers'
 import { createDatabaseToolsAdminRoutes } from './plugins/core-plugins/database-tools-plugin/admin-routes'
 import { createSeedDataAdminRoutes } from './plugins/core-plugins/seed-data-plugin/admin-routes'
-import { emailPlugin } from './plugins/core-plugins/email-plugin'
-import { otpLoginPlugin } from './plugins/core-plugins/otp-login-plugin'
-import { oauthProvidersPlugin } from './plugins/core-plugins/oauth-providers'
-import { userProfilesPlugin } from './plugins/core-plugins/user-profiles'
-import { aiSearchPlugin } from './plugins/core-plugins/ai-search-plugin'
-import { createMagicLinkAuthPlugin } from './plugins/available/magic-link-auth'
-import { securityAuditPlugin } from './plugins/core-plugins/security-audit-plugin'
+import { emailFeature } from './plugins/core-plugins/email-plugin'
+import { otpLoginFeature } from './plugins/core-plugins/otp-login-plugin'
+import { oauthProvidersFeature } from './plugins/core-plugins/oauth-providers'
+import { userProfilesFeature } from './plugins/core-plugins/user-profiles'
+import { aiSearchFeature } from './plugins/core-plugins/ai-search-plugin'
+import { createMagicLinkAuthFeature } from './plugins/available/magic-link-auth'
+import { securityAuditFeature } from './plugins/core-plugins/security-audit-plugin'
 import { securityAuditMiddleware } from './plugins/core-plugins/security-audit-plugin'
-import { stripePlugin } from './plugins/core-plugins/stripe-plugin'
+import { stripeFeature } from './plugins/core-plugins/stripe-plugin'
 import { requireAuth, requireRole } from './middleware/auth'
-import { analyticsPlugin } from './plugins/core-plugins/analytics'
+import { analyticsFeature } from './plugins/core-plugins/analytics'
 import { eventsApiRoutes } from './plugins/core-plugins/analytics/routes/api'
 import cachePlugin from './plugins/cache'
 import { faviconSvg } from './assets/favicon'
@@ -134,7 +134,7 @@ export interface WorkerBlogConfig {
 
 export type WorkerBlogApp = Hono<{ Bindings: Bindings; Variables: Variables }>
 
-function registerApiPluginRoutes(
+function registerBuiltInFeatureRoutes(
   app: WorkerBlogApp,
   routes: Array<{ path: string; handler: Hono }>,
 ): void {
@@ -247,49 +247,23 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   // Security audit middleware - logs auth events (login, register, logout)
   app.use('/api/auth/*', securityAuditMiddleware())
 
-  // Plugin routes - Security Audit (MUST be registered BEFORE admin/plugins to avoid route conflict)
-  if (securityAuditPlugin.routes && securityAuditPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, securityAuditPlugin.routes as any)
-  }
+  // Built-in feature routes.
+  registerBuiltInFeatureRoutes(app, securityAuditFeature.routes as any)
+  registerBuiltInFeatureRoutes(app, aiSearchFeature.routes as any)
 
-  // Plugin routes - AI Search (MUST be registered BEFORE admin/plugins to avoid route conflict)
-  // Register AI Search routes first so they take precedence over the generic /:id handler
-  if (aiSearchPlugin.routes && aiSearchPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, aiSearchPlugin.routes as any)
-  }
-
-  // Plugin routes - Cache (dashboard and management API)
+  // Cache dashboard and management API.
   // Fixes GitHub Issue #461: Cache routes were not registered
   app.route('/api/admin/cache', cachePlugin.getRoutes())
 
-  // Plugin routes - OAuth Providers (MUST be registered BEFORE admin/plugins to avoid route conflict)
-  if (oauthProvidersPlugin.routes && oauthProvidersPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, oauthProvidersPlugin.routes as any)
-  }
-
-  // Plugin routes - User Profiles
-  if (userProfilesPlugin.routes && userProfilesPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, userProfilesPlugin.routes as any)
-  }
-
-  // Plugin routes - OTP Login (MUST be registered BEFORE admin/plugins to avoid route conflict)
-  // Register OTP Login routes first so they take precedence over the generic /:id handler
-  if (otpLoginPlugin.routes && otpLoginPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, otpLoginPlugin.routes as any)
-  }
-
-  // Plugin routes - Analytics (must be before /admin/plugins catch-all)
-  if (analyticsPlugin.routes && analyticsPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, analyticsPlugin.routes as any)
-  }
+  registerBuiltInFeatureRoutes(app, oauthProvidersFeature.routes as any)
+  registerBuiltInFeatureRoutes(app, userProfilesFeature.routes as any)
+  registerBuiltInFeatureRoutes(app, otpLoginFeature.routes as any)
+  registerBuiltInFeatureRoutes(app, analyticsFeature.routes as any)
 
   // Public event tracking API — POST /api/events (open), GET /api/events (admin)
   app.route('/api/events', eventsApiRoutes)
 
-  // Plugin routes - Stripe (must be before /admin/plugins catch-all)
-  if (stripePlugin.routes && stripePlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, stripePlugin.routes as any)
-  }
+  registerBuiltInFeatureRoutes(app, stripeFeature.routes as any)
 
   app.route('/', createAdminSpaRoutes())
   app.route('/api/auth', authRoutes)
@@ -297,16 +271,11 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   // Test cleanup routes (only for development/test environments)
   app.route('/', testCleanupRoutes)
 
-  // Plugin routes - Email
-  if (emailPlugin.routes && emailPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, emailPlugin.routes as any)
-  }
+  registerBuiltInFeatureRoutes(app, emailFeature.routes as any)
 
-  // Plugin routes - Magic Link Auth (passwordless authentication via email links)
-  const magicLinkPlugin = createMagicLinkAuthPlugin()
-  if (magicLinkPlugin.routes && magicLinkPlugin.routes.length > 0) {
-    registerApiPluginRoutes(app, magicLinkPlugin.routes as any)
-  }
+  // Magic link auth (passwordless authentication via email links).
+  const magicLinkFeature = createMagicLinkAuthFeature()
+  registerBuiltInFeatureRoutes(app, magicLinkFeature.routes as any)
 
   // Serve favicon
   app.get('/favicon.svg', (c) => {

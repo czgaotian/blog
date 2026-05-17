@@ -20,23 +20,3 @@ CREATE INDEX IF NOT EXISTS idx_magic_links_token ON magic_links(token);
 CREATE INDEX IF NOT EXISTS idx_magic_links_email ON magic_links(user_email);
 CREATE INDEX IF NOT EXISTS idx_magic_links_expires ON magic_links(expires_at);
 
--- Register the plugin
-INSERT OR IGNORE INTO plugins (
-    id, name, display_name, description, version, author, category, icon,
-    status, is_core, permissions, dependencies, installed_at, last_updated
-) VALUES (
-    'magic-link-auth',
-    'magic-link-auth',
-    'Magic Link Authentication',
-    'Passwordless authentication via email magic links. Users receive a secure one-time link to sign in without entering a password.',
-    '1.0.0',
-    'Worker Blog Team',
-    'security',
-    '🔗',
-    'inactive',
-    FALSE,
-    '["auth:manage", "auth:magic-link"]',
-    '["email"]',
-    unixepoch(),
-    unixepoch()
-);

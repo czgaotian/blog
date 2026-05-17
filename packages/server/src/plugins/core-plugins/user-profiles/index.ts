@@ -12,8 +12,6 @@
  */
 
 import { Hono } from 'hono'
-import { PluginBuilder } from '../../sdk/plugin-builder'
-import type { Plugin } from '@worker-blog/shared/types'
 import { getUserProfileConfig } from './user-profile-registry'
 import {
   getCustomData,
@@ -24,24 +22,7 @@ import {
 } from './user-profile-service'
 import { renderCustomProfileSection } from './user-profile-renderer'
 
-export function createUserProfilesPlugin(): Plugin {
-  const builder = PluginBuilder.create({
-    name: 'user-profiles',
-    version: '1.0.0-beta.1',
-    description: 'Configurable custom profile fields for users',
-  })
-
-  builder.metadata({
-    author: {
-      name: 'Worker Blog Team',
-      email: 'team@worker-blog.com',
-    },
-    license: 'MIT',
-    compatibility: '^2.0.0',
-  })
-
-  // ==================== API Routes ====================
-
+export function createUserProfilesFeature() {
   const api = new Hono()
 
   // GET /api/user-profiles/schema — public schema endpoint
@@ -102,25 +83,15 @@ export function createUserProfilesPlugin(): Plugin {
     return c.json({ success: true })
   })
 
-  builder.addRoute('/api/user-profiles', api, {
-    description: 'Custom user profile fields API',
-    requiresAuth: false,
-    priority: 100,
-  })
-
-  builder.lifecycle({
-    activate: async () => {
-      console.info('[Worker Blog] User Profiles plugin activated')
-    },
-    deactivate: async () => {
-      console.info('[Worker Blog] User Profiles plugin deactivated')
-    },
-  })
-
-  return builder.build() as Plugin
+  return {
+    routes: [{
+      path: '/api/user-profiles',
+      handler: api,
+    }],
+  }
 }
 
-export const userProfilesPlugin = createUserProfilesPlugin()
+export const userProfilesFeature = createUserProfilesFeature()
 
 // Re-export public API
 export {

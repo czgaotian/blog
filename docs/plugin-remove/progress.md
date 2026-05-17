@@ -46,3 +46,25 @@
   - Targeted server tests passed: `30` test files, `586` tests.
 - Remaining intentional plugin-system residue:
   - shared plugin types, plugin SDK/builder/validator/manifest registry, and DB schema/migration/bundle entries still exist for a later platform-layer deletion phase.
+
+## 2026-05-14 Platform Layer Cleanup
+
+- Converted runtime feature entrypoints from `PluginBuilder` objects to plain built-in route bundles consumed directly by `packages/server/src/app.ts`.
+- Deleted plugin platform code:
+  - server SDK/builder, plugin manager, plugin registry, plugin validator, hook system, generated manifest registry, plugin config manager, and plugin platform type files.
+  - shared plugin system types and plugin manifest type exports.
+  - unused server plugin `index.ts` entrypoints that only existed to build plugin objects.
+- Kept actual feature services/routes/components in place so product behavior can continue while directories are renamed later.
+- Removed plugin table models and zod schemas from `packages/server/src/db/schema.ts`.
+- Updated migrations:
+  - converted plugin registry/config migrations to no-ops where they only wrote platform metadata.
+  - preserved real feature tables such as `magic_links`, `otp_codes`, `testimonials`, and `code_examples`.
+  - added `037_drop_plugin_platform_tables.sql` to drop legacy plugin platform tables and `manage:plugins` permission rows on existing databases.
+  - regenerated `packages/server/src/db/migrations-bundle.ts` from the migration files.
+- Verification:
+  - `pnpm type-check` passed.
+  - Targeted server tests passed: `30` test files, `586` tests.
+- Remaining residue is now mostly naming/documentation:
+  - many built-in feature files still live under `packages/server/src/plugins/*`.
+  - manifest JSON and README text still describe features as plugins.
+  - TinyMCE `PluginManager` references are TinyMCE's editor API, not the removed Worker Blog plugin platform.

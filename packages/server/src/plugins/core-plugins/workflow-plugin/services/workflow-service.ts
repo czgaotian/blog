@@ -1,6 +1,5 @@
 // @ts-nocheck
 import { D1Database } from '@cloudflare/workers-types'
-import type { PluginDbService } from '../../../../types/plugin-types'
 
 export interface WorkflowState {
   id: string
@@ -53,7 +52,7 @@ export interface WorkflowHistoryEntry {
   created_at: string
 }
 
-export class WorkflowService implements PluginDbService {
+export class WorkflowService {
   constructor(private db: D1Database) {}
 
   // Legacy compatibility - alias for WorkflowEngine

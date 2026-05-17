@@ -50,4 +50,22 @@ Goal: Start removing the generic plugin management surface while preserving exis
 18. [complete] Remove old server-rendered generic plugin list/settings templates and legacy plugin nav/menu injection.
 19. [complete] Update route metadata and tests for the new built-in/no-config behavior.
 20. [complete] Run type-check and targeted server tests.
-21. [pending] Delete remaining platform-layer code once feature routes are explicitly migrated: plugin SDK/builder/validator/manifest registry, shared plugin types, schema/migrations for plugin tables.
+21. [complete] Delete remaining platform-layer code once feature routes are explicitly migrated: plugin SDK/builder/validator/manifest registry, shared plugin types, schema/migrations for plugin tables.
+
+## Follow-up: Platform Layer Cleanup
+
+Goal: Remove unused plugin platform abstractions after the generic management runtime was removed.
+
+22. [complete] Map remaining platform-layer imports and decide which files can be deleted without moving feature code yet.
+23. [complete] Delete unused SDK/registry/validator/type exports and fix imports.
+24. [complete] Remove or quarantine plugin DB schema/migration references only when runtime and tests show no dependency.
+25. [complete] Update docs with the reduced residual surface.
+26. [complete] Run type-check and relevant tests.
+
+## Follow-up: Built-in Feature Directory Rename
+
+Goal: Move remaining built-in feature implementations out of `packages/server/src/plugins/*` paths after the platform layer has been removed.
+
+27. [pending] Rename runtime feature directories from `plugins/*` to `features/*` in small slices.
+28. [pending] Update stale docs/comments that still describe built-in features as plugins.
+29. [pending] Decide whether old manifest JSON files should be deleted or converted into feature metadata.

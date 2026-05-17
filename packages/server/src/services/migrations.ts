@@ -166,20 +166,6 @@ export class MigrationService {
       }
     }
 
-    // Check if plugin system tables exist (migration 006)
-    if (!appliedMigrations.has('006')) {
-      const hasPluginTables = await this.checkTablesExist(['plugins', 'plugin_hooks'])
-      if (hasPluginTables) {
-        appliedMigrations.set('006', {
-          id: '006',
-          applied_at: new Date().toISOString(),
-          name: 'Plugin System',
-          filename: '006_plugin_system.sql'
-        })
-        await this.markMigrationApplied('006', 'Plugin System', '006_plugin_system.sql')
-      }
-    }
-
     // Check if managed column exists (migration 011)
     // This handles both cases:
     // 1. Migration not marked as applied but column exists -> mark as applied
@@ -478,7 +464,7 @@ export class MigrationService {
     // Get the actual migration SQL from the bundle
     const migrationSQL = getMigrationSQLById(migration.id)
 
-    if (migrationSQL === null) {
+    if (migrationSQL === undefined) {
       throw new Error(`Migration SQL not found for ${migration.id}`)
     }
 

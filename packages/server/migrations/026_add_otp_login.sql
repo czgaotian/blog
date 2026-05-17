@@ -21,22 +21,3 @@ CREATE INDEX IF NOT EXISTS idx_otp_email_code ON otp_codes(user_email, code);
 CREATE INDEX IF NOT EXISTS idx_otp_expires ON otp_codes(expires_at);
 CREATE INDEX IF NOT EXISTS idx_otp_used ON otp_codes(used);
 
--- Add plugin record
-INSERT OR IGNORE INTO plugins (
-    id, name, display_name, description, version, author, category, icon,
-    status, is_core, permissions, installed_at, last_updated
-) VALUES (
-    'otp-login',
-    'otp-login',
-    'OTP Login',
-    'Passwordless authentication via email one-time codes',
-    '1.0.0-beta.1',
-    'Worker Blog Team',
-    'security',
-    '🔢',
-    'inactive',
-    TRUE,
-    '["otp:manage", "otp:request", "otp:verify"]',
-    unixepoch(),
-    unixepoch()
-);

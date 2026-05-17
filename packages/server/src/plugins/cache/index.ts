@@ -8,14 +8,17 @@
  */
 
 import type { Context } from 'hono'
-import type { PluginContext } from '@worker-blog/shared/types/plugin'
 import { getCacheService, clearAllCaches, getAllCacheStats } from './services/cache.js'
 import { CACHE_CONFIGS } from './services/cache-config.js'
 import { setupCacheInvalidation } from './services/cache-invalidation.js'
 import cacheRoutes from './routes.js'
 
+interface CacheFeatureContext {
+  config?: Record<string, any>
+}
+
 export class CachePlugin {
-  private _context: PluginContext | null = null
+  private _context: CacheFeatureContext | null = null
 
   /**
    * Get plugin routes
@@ -27,7 +30,7 @@ export class CachePlugin {
   /**
    * Activate the cache plugin
    */
-  async activate(context: PluginContext): Promise<void> {
+  async activate(context: CacheFeatureContext): Promise<void> {
     this._context = context
 
     const settings = context.config || {}

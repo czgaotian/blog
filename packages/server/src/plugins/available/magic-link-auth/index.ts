@@ -7,7 +7,6 @@
 
 import { Hono } from 'hono'
 import { z } from 'zod'
-import type { Plugin, PluginContext } from '@worker-blog/shared/types'
 import type { D1Database } from '@cloudflare/workers-types'
 import { AuthManager, getJwtExpirySecondsFromDb } from '../../../middleware'
 
@@ -15,7 +14,7 @@ const magicLinkRequestSchema = z.object({
   email: z.string().email('Valid email is required')
 })
 
-export function createMagicLinkAuthPlugin(): Plugin {
+export function createMagicLinkAuthFeature() {
   const magicLinkRoutes = new Hono()
 
   // Request a magic link
@@ -227,41 +226,10 @@ export function createMagicLinkAuthPlugin(): Plugin {
   })
 
   return {
-    name: 'magic-link-auth',
-    version: '1.0.0',
-    description: 'Passwordless authentication via email magic links',
-    author: {
-      name: 'Worker Blog Team',
-      email: 'team@worker-blog.com'
-    },
-    dependencies: ['email'],
-
     routes: [{
       path: '/api/auth/magic-link',
       handler: magicLinkRoutes,
-      description: 'Magic link authentication endpoints',
-      requiresAuth: false
     }],
-
-    async install(context: PluginContext) {
-      console.log('Installing magic-link-auth plugin...')
-      // Migration is handled by plugin system
-    },
-
-    async activate(context: PluginContext) {
-      console.log('Magic link authentication activated')
-      console.log('Users can now sign in via /api/auth/magic-link/request')
-    },
-
-    async deactivate(context: PluginContext) {
-      console.log('Magic link authentication deactivated')
-    },
-
-    async uninstall(context: PluginContext) {
-      console.log('Uninstalling magic-link-auth plugin...')
-      // Optionally clean up magic_links table
-      // await context.db.prepare('DROP TABLE IF EXISTS magic_links').run()
-    }
   }
 }
 
@@ -372,4 +340,4 @@ function renderMagicLinkEmail(magicLink: string, expiryMinutes: number): string 
   `
 }
 
-export default createMagicLinkAuthPlugin()
+export default createMagicLinkAuthFeature()

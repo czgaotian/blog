@@ -16,42 +16,6 @@ export type {
   CollectionSyncResult
 } from './collection-config'
 
-// Plugin System Types
-export type {
-  Plugin,
-  PluginContext,
-  PluginConfig,
-  PluginRoutes,
-  PluginMiddleware,
-  PluginModel,
-  ModelRelationship,
-  PluginService,
-  PluginAdminPage,
-  PluginComponent,
-  PluginMenuItem,
-  PluginHook,
-  HookHandler,
-  HookContext,
-  HookSystem,
-  ScopedHookSystem,
-  PluginRegistry,
-  PluginManager,
-  PluginStatus,
-  AuthService,
-  ContentService,
-  MediaService,
-  PluginLogger,
-  PluginBuilderOptions,
-  PluginValidator,
-  PluginValidationResult,
-  HookName
-} from './plugin'
-
-export { HOOKS } from './plugin'
-
-// Plugin Manifest Types
-export type { PluginManifest } from './plugin-manifest'
-
 // Telemetry Types
 export type {
   TelemetryEvent,

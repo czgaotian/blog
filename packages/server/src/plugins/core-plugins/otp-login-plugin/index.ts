@@ -8,8 +8,6 @@
 import { Hono } from 'hono'
 import { setCookie } from 'hono/cookie'
 import { z } from 'zod'
-import { PluginBuilder } from '../../sdk/plugin-builder'
-import type { Plugin } from '@worker-blog/shared/types/plugin'
 import { OTPService, type OTPSettings } from './otp-service'
 import { renderOTPEmail } from './email-templates'
 import { AuthManager } from '../../../middleware'
@@ -52,24 +50,7 @@ function getEmailSettings(env: any) {
   }
 }
 
-export function createOTPLoginPlugin(): Plugin {
-  const builder = PluginBuilder.create({
-    name: 'otp-login',
-    version: '1.0.0-beta.1',
-    description: 'Passwordless authentication via email one-time codes'
-  })
-
-  builder.metadata({
-    author: {
-      name: 'Worker Blog Team',
-      email: 'team@worker-blog.com'
-    },
-    license: 'MIT',
-    compatibility: '^2.0.0'
-  })
-
-  // ==================== API Routes ====================
-
+export function createOTPLoginFeature() {
   const otpAPI = new Hono()
 
   // POST /api/auth/otp/request - Request OTP code
@@ -355,31 +336,12 @@ export function createOTPLoginPlugin(): Plugin {
     }
   })
 
-  // Register API routes
-  builder.addRoute('/api/auth/otp', otpAPI, {
-    description: 'OTP authentication endpoints',
-    requiresAuth: false,
-    priority: 100
-  })
-
-  // TODO(plugin-remove): move this admin UI to an explicit built-in auth page.
-  builder.addMenuItem('OTP Login', '/admin/plugins/otp-login', {
-    icon: 'key',
-    order: 85,
-    permissions: ['otp:manage']
-  })
-
-  // Lifecycle hooks
-  builder.lifecycle({
-    activate: async () => {
-      console.info('✅ OTP Login plugin activated')
-    },
-    deactivate: async () => {
-      console.info('❌ OTP Login plugin deactivated')
-    }
-  })
-
-  return builder.build() as Plugin
+  return {
+    routes: [{
+      path: '/api/auth/otp',
+      handler: otpAPI,
+    }],
+  }
 }
 
-export const otpLoginPlugin = createOTPLoginPlugin()
+export const otpLoginFeature = createOTPLoginFeature()

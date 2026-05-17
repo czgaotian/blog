@@ -44,14 +44,16 @@
 - 后端 `/api/admin/plugins`、`/api/admin/plugin-settings/:id/settings` 以及对应 shared admin-api contract 已移除。
 - `PluginBootstrapService`、`PluginService`、plugin menu middleware 的运行时挂载已移除。
 - 已处理一批运行时功能，使其不再通过 `plugins.status`/`plugins.settings` 控制行为或读取配置。
+- 平台层代码已删除：`PluginBuilder`、plugin manager、plugin registry、hook system、plugin validator、generated manifest registry、shared plugin types。
+- plugin DB schema 已从 Drizzle schema 移除；历史 plugin registry/config migrations 已改为 no-op 或剥离 plugin metadata 写入，并新增 `037_drop_plugin_platform_tables.sql` 删除旧平台表。
 - EasyMDE/TinyMCE/Quill 编辑器适配已保留并加 TODO，等待后续内容编辑器路线决定。
 - `pnpm type-check` 和相关 server 测试已通过。
 
 仍需后续阶段处理：
 
-- `packages/server/src/plugins/sdk/*`、`plugin-validator`、`manifest-registry`、shared plugin 类型等平台层代码仍保留。
-- plugin DB 表定义、历史 migration、`migrations-bundle` 里的 plugin SQL 仍保留。
 - 部分功能仍在 `packages/server/src/plugins/*` 目录下，后续应迁移到明确的 built-in feature 目录和路由命名。
+- manifest JSON、README、部分注释仍使用 plugin 叙事，需要后续文案/元数据清理。
+- TinyMCE 相关 `PluginManager` 字样属于 TinyMCE 编辑器 API，不是已删除的 Worker Blog plugin 平台。
 
 ## 当前插件盘点
 

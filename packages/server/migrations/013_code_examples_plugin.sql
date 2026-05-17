@@ -29,16 +29,6 @@ BEGIN
   UPDATE code_examples SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
 END;
 
--- Insert plugin record
-INSERT OR IGNORE INTO plugins (name, display_name, description, version, status, category, settings) VALUES
-('code-examples',
- 'Code Examples',
- 'Manage code snippets and examples with syntax highlighting support. Perfect for documentation and tutorials.',
- '1.0.0',
- 'active',
- 'content',
- '{"defaultPublished": true, "supportedLanguages": ["javascript", "typescript", "python", "go", "rust", "java", "php", "ruby", "sql"]}');
-
 -- Insert sample code examples
 INSERT OR IGNORE INTO code_examples (title, description, code, language, category, tags, isPublished, sortOrder) VALUES
 ('React useState Hook',

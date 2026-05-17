@@ -15,7 +15,6 @@
  */
 
 import { Hono } from 'hono'
-import { PluginBuilder } from '../../sdk/plugin-builder'
 import { wrapAdminPage } from '../_shared/admin-template'
 import {
   resolveShortcodesInObject,
@@ -474,80 +473,6 @@ function renderAdminPage(shortcodes: any[], editorStatus: { editorActive: boolea
   </div>
   ` })
 }
-
-// ─── Plugin Builder ──────────────────────────────────────────────────────────
-
-export function createShortcodesPlugin() {
-  const builder = PluginBuilder.create({
-    name: 'shortcodes',
-    version: '1.0.0',
-    description: 'Registered shortcode functions for dynamic content with [[shortcode]] syntax',
-  })
-
-  builder.metadata({
-    author: { name: 'Worker Blog Community', email: 'community@worker-blog.com' },
-    license: 'MIT',
-    compatibility: '^2.0.0',
-  })
-
-  builder.addRoute('/api/shortcodes', apiRoutes, {
-    description: 'Shortcodes CRUD API + preview + handler list',
-    requiresAuth: true,
-    priority: 50,
-  })
-
-  builder.addRoute('/admin/shortcodes', adminRoutes, {
-    description: 'Shortcodes admin page with CRUD and preview',
-    requiresAuth: true,
-    priority: 50,
-  })
-
-  builder.addMenuItem('Shortcodes', '/admin/shortcodes', {
-    icon: 'bolt',
-    order: 46,
-    permissions: ['shortcodes:view'],
-  })
-
-  builder.addHook('content:read', async (data: any, context: any) => {
-    try {
-      if (!data) return data
-      return resolveShortcodesInObject(data, context)
-    } catch {
-      return data
-    }
-  }, {
-    priority: 60, // Run after global-variables (50)
-    description: 'Resolve [[shortcode]] tokens in content data',
-  })
-
-  builder.lifecycle({
-    install: async (ctx: any) => {
-      const db = ctx?.env?.DB
-      if (db) {
-        const statements = MIGRATION_SQL.split(';').map(s => s.trim()).filter(s => s.length > 0)
-        for (const stmt of statements) { await db.prepare(stmt).run() }
-        console.info('[Shortcodes] Tables created')
-      }
-    },
-    activate: async () => {
-      console.info('[Shortcodes] Plugin activated')
-    },
-    deactivate: async () => {
-      console.info('[Shortcodes] Plugin deactivated')
-    },
-    uninstall: async (ctx: any) => {
-      const db = ctx?.env?.DB
-      if (db) {
-        await db.prepare('DROP TABLE IF EXISTS shortcodes').run()
-        console.info('[Shortcodes] Tables dropped')
-      }
-    },
-  })
-
-  return builder.build()
-}
-
-export const shortcodesPlugin = createShortcodesPlugin()
 
 // Export raw route handlers for direct mounting
 export { apiRoutes as shortcodesApiRoutes, adminRoutes as shortcodesAdminRoutes }

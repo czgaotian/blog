@@ -27,16 +27,6 @@ BEGIN
   UPDATE testimonials SET updated_at = strftime('%s', 'now') WHERE id = NEW.id;
 END;
 
--- Insert plugin record
-INSERT OR IGNORE INTO plugins (name, display_name, description, version, status, category, settings) VALUES
-('testimonials',
- 'Customer Testimonials',
- 'Manage customer testimonials and reviews with rating support. This is a code-based collection example.',
- '1.0.0',
- 'active',
- 'content',
- '{"defaultPublished": true, "requireRating": false}');
-
 -- Insert sample testimonial data
 INSERT OR IGNORE INTO testimonials (author_name, author_title, author_company, testimonial_text, rating, isPublished, sortOrder) VALUES
 ('Jane Smith',

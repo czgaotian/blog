@@ -14,8 +14,6 @@
 
 import { Hono } from 'hono'
 import { setCookie, getCookie } from 'hono/cookie'
-import { PluginBuilder } from '../../sdk/plugin-builder'
-import type { Plugin } from '@worker-blog/shared/types'
 import {
   OAuthService,
   BUILT_IN_PROVIDERS,
@@ -28,24 +26,7 @@ import { getJwtExpirySecondsFromDb } from '../../../middleware/auth'
 const STATE_COOKIE_NAME = 'oauth_state'
 const STATE_COOKIE_MAX_AGE = 600 // 10 minutes
 
-export function createOAuthProvidersPlugin(): Plugin {
-  const builder = PluginBuilder.create({
-    name: 'oauth-providers',
-    version: '1.0.0-beta.1',
-    description: 'OAuth2/OIDC social login with GitHub, Google, and more'
-  })
-
-  builder.metadata({
-    author: {
-      name: 'Worker Blog Team',
-      email: 'team@worker-blog.com'
-    },
-    license: 'MIT',
-    compatibility: '^2.0.0'
-  })
-
-  // ==================== Helper Functions ====================
-
+export function createOAuthProvidersFeature() {
   function getCallbackUrl(c: any, provider: string): string {
     const proto = c.req.header('x-forwarded-proto') || 'https'
     const host = c.req.header('host') || 'localhost'
@@ -397,31 +378,12 @@ export function createOAuthProvidersPlugin(): Plugin {
     }
   })
 
-  // Register routes
-  builder.addRoute('/api/auth/oauth', oauthAPI, {
-    description: 'OAuth2 social login endpoints',
-    requiresAuth: false,
-    priority: 100
-  })
-
-  // Add menu item for admin settings
-  builder.addMenuItem('OAuth Providers', '/admin/plugins/oauth-providers', {
-    icon: 'shield',
-    order: 86,
-    permissions: ['oauth:manage']
-  })
-
-  // Lifecycle hooks
-  builder.lifecycle({
-    activate: async () => {
-      console.info('✅ OAuth Providers plugin activated')
-    },
-    deactivate: async () => {
-      console.info('❌ OAuth Providers plugin deactivated')
-    }
-  })
-
-  return builder.build() as Plugin
+  return {
+    routes: [{
+      path: '/api/auth/oauth',
+      handler: oauthAPI,
+    }],
+  }
 }
 
-export const oauthProvidersPlugin = createOAuthProvidersPlugin()
+export const oauthProvidersFeature = createOAuthProvidersFeature()
