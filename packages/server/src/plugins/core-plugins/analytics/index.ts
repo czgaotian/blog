@@ -3,6 +3,7 @@
  */
 
 import { Hono } from 'hono'
+import analyticsAdminApiRoutes from './routes/admin-api'
 
 const analyticsAPI = new Hono()
 
@@ -68,8 +69,14 @@ analyticsAPI.get('/realtime', async (c) => {
 })
 
 export const analyticsFeature = {
-  routes: [{
-    path: '/api/analytics',
-    handler: analyticsAPI,
-  }],
+  routes: [
+    {
+      path: '/api/analytics',
+      handler: analyticsAPI,
+    },
+    {
+      path: '/api/plugins/analytics',
+      handler: analyticsAdminApiRoutes as any,
+    },
+  ],
 }

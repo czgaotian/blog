@@ -12,6 +12,7 @@
  */
 
 import { Hono } from 'hono'
+import { requireAuth } from '../../../middleware'
 import { getUserProfileConfig } from './user-profile-registry'
 import {
   getCustomData,
@@ -50,26 +51,36 @@ export function createUserProfilesFeature() {
   })
 
   // GET /api/user-profiles/:userId — get custom data
-  api.get('/:userId', async (c) => {
+  api.get('/:userId', requireAuth(), async (c) => {
     const db = (c.env as any)?.DB || (c as any).db
     if (!db) return c.json({ error: 'Database not available' }, 500)
 
+    const user = c.get('user') as { userId: string; role: string } | undefined
     const userId = c.req.param('userId')
+    if (!user || (user.role !== 'admin' && user.userId !== userId)) {
+      return c.json({ error: 'Access denied' }, 403)
+    }
+
     const data = await getCustomData(db, userId)
     return c.json({ userId, customData: data })
   })
 
   // PUT /api/user-profiles/:userId — update custom data
-  api.put('/:userId', async (c) => {
+  api.put('/:userId', requireAuth(), async (c) => {
     const db = (c.env as any)?.DB || (c as any).db
     if (!db) return c.json({ error: 'Database not available' }, 500)
+
+    const user = c.get('user') as { userId: string; role: string } | undefined
+    const userId = c.req.param('userId')
+    if (!user || (user.role !== 'admin' && user.userId !== userId)) {
+      return c.json({ error: 'Access denied' }, 403)
+    }
 
     const config = getUserProfileConfig()
     if (!config) {
       return c.json({ error: 'No profile schema configured' }, 400)
     }
 
-    const userId = c.req.param('userId')
     const body = await c.req.json()
     const customData = body.customData || body
 

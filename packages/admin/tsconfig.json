@@ -22,7 +22,7 @@
     "skipLibCheck": true,
     "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/spa/*"],
+      "@/*": ["./src/*"],
       "@worker-blog/shared": ["../shared/src/index.ts"],
       "@worker-blog/shared/*": ["../shared/src/*"]
     }

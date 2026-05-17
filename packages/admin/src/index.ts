@@ -1,1 +1,1 @@
-export * from './templates'
+export {}

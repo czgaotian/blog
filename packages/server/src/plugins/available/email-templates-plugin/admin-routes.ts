@@ -5,7 +5,6 @@ import { requireAuth, requireRole } from '../../../middleware';
 import { createEmailManagementService } from './services/email-management';
 // import { createEmailService } from './services/email';
 import { EmailTemplateRenderer } from './services/email-renderer';
-import { renderAdminLayout } from '@worker-blog/admin/templates/layouts/admin-layout-v2.template';
 
 type Bindings = {
   DB: D1Database;
@@ -29,6 +28,50 @@ type Variables = {
 }
 
 const emailRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
+
+function renderAdminLayout(data: {
+  title: string;
+  pageTitle?: string;
+  currentPath?: string;
+  user?: { name: string; email: string; role: string };
+  content: string;
+}): string {
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${data.title}</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      body { background: #09090b; color: #f4f4f5; }
+      .text-gray-1 { color: #f4f4f5; }
+      .text-gray-3 { color: #d4d4d8; }
+      .text-gray-4 { color: #a1a1aa; }
+      .bg-gray-5 { background: #52525b; }
+      .bg-gray-6 { background: #3f3f46; }
+      .bg-gray-7 { background: #27272a; }
+      .bg-gray-8 { background: #18181b; }
+      .border-gray-6 { border-color: #52525b; }
+      .border-gray-7 { border-color: #3f3f46; }
+      .btn-gradient { background: linear-gradient(135deg, #2563eb, #7c3aed); }
+      .text-primary { color: #60a5fa; }
+      .hover\\:text-primary-light:hover { color: #93c5fd; }
+      .hover\\:bg-primary-dark:hover { background: #1d4ed8; }
+      .bg-primary { background: #2563eb; }
+    </style>
+  </head>
+  <body>
+    <header class="border-b border-gray-7 bg-gray-8 px-6 py-4">
+      <div class="mx-auto flex max-w-6xl items-center justify-between">
+        <a href="/admin/dashboard" class="font-semibold text-gray-1">Worker Blog</a>
+        <div class="text-sm text-gray-4">${data.user ? `${data.user.email} · ${data.user.role}` : ''}</div>
+      </div>
+    </header>
+    <main class="mx-auto max-w-6xl px-6 py-8">${data.content}</main>
+  </body>
+</html>`;
+}
 
 // Middleware to require admin role for all email management routes
 emailRoutes.use('/*', requireAuth());

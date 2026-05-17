@@ -41,6 +41,7 @@ import { stripeFeature } from './plugins/core-plugins/stripe-plugin'
 import { requireAuth, requireRole } from './middleware/auth'
 import { analyticsFeature } from './plugins/core-plugins/analytics'
 import { eventsApiRoutes } from './plugins/core-plugins/analytics/routes/api'
+import { workflowFeature } from './plugins/core-plugins/workflow-plugin'
 import cachePlugin from './plugins/cache'
 import { faviconSvg } from './assets/favicon'
 import { setAppInstance } from './services/route-metadata'
@@ -259,6 +260,7 @@ export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogAp
   registerBuiltInFeatureRoutes(app, userProfilesFeature.routes as any)
   registerBuiltInFeatureRoutes(app, otpLoginFeature.routes as any)
   registerBuiltInFeatureRoutes(app, analyticsFeature.routes as any)
+  registerBuiltInFeatureRoutes(app, workflowFeature.routes as any)
 
   // Public event tracking API — POST /api/events (open), GET /api/events (admin)
   app.route('/api/events', eventsApiRoutes)

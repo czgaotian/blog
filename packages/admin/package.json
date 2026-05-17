@@ -5,9 +5,7 @@
   "description": "Admin UI package for Worker Blog",
   "type": "module",
   "exports": {
-    ".": "./src/index.ts",
-    "./templates": "./src/templates/index.ts",
-    "./templates/*": "./src/templates/*.ts"
+    ".": "./src/index.ts"
   },
   "scripts": {
     "dev": "vite --host 0.0.0.0",

@@ -1,5 +1,4 @@
 import type { Redirect } from '../types'
-import { renderAdminLayoutCatalyst } from '@worker-blog/admin/templates'
 
 type HtmlEscapedString = string
 
@@ -408,12 +407,20 @@ function getFormScripts(): HtmlEscapedString | Promise<HtmlEscapedString> {
 }
 
 /**
- * Render page layout using shared admin layout template
+ * Render page layout without depending on the admin templates package.
  */
 function renderLayout(title: string, content: any): HtmlEscapedString | Promise<HtmlEscapedString> {
-  return renderAdminLayoutCatalyst({
-    title,
-    currentPath: '/admin/redirects',
-    content: content.toString()
-  }) as HtmlEscapedString
+  return `<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>${title}</title>
+    <script src="https://unpkg.com/htmx.org@1.9.12"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+  </head>
+  <body class="bg-zinc-50 text-zinc-950 dark:bg-zinc-950 dark:text-white">
+    <main>${content.toString()}</main>
+  </body>
+</html>` as HtmlEscapedString
 }

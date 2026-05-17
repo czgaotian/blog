@@ -99,10 +99,6 @@ vi.mock('../services/cache-warming.js', () => ({
   warmNamespace: vi.fn(async () => 10)
 }))
 
-vi.mock('@worker-blog/admin/templates/pages/admin-cache.template', () => ({
-  renderCacheDashboard: vi.fn(() => '<html>Cache Dashboard</html>')
-}))
-
 // Import routes after mocking
 import cacheRoutes from '../routes'
 import { getAllCacheStats, clearAllCaches, getCacheService } from '../services/cache.js'

@@ -1,29 +1,67 @@
 /**
  * User Profile Custom Fields Renderer
  *
- * Generates the HTML section for custom profile fields by adapting
- * ProfileFieldDefinition into FieldDefinition and calling renderDynamicField.
+ * Generates a legacy HTML section for custom profile fields.
+ *
+ * The SPA profile page consumes the JSON schema directly. This renderer remains
+ * for compatibility with older server-rendered consumers without depending on
+ * the admin templates package.
  */
 
-import { renderDynamicField, type FieldDefinition } from '@worker-blog/admin/templates/components/dynamic-field.template'
 import type { UserProfileConfig, ProfileFieldDefinition } from './user-profile-registry'
 
-export function toFieldDefinition(field: ProfileFieldDefinition, index: number): FieldDefinition {
-  return {
-    id: `custom_${field.name}`,
-    field_name: `custom_${field.name}`,
-    field_type: field.type,
-    field_label: field.label,
-    field_options: {
-      placeholder: field.placeholder || '',
-      helpText: field.helpText || '',
-      enum: field.options || [],
-      enumLabels: field.options || [],
-    },
-    field_order: index,
-    is_required: field.required || false,
-    is_searchable: false,
+function escapeHtml(value: unknown): string {
+  return String(value ?? '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+}
+
+function renderField(field: ProfileFieldDefinition, value: unknown): string {
+  const id = `custom_${field.name}`
+  const label = escapeHtml(field.label)
+  const required = field.required ? 'required' : ''
+  const placeholder = escapeHtml(field.placeholder || '')
+  const helpText = field.helpText ? `<p class="mt-1 text-xs text-zinc-500">${escapeHtml(field.helpText)}</p>` : ''
+
+  if (field.type === 'select') {
+    const options = (field.options || []).map(option => `
+      <option value="${escapeHtml(option)}" ${String(value ?? field.default ?? '') === option ? 'selected' : ''}>${escapeHtml(option)}</option>
+    `).join('')
+    return `
+      <label class="block">
+        <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">${label}</span>
+        <select id="${id}" name="${id}" ${required} class="mt-1 block w-full rounded-md border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900">
+          ${options}
+        </select>
+        ${helpText}
+      </label>`
   }
+
+  if (field.type === 'boolean' || field.type === 'checkbox') {
+    return `
+      <label class="flex items-center gap-2 text-sm text-zinc-700 dark:text-zinc-300">
+        <input id="${id}" name="${id}" type="checkbox" ${value ? 'checked' : ''} class="rounded border-zinc-300 dark:border-zinc-700">
+        ${label}
+      </label>
+      ${helpText}`
+  }
+
+  const type = field.type === 'number'
+    ? 'number'
+    : field.type === 'date'
+      ? 'date'
+      : field.type === 'datetime'
+        ? 'datetime-local'
+        : 'text'
+
+  return `
+    <label class="block">
+      <span class="text-sm font-medium text-zinc-700 dark:text-zinc-300">${label}</span>
+      <input id="${id}" name="${id}" type="${type}" value="${escapeHtml(value ?? field.default ?? '')}" placeholder="${placeholder}" ${required} class="mt-1 block w-full rounded-md border-zinc-300 dark:border-zinc-700 dark:bg-zinc-900">
+      ${helpText}
+    </label>`
 }
 
 export function renderCustomProfileSection(
@@ -36,10 +74,9 @@ export function renderCustomProfileSection(
   if (visibleFields.length === 0) return ''
 
   const fieldsHtml = visibleFields
-    .map((field, index) => {
-      const fieldDef = toFieldDefinition(field, index)
+    .map((field) => {
       const value = customData[field.name] ?? field.default ?? ''
-      return renderDynamicField(fieldDef, { value })
+      return renderField(field, value)
     })
     .join('\n')
 
