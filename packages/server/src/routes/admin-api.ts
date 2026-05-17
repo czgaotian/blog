@@ -16,6 +16,7 @@ import { adminApiRoutesRoutes } from './admin-api-routes'
 import { adminApiSettingsRoutes } from './admin-api-settings'
 import { adminApiUsersRoutes } from './admin-api-users'
 import { getBootstrapStatus } from '../services/bootstrap'
+import { invalidateCollectionCache } from '../services/collection-domain'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -572,13 +573,7 @@ adminApiRoutes.post('/collections', async (c) => {
         now
       ).run()
 
-      // Clear cache
-      try {
-        await c.env.CACHE_KV.delete('cache:collections:all')
-        await c.env.CACHE_KV.delete(`cache:collection:${validatedData.name}`)
-      } catch (e) {
-        console.error('Error clearing cache:', e)
-      }
+      await invalidateCollectionCache(c.env.CACHE_KV, validatedData.name)
 
       return c.json({
         id: collectionId,
@@ -651,13 +646,7 @@ adminApiRoutes.patch('/collections/:id', async (c) => {
 
       await updateStmt.bind(...updateParams).run()
 
-      // Clear cache
-      try {
-        await c.env.CACHE_KV.delete('cache:collections:all')
-        await c.env.CACHE_KV.delete(`cache:collection:${existing.name}`)
-      } catch (e) {
-        console.error('Error clearing cache:', e)
-      }
+      await invalidateCollectionCache(c.env.CACHE_KV, existing.name)
 
       return c.json({ message: 'Collection updated successfully' })
     } catch (error) {
@@ -701,13 +690,7 @@ adminApiRoutes.delete('/collections/:id', async (c) => {
     const deleteStmt = db.prepare('DELETE FROM collections WHERE id = ?')
     await deleteStmt.bind(id).run()
 
-    // Clear cache
-    try {
-      await c.env.CACHE_KV.delete('cache:collections:all')
-      await c.env.CACHE_KV.delete(`cache:collection:${collection.name}`)
-    } catch (e) {
-      console.error('Error clearing cache:', e)
-    }
+    await invalidateCollectionCache(c.env.CACHE_KV, collection.name)
 
     return c.json({ message: 'Collection deleted successfully' })
   } catch (error) {

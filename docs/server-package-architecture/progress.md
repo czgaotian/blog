@@ -42,3 +42,8 @@
 - Routed admin content delete through `deleteContent({ mode: 'admin-soft' })` and headless `/api/content/:id` delete through `deleteContent({ mode: 'headless-hard' })`, preserving existing semantics while centralizing lookup/invalidation behavior.
 - Added `packages/server/src/services/content-domain.test.ts` to lock down soft-delete versus hard-delete behavior and not-found behavior.
 - Verified with `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 6 admin collection ownership.
+- Added `packages/server/src/services/collection-domain.ts` with shared collection cache invalidation behavior.
+- Updated canonical `admin-api-collections.ts` and legacy `admin-api.ts` collection mutation paths to use the shared collection cache invalidation helper instead of duplicating cache key deletion.
+- Added `packages/server/src/services/collection-domain.test.ts`.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
