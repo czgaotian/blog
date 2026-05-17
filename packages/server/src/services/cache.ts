@@ -1,26 +1,32 @@
 /**
- * Simple Cache Service
+ * Core cache compatibility layer.
  *
- * Provides basic caching functionality for the core package
- * Can be extended with KV or other storage backends
+ * Core routes historically imported this module directly, while the richer
+ * built-in cache feature owns the canonical cache implementation. Keep the
+ * small core API stable and delegate storage to the feature cache service so
+ * namespace instances, stats, and future KV wiring share one implementation.
  */
 
+import {
+  CacheService as FeatureCacheService,
+  getCacheService as getFeatureCacheService,
+} from '../features/cache/services/cache'
+import type { CacheConfig as FeatureCacheConfig } from '../features/cache/services/cache-config'
+
 export interface CacheConfig {
-  ttl: number // Time to live in seconds
+  ttl: number
   keyPrefix: string
 }
 
 export class CacheService {
   private config: CacheConfig
-  private memoryCache: Map<string, { value: any; expires: number }> = new Map()
+  private cache: FeatureCacheService
 
-  constructor(config: CacheConfig) {
+  constructor(config: CacheConfig, cache?: FeatureCacheService) {
     this.config = config
+    this.cache = cache || new FeatureCacheService(toFeatureConfig(config))
   }
 
-  /**
-   * Generate cache key with prefix
-   */
   generateKey(type: string, identifier?: string): string {
     const parts = [this.config.keyPrefix, type]
     if (identifier) {
@@ -29,144 +35,96 @@ export class CacheService {
     return parts.join(':')
   }
 
-  /**
-   * Get value from cache
-   */
   async get<T>(key: string): Promise<T | null> {
-    const cached = this.memoryCache.get(key)
-
-    if (!cached) {
-      return null
-    }
-
-    // Check if expired
-    if (Date.now() > cached.expires) {
-      this.memoryCache.delete(key)
-      return null
-    }
-
-    return cached.value as T
+    return this.cache.get<T>(key)
   }
 
-  /**
-   * Get value from cache with source information
-   */
   async getWithSource<T>(key: string): Promise<{
     hit: boolean
     data: T | null
     source: string
     ttl?: number
   }> {
-    const cached = this.memoryCache.get(key)
-
-    if (!cached) {
-      return {
-        hit: false,
-        data: null,
-        source: 'none'
-      }
+    const result = await this.cache.getWithSource<T>(key)
+    const response: {
+      hit: boolean
+      data: T | null
+      source: string
+      ttl?: number
+    } = {
+      hit: result.hit,
+      data: result.data,
+      source: result.hit ? result.source : 'none',
     }
-
-    // Check if expired
-    if (Date.now() > cached.expires) {
-      this.memoryCache.delete(key)
-      return {
-        hit: false,
-        data: null,
-        source: 'expired'
-      }
+    if (result.ttl !== undefined) {
+      response.ttl = result.ttl
     }
-
-    return {
-      hit: true,
-      data: cached.value as T,
-      source: 'memory',
-      ttl: (cached.expires - Date.now()) / 1000 // TTL in seconds
-    }
+    return response
   }
 
-  /**
-   * Set value in cache
-   */
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    const expires = Date.now() + ((ttl || this.config.ttl) * 1000)
-    this.memoryCache.set(key, { value, expires })
+    await this.cache.set(key, value, ttl ? { ttl } : undefined)
   }
 
-  /**
-   * Delete specific key from cache
-   */
   async delete(key: string): Promise<void> {
-    this.memoryCache.delete(key)
+    await this.cache.delete(key)
   }
 
-  /**
-   * Invalidate cache keys matching a pattern
-   * For memory cache, we do simple string matching
-   */
   async invalidate(pattern: string): Promise<void> {
-    // Convert glob pattern to regex
-    const regexPattern = pattern
-      .replace(/\*/g, '.*')
-      .replace(/\?/g, '.')
-    const regex = new RegExp(`^${regexPattern}$`)
-
-    // Find and delete matching keys
-    for (const key of this.memoryCache.keys()) {
-      if (regex.test(key)) {
-        this.memoryCache.delete(key)
-      }
-    }
+    await this.cache.invalidate(pattern)
   }
 
-  /**
-   * Clear all cache
-   */
   async clear(): Promise<void> {
-    this.memoryCache.clear()
+    await this.cache.clear()
   }
 
-  /**
-   * Get value from cache or set it using a callback
-   */
   async getOrSet<T>(key: string, callback: () => Promise<T>, ttl?: number): Promise<T> {
-    const cached = await this.get<T>(key)
-
-    if (cached !== null) {
-      return cached
-    }
-
-    const value = await callback()
-    await this.set(key, value, ttl)
-    return value
+    return this.cache.getOrSet(key, callback, ttl ? { ttl } : undefined)
   }
 }
 
-/**
- * Cache configurations for different data types
- */
 export const CACHE_CONFIGS = {
   api: {
-    ttl: 300, // 5 minutes
-    keyPrefix: 'api'
+    ttl: 300,
+    keyPrefix: 'api',
   },
   user: {
-    ttl: 600, // 10 minutes
-    keyPrefix: 'user'
+    ttl: 600,
+    keyPrefix: 'user',
   },
   content: {
-    ttl: 300, // 5 minutes
-    keyPrefix: 'content'
+    ttl: 300,
+    keyPrefix: 'content',
   },
   collection: {
-    ttl: 600, // 10 minutes
-    keyPrefix: 'collection'
-  }
+    ttl: 600,
+    keyPrefix: 'collection',
+  },
 }
 
-/**
- * Get cache service instance for a config
- */
-export function getCacheService(config: CacheConfig): CacheService {
-  return new CacheService(config)
+const coreCacheInstances = new Map<string, CacheService>()
+
+export function getCacheService(config: CacheConfig, kvNamespace?: KVNamespace): CacheService {
+  const key = config.keyPrefix
+  const existing = coreCacheInstances.get(key)
+  if (existing) {
+    return existing
+  }
+
+  const service = new CacheService(
+    config,
+    getFeatureCacheService(toFeatureConfig(config, !!kvNamespace), kvNamespace),
+  )
+  coreCacheInstances.set(key, service)
+  return service
+}
+
+function toFeatureConfig(config: CacheConfig, kvEnabled = false): FeatureCacheConfig {
+  return {
+    ttl: config.ttl,
+    kvEnabled,
+    memoryEnabled: true,
+    namespace: config.keyPrefix,
+    invalidateOn: [],
+  }
 }

@@ -200,7 +200,7 @@ authRoutes.post('/login',
       const normalizedEmail = email.toLowerCase()
       
       // Find user with caching
-      const cache = getCacheService(CACHE_CONFIGS.user!)
+      const cache = getCacheService(CACHE_CONFIGS.user!, c.env.CACHE_KV)
       let user = await cache.get<any>(cache.generateKey('user', `email:${normalizedEmail}`))
 
       if (!user) {

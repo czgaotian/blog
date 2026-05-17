@@ -149,7 +149,7 @@ apiContentCrudRoutes.post('/', requireAuth(), requireRole(['admin', 'editor', 'a
     ).run()
 
     // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!)
+    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     await cache.invalidate(`content:list:${collectionId}:*`)
     await cache.invalidate('content-filtered:*')
 
@@ -239,7 +239,7 @@ apiContentCrudRoutes.put('/:id', requireAuth(), requireRole(['admin', 'editor', 
     await updateStmt.bind(...params).run()
 
     // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!)
+    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     await cache.delete(cache.generateKey('content', id))
     await cache.invalidate(`content:list:${existing.collection_id}:*`)
     await cache.invalidate('content-filtered:*')
@@ -288,7 +288,7 @@ apiContentCrudRoutes.delete('/:id', requireAuth(), requireRole(['admin', 'editor
     await deleteStmt.bind(id).run()
 
     // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!)
+    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     await cache.delete(cache.generateKey('content', id))
     await cache.invalidate(`content:list:${existing.collection_id}:*`)
     await cache.invalidate('content-filtered:*')

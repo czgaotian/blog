@@ -139,7 +139,7 @@ describe('CacheService', () => {
       expect(result).toEqual({
         hit: false,
         data: null,
-        source: 'expired'
+        source: 'none'
       })
     })
 
@@ -354,7 +354,7 @@ describe('CACHE_CONFIGS', () => {
 })
 
 describe('getCacheService', () => {
-  it('should return a new CacheService instance', () => {
+  it('should return a CacheService compatibility instance', () => {
     const service = getCacheService({ ttl: 120, keyPrefix: 'myprefix' })
     expect(service).toBeInstanceOf(CacheService)
   })
@@ -371,5 +371,30 @@ describe('getCacheService', () => {
 
     expect(service1.generateKey('test')).toBe('svc1:test')
     expect(service2.generateKey('test')).toBe('svc2:test')
+  })
+
+  it('should reuse the same service for a namespace', () => {
+    const service1 = getCacheService({ ttl: 60, keyPrefix: 'shared-test' })
+    const service2 = getCacheService({ ttl: 120, keyPrefix: 'shared-test' })
+
+    expect(service2).toBe(service1)
+  })
+
+  it('should pass a provided KV namespace to the canonical cache service', async () => {
+    const kv = {
+      get: vi.fn().mockResolvedValue(null),
+      put: vi.fn().mockResolvedValue(undefined),
+      delete: vi.fn().mockResolvedValue(undefined),
+      list: vi.fn().mockResolvedValue({ keys: [] })
+    }
+    const service = getCacheService({ ttl: 120, keyPrefix: 'kv-compat-test' }, kv as any)
+
+    await service.set('kv-compat-test:item', { ok: true })
+
+    expect(kv.put).toHaveBeenCalledWith(
+      'kv-compat-test:item',
+      JSON.stringify({ ok: true }),
+      { expirationTtl: 120 }
+    )
   })
 })

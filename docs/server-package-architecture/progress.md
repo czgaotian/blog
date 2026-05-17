@@ -24,3 +24,10 @@
 - Trimmed `packages/server/src/app.ts` so `createWorkerBlogApp()` keeps the public factory and calls registration helpers in the original order.
 - Updated bootstrap test mock env to use `CACHE_KV`.
 - Re-verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 4 cache consolidation after committing the first batch as `24c47fc`.
+- Reworked `packages/server/src/services/cache.ts` into a compatibility layer over `features/cache/services/cache.ts`, preserving the core route API while delegating storage to the canonical feature cache implementation.
+- Changed core `getCacheService()` to reuse one compatibility wrapper per `keyPrefix`, fixing the previous per-call memory cache instance behavior.
+- Updated `packages/server/src/services/cache.test.ts` for canonical miss source semantics.
+- Updated core cache call sites in public API content, content CRUD, and auth login routes to pass `c.env.CACHE_KV` into the compatibility cache service.
+- Added cache tests proving same-namespace reuse and KV namespace forwarding.
+- Verified again with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
