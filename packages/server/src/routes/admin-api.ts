@@ -16,7 +16,7 @@ import { adminApiRoutesRoutes } from './admin-api-routes'
 import { adminApiSettingsRoutes } from './admin-api-settings'
 import { adminApiUsersRoutes } from './admin-api-users'
 import { getBootstrapStatus } from '../services/bootstrap'
-import { invalidateCollectionCache } from '../services/collection-domain'
+import { deleteCollection, invalidateCollectionCache } from '../services/collection-domain'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -664,33 +664,23 @@ adminApiRoutes.delete('/collections/:id', async (c) => {
     const id = c.req.param('id')
     const db = c.env.DB
 
-    // Check if collection exists
-    const collectionStmt = db.prepare('SELECT name FROM collections WHERE id = ?')
-    const collection = await collectionStmt.bind(id).first() as any
-
-    if (!collection) {
+    const result = await deleteCollection({
+      db,
+      id,
+      cacheKv: c.env.CACHE_KV,
+      blockManaged: false,
+    })
+    if (!result.deleted && result.reason === 'not_found') {
       return c.json({ error: 'Collection not found' }, 404)
     }
-
-    // Check if collection has content
-    const contentStmt = db.prepare('SELECT COUNT(*) as count FROM content WHERE collection_id = ?')
-    const contentResult = await contentStmt.bind(id).first() as any
-
-    if (contentResult && contentResult.count > 0) {
+    if (!result.deleted && result.reason === 'has_content') {
       return c.json({
-        error: `Cannot delete collection: it contains ${contentResult.count} content item(s). Delete all content first.`
+        error: `Cannot delete collection: it contains ${result.count} content item(s). Delete all content first.`
       }, 400)
     }
-
-    // Delete collection fields first
-    const deleteFieldsStmt = db.prepare('DELETE FROM content_fields WHERE collection_id = ?')
-    await deleteFieldsStmt.bind(id).run()
-
-    // Delete collection
-    const deleteStmt = db.prepare('DELETE FROM collections WHERE id = ?')
-    await deleteStmt.bind(id).run()
-
-    await invalidateCollectionCache(c.env.CACHE_KV, collection.name)
+    if (!result.deleted && result.reason === 'managed') {
+      return c.json({ error: 'Cannot delete a managed collection' }, 400)
+    }
 
     return c.json({ message: 'Collection deleted successfully' })
   } catch (error) {

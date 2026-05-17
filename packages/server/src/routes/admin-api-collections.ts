@@ -12,7 +12,7 @@ import {
   type MutateCollectionResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
-import { invalidateCollectionCache } from '../services/collection-domain'
+import { deleteCollection, invalidateCollectionCache } from '../services/collection-domain'
 
 const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
 
@@ -218,19 +218,16 @@ adminApiCollectionsRoutes.delete('/:id', async (c) => {
   const db = c.env.DB
 
   try {
-    const existing = await db.prepare('SELECT name, managed FROM collections WHERE id = ?').bind(id).first() as any
-    if (!existing) return c.json({ error: 'Collection not found' }, 404)
-    if (existing.managed) return c.json({ error: 'Cannot delete a managed collection' }, 400)
-
-    const contentCount = await db.prepare('SELECT COUNT(*) as count FROM content WHERE collection_id = ?').bind(id).first() as any
-    if (contentCount?.count > 0) {
-      return c.json({ error: `Cannot delete collection: it has ${contentCount.count} content items` }, 400)
+    const result = await deleteCollection({
+      db,
+      id,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.deleted && result.reason === 'not_found') return c.json({ error: 'Collection not found' }, 404)
+    if (!result.deleted && result.reason === 'managed') return c.json({ error: 'Cannot delete a managed collection' }, 400)
+    if (!result.deleted && result.reason === 'has_content') {
+      return c.json({ error: `Cannot delete collection: it has ${result.count} content items` }, 400)
     }
-
-    await db.prepare('DELETE FROM content_fields WHERE collection_id = ?').bind(id).run()
-    await db.prepare('DELETE FROM collections WHERE id = ?').bind(id).run()
-
-    await invalidateCollectionCache(c.env.CACHE_KV, existing.name)
 
     const response: MutateCollectionResponse = { message: 'Collection deleted successfully' }
     return c.json(response)

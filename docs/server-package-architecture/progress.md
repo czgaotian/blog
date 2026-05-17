@@ -47,3 +47,7 @@
 - Updated canonical `admin-api-collections.ts` and legacy `admin-api.ts` collection mutation paths to use the shared collection cache invalidation helper instead of duplicating cache key deletion.
 - Added `packages/server/src/services/collection-domain.test.ts`.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued Phase 6 follow-up by moving collection deletion behavior into `collection-domain.ts`.
+- Updated canonical `admin-api-collections.ts` and legacy `admin-api.ts` collection delete handlers to call shared `deleteCollection()`, preserving their response text/managed-collection compatibility choices while centralizing existence checks, content-count checks, field cleanup, collection deletion, and cache invalidation.
+- Expanded collection-domain tests for empty deletion, managed protection, content-count protection, and not-found handling.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
