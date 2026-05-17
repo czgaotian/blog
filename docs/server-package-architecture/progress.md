@@ -37,3 +37,8 @@
 - Added `/api/admin/system/bootstrap` to expose current Worker-instance bootstrap status behind the existing admin API guard.
 - Expanded bootstrap tests for step status, form collection sync, fatal migration status, `/api/health` skip, and `/admin/assets/*` skip.
 - Verified with `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 5 content semantics.
+- Added `packages/server/src/services/content-domain.ts` with a small domain service for content deletion and content cache invalidation.
+- Routed admin content delete through `deleteContent({ mode: 'admin-soft' })` and headless `/api/content/:id` delete through `deleteContent({ mode: 'headless-hard' })`, preserving existing semantics while centralizing lookup/invalidation behavior.
+- Added `packages/server/src/services/content-domain.test.ts` to lock down soft-delete versus hard-delete behavior and not-found behavior.
+- Verified with `pnpm --filter @worker-blog/server test` and `pnpm type-check`.

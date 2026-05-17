@@ -3,6 +3,7 @@ import { requireAuth, requireRole } from '../middleware'
 import { getCacheService, CACHE_CONFIGS } from '../services'
 import type { Bindings, Variables } from '../app'
 import { resolveContentVariables } from '../features/global-variables/variable-resolver'
+import { deleteContent } from '../services/content-domain'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -52,6 +53,7 @@ apiContentCrudRoutes.get('/check-slug', async (c) => {
 apiContentCrudRoutes.get('/:id', async (c) => {
   try {
     const id = c.req.param('id')
+    if (!id) return c.json({ error: 'Content id is required' }, 400)
     const db = c.env.DB
 
     const stmt = db.prepare('SELECT * FROM content WHERE id = ?')
@@ -273,25 +275,16 @@ apiContentCrudRoutes.put('/:id', requireAuth(), requireRole(['admin', 'editor', 
 apiContentCrudRoutes.delete('/:id', requireAuth(), requireRole(['admin', 'editor', 'author']), async (c) => {
   try {
     const id = c.req.param('id')
+    if (!id) return c.json({ error: 'Content id is required' }, 400)
     const db = c.env.DB
 
-    // Check if content exists
-    const existingStmt = db.prepare('SELECT collection_id FROM content WHERE id = ?')
-    const existing = await existingStmt.bind(id).first() as any
-
-    if (!existing) {
-      return c.json({ error: 'Content not found' }, 404)
-    }
-
-    // Delete the content (hard delete for API, soft delete happens in admin routes)
-    const deleteStmt = db.prepare('DELETE FROM content WHERE id = ?')
-    await deleteStmt.bind(id).run()
-
-    // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    await cache.delete(cache.generateKey('content', id))
-    await cache.invalidate(`content:list:${existing.collection_id}:*`)
-    await cache.invalidate('content-filtered:*')
+    const result = await deleteContent({
+      db,
+      id,
+      mode: 'headless-hard',
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.found) return c.json({ error: 'Content not found' }, 404)
 
     return c.json({ success: true })
   } catch (error) {

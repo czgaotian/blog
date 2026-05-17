@@ -9,6 +9,7 @@ import {
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
+import { deleteContent } from '../services/content-domain'
 
 export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -284,16 +285,17 @@ adminApiContentRoutes.delete('/:id', async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
+  if (!id) return c.json({ error: 'Content id is required' }, 400)
   const db = c.env.DB
 
   try {
-    const existing = await db.prepare('SELECT id FROM content WHERE id = ?').bind(id).first()
-    if (!existing) return c.json({ error: 'Content not found' }, 404)
-
-    await db
-      .prepare("UPDATE content SET status = 'deleted', updated_at = ? WHERE id = ?")
-      .bind(Date.now(), id)
-      .run()
+    const result = await deleteContent({
+      db,
+      id,
+      mode: 'admin-soft',
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.found) return c.json({ error: 'Content not found' }, 404)
 
     return c.json({ message: 'Content deleted successfully' })
   } catch (error) {
