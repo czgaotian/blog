@@ -21,26 +21,24 @@ import { securityHeadersMiddleware } from './middleware/security-headers'
 import { requireAuth, requireRole } from './middleware/auth'
 import { createDatabaseToolsAdminRoutes } from './features/database-tools/admin-routes'
 import { createSeedDataAdminRoutes } from './features/seed-data/admin-routes'
-import { emailFeature } from './features/email'
-import { otpLoginFeature } from './features/auth/otp-login'
-import { oauthProvidersFeature } from './features/auth/oauth-providers'
-import { userProfilesFeature } from './features/user-profiles'
-import { aiSearchFeature } from './features/ai-search'
 import { createMagicLinkAuthFeature } from './features/auth/magic-link'
-import { securityAuditFeature } from './features/security-audit'
 import { securityAuditMiddleware } from './features/security-audit'
-import { stripeFeature } from './features/stripe'
-import { analyticsFeature } from './features/analytics'
 import { eventsApiRoutes } from './features/analytics/routes/api'
-import { workflowFeature } from './features/workflow'
 import cacheFeature from './features/cache'
+import {
+  lateBuiltInFeatureRegistry,
+  postCacheBuiltInFeatureRegistry,
+  postEventsBuiltInFeatureRegistry,
+  preCacheBuiltInFeatureRegistry,
+} from './features/registry'
 import { faviconSvg } from './assets/favicon'
 import { setAppInstance } from './services/route-metadata'
 import type { WorkerBlogApp, WorkerBlogConfig } from './app'
+import type { BuiltInFeatureRoute } from './features/registry'
 
 function registerBuiltInFeatureRoutes(
   app: WorkerBlogApp,
-  routes: Array<{ path: string; handler: Hono }>,
+  routes: BuiltInFeatureRoute[],
 ): void {
   for (const route of routes) {
     if (route.path.startsWith('/api/')) {
@@ -116,23 +114,24 @@ export function registerFeatureRoutes(app: WorkerBlogApp): void {
   app.use('/api/auth/*', securityAuditMiddleware())
 
   // Built-in feature routes.
-  registerBuiltInFeatureRoutes(app, securityAuditFeature.routes as any)
-  registerBuiltInFeatureRoutes(app, aiSearchFeature.routes as any)
+  for (const feature of preCacheBuiltInFeatureRegistry) {
+    registerBuiltInFeatureRoutes(app, feature.routes)
+  }
 
   // Cache dashboard and management API.
   // Fixes GitHub Issue #461: Cache routes were not registered
   app.route('/api/admin/cache', cacheFeature.getRoutes())
 
-  registerBuiltInFeatureRoutes(app, oauthProvidersFeature.routes as any)
-  registerBuiltInFeatureRoutes(app, userProfilesFeature.routes as any)
-  registerBuiltInFeatureRoutes(app, otpLoginFeature.routes as any)
-  registerBuiltInFeatureRoutes(app, analyticsFeature.routes as any)
-  registerBuiltInFeatureRoutes(app, workflowFeature.routes as any)
+  for (const feature of postCacheBuiltInFeatureRegistry) {
+    registerBuiltInFeatureRoutes(app, feature.routes)
+  }
 
   // Public event tracking API — POST /api/events (open), GET /api/events (admin)
   app.route('/api/events', eventsApiRoutes)
 
-  registerBuiltInFeatureRoutes(app, stripeFeature.routes as any)
+  for (const feature of postEventsBuiltInFeatureRegistry) {
+    registerBuiltInFeatureRoutes(app, feature.routes)
+  }
 }
 
 export function registerAssetsAndFallbackRoutes(
@@ -147,7 +146,9 @@ export function registerAssetsAndFallbackRoutes(
   // Test cleanup routes (only for development/test environments)
   app.route('/', testCleanupRoutes)
 
-  registerBuiltInFeatureRoutes(app, emailFeature.routes as any)
+  for (const feature of lateBuiltInFeatureRegistry) {
+    registerBuiltInFeatureRoutes(app, feature.routes)
+  }
 
   // Magic link auth (passwordless authentication via email links).
   const magicLinkFeature = createMagicLinkAuthFeature()

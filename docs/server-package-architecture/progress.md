@@ -51,3 +51,7 @@
 - Updated canonical `admin-api-collections.ts` and legacy `admin-api.ts` collection delete handlers to call shared `deleteCollection()`, preserving their response text/managed-collection compatibility choices while centralizing existence checks, content-count checks, field cleanup, collection deletion, and cache invalidation.
 - Expanded collection-domain tests for empty deletion, managed protection, content-count protection, and not-found handling.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued into Phase 7 built-in feature boundaries.
+- Added `packages/server/src/features/registry.ts` with typed built-in feature descriptors, route metadata, compatibility alias flags, and binding metadata.
+- Updated `app-registration.ts` to mount built-in feature routes from the registry while preserving the existing registration order around cache routes and public events.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
