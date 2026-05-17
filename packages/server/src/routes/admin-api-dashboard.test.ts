@@ -11,6 +11,8 @@ vi.mock('@worker-blog/shared/utils/metrics', () => ({
     getRequestsPerSecond: () => 1.5,
     getTotalRequests: () => 100,
     getAverageRPS: () => 1.2,
+    getAverageDurationMs: () => 42.25,
+    getStatusClassCounts: () => ({ '2xx': 98, '4xx': 2 }),
   },
 }))
 
@@ -63,6 +65,8 @@ describe('GET /api/admin/dashboard', () => {
     expect(json.stats.users).toBe(2)
     expect(json.metrics.requestsPerSecond).toBe(1.5)
     expect(json.metrics.totalRequests).toBe(100)
+    expect(json.metrics.averageResponseMs).toBe(42.25)
+    expect(json.metrics.statusClassCounts).toEqual({ '2xx': 98, '4xx': 2 })
     expect(json.recentActivity).toEqual([])
   })
 

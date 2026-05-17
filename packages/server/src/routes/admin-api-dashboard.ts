@@ -88,6 +88,8 @@ adminApiDashboardRoutes.get('/', async (c) => {
       requestsPerSecond: metricsTracker.getRequestsPerSecond(),
       totalRequests: metricsTracker.getTotalRequests(),
       averageRPS: Number(metricsTracker.getAverageRPS().toFixed(2)),
+      averageResponseMs: Number(metricsTracker.getAverageDurationMs().toFixed(2)),
+      statusClassCounts: metricsTracker.getStatusClassCounts(),
       timestamp: new Date().toISOString(),
     },
   }

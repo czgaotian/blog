@@ -66,3 +66,9 @@
 - Exported `requestContextMiddleware` from the middleware barrel for direct reuse.
 - Added `packages/server/src/middleware/request-context.test.ts` to lock generated request ids, incoming request id preservation, and route-level response-time header preservation.
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
+- Continued Phase 9 by adding low-cardinality request metrics.
+- Extended `@worker-blog/shared` metrics tracking with average response duration and status-class counts while keeping the sliding in-memory window.
+- Updated `metricsMiddleware` to record method, response status class, and duration after the response has been produced, while continuing to exclude the dashboard metrics endpoint itself.
+- Exposed `averageResponseMs` and `statusClassCounts` from the admin dashboard metrics payload.
+- Added `packages/server/src/middleware/metrics.test.ts` and updated dashboard route tests for the expanded metrics shape.
+- Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.

@@ -20,6 +20,8 @@ export interface DashboardMetrics {
   requestsPerSecond: number
   totalRequests: number
   averageRPS: number
+  averageResponseMs: number
+  statusClassCounts: Record<string, number>
   timestamp: string
 }
 
