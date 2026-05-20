@@ -3,7 +3,7 @@ import { requireAuth, requireRole } from '../middleware'
 import { getCacheService, CACHE_CONFIGS } from '../services'
 import type { Bindings, Variables } from '../app'
 import { resolveContentVariables } from '../features/global-variables/variable-resolver'
-import { deleteContent } from '../services/content-domain'
+import { createContent, deleteContent } from '../services/content-domain'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -108,56 +108,27 @@ apiContentCrudRoutes.post('/', requireAuth(), requireRole(['admin', 'editor', 'a
       return c.json({ error: 'title is required' }, 400)
     }
 
-    // Generate slug from title if not provided
-    let finalSlug = slug || title
-    finalSlug = finalSlug.toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-      .trim()
+    const result = await createContent({
+      db,
+      mode: 'headless-create',
+      input: {
+        collectionId,
+        title,
+        slug,
+        status: status || 'draft',
+        data: data || {},
+      },
+      authorId: user?.userId || 'system',
+      cacheKv: c.env.CACHE_KV,
+    })
 
-    // Check for duplicate slug within the same collection
-    const duplicateCheck = db.prepare(
-      'SELECT id FROM content WHERE collection_id = ? AND slug = ?'
-    )
-    const existing = await duplicateCheck.bind(collectionId, finalSlug).first()
-
-    if (existing) {
+    if (result.duplicateSlug) {
       return c.json({ error: 'A content item with this slug already exists in this collection' }, 409)
     }
 
-    // Create new content
-    const contentId = crypto.randomUUID()
-    const now = Date.now()
-
-    const insertStmt = db.prepare(`
-      INSERT INTO content (
-        id, collection_id, slug, title, data, status,
-        author_id, created_at, updated_at
-      )
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-
-    await insertStmt.bind(
-      contentId,
-      collectionId,
-      finalSlug,
-      title,
-      JSON.stringify(data || {}),
-      status || 'draft',
-      user?.userId || 'system',
-      now,
-      now
-    ).run()
-
-    // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    await cache.invalidate(`content:list:${collectionId}:*`)
-    await cache.invalidate('content-filtered:*')
-
     // Get the created content
     const getStmt = db.prepare('SELECT * FROM content WHERE id = ?')
-    const createdContent = await getStmt.bind(contentId).first() as any
+    const createdContent = await getStmt.bind(result.id!).first() as any
 
     return c.json({
       data: {

@@ -92,3 +92,8 @@
 - Updated `POST /api/admin/content` to delegate to `createContent()` while preserving its `201` response shape and collection-not-found behavior.
 - Expanded content-domain tests for successful admin create and missing collection behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 10 by routing headless content creation through `createContent()` with explicit `headless-create` mode.
+- Preserved headless create compatibility differences: duplicate slug check remains headless-only, no initial content version is created, data is stored without automatically adding `title`, and the legacy slug normalization behavior remains intact.
+- Updated `POST /api/content` to delegate mutation and invalidation to the content domain service while preserving its response shape.
+- Added content-domain tests for successful headless create and duplicate slug behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

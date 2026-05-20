@@ -1,6 +1,6 @@
 import { CACHE_CONFIGS, getCacheService } from './cache'
 
-export type ContentCreateMode = 'admin-create'
+export type ContentCreateMode = 'admin-create' | 'headless-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
 export type ContentUpdateMode = 'admin-update'
 
@@ -25,6 +25,7 @@ export interface CreateContentOptions {
 export interface CreateContentResult {
   created: boolean
   collectionFound: boolean
+  duplicateSlug?: boolean
   id?: string
   collectionId: string
   mode: ContentCreateMode
@@ -72,34 +73,56 @@ export interface DeleteContentResult {
 
 export async function createContent(options: CreateContentOptions): Promise<CreateContentResult> {
   const { db, input, authorId, cacheKv } = options
-  const collection = await db
-    .prepare('SELECT id FROM collections WHERE id = ? AND is_active = 1')
-    .bind(input.collectionId)
-    .first()
+  const slug = normalizeSlug(input.slug || input.title, { trim: options.mode === 'headless-create' })
 
-  if (!collection) {
-    return {
-      created: false,
-      collectionFound: false,
-      collectionId: input.collectionId,
-      mode: options.mode,
+  if (options.mode === 'admin-create') {
+    const collection = await db
+      .prepare('SELECT id FROM collections WHERE id = ? AND is_active = 1')
+      .bind(input.collectionId)
+      .first()
+
+    if (!collection) {
+      return {
+        created: false,
+        collectionFound: false,
+        collectionId: input.collectionId,
+        mode: options.mode,
+      }
+    }
+  } else {
+    const existing = await db
+      .prepare('SELECT id FROM content WHERE collection_id = ? AND slug = ?')
+      .bind(input.collectionId, slug)
+      .first()
+
+    if (existing) {
+      return {
+        created: false,
+        collectionFound: true,
+        duplicateSlug: true,
+        collectionId: input.collectionId,
+        mode: options.mode,
+      }
     }
   }
 
   const id = options.id ?? crypto.randomUUID()
   const now = options.now ?? Date.now()
-  const slug = normalizeSlug(input.slug || input.title)
-  const data = { ...input.data, title: input.title }
+  const data = options.mode === 'admin-create'
+    ? { ...input.data, title: input.title }
+    : input.data
 
   await db
     .prepare('INSERT INTO content (id, collection_id, slug, title, data, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
     .bind(id, input.collectionId, slug, input.title, JSON.stringify(data), input.status, authorId, now, now)
     .run()
 
-  await db
-    .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, 1, ?, ?, ?)')
-    .bind(crypto.randomUUID(), id, JSON.stringify(data), authorId, now)
-    .run()
+  if (options.mode === 'admin-create') {
+    await db
+      .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, 1, ?, ?, ?)')
+      .bind(crypto.randomUUID(), id, JSON.stringify(data), authorId, now)
+      .run()
+  }
 
   await invalidateContentCache(id, input.collectionId, cacheKv)
 
@@ -223,10 +246,12 @@ function parseContentData(data: unknown): Record<string, unknown> {
   }
 }
 
-function normalizeSlug(slug: string): string {
-  return slug
+function normalizeSlug(slug: string, options: { trim?: boolean } = {}): string {
+  const normalized = slug
     .toLowerCase()
     .replace(/[^a-z0-9\s-]/g, '')
     .replace(/\s+/g, '-')
     .replace(/-+/g, '-')
+
+  return options.trim ? normalized.trim() : normalized
 }

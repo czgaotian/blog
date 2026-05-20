@@ -97,6 +97,82 @@ describe('content domain creation', () => {
     expect(calls).toHaveLength(1)
     expect(calls[0]?.sql).toContain('SELECT id FROM collections')
   })
+
+  it('creates headless content without an initial version and checks duplicate slugs', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'headless-create',
+      input: {
+        collectionId: 'collection-1',
+        title: 'New Post',
+        slug: ' New Post! ',
+        status: 'draft',
+        data: { body: 'Hello' },
+      },
+      authorId: 'user-1',
+      id: 'content-1',
+      now: 123,
+    })
+
+    expect(result.created).toBe(true)
+    expect(result.collectionFound).toBe(true)
+    expect(result.id).toBe('content-1')
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM collections'))).toBe(false)
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM content WHERE collection_id = ? AND slug = ?'))).toBe(true)
+    expect(calls.some((call) => call.args.includes('-new-post-'))).toBe(true)
+    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello' })))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
+  })
+
+  it('returns duplicate slug for headless create without inserting content', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => ({ id: 'existing-content' }),
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'headless-create',
+      input: {
+        collectionId: 'collection-1',
+        title: 'New Post',
+        status: 'draft',
+        data: {},
+      },
+      authorId: 'user-1',
+    })
+
+    expect(result).toEqual({
+      created: false,
+      collectionFound: true,
+      duplicateSlug: true,
+      collectionId: 'collection-1',
+      mode: 'headless-create',
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.sql).toContain('SELECT id FROM content')
+  })
 })
 
 describe('content domain deletion', () => {
