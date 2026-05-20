@@ -151,3 +151,7 @@
 - Started Round 2 Phase 13 feature registry maturity work.
 - Added `packages/server/src/features/registry.test.ts` to lock built-in feature registration phases/order, plugin-era compatibility alias marking, and required binding metadata.
 - Verified with `pnpm --filter @worker-blog/server test -- src/features/registry.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 14 bootstrap policy work.
+- Added `getBootstrapRuntimeConfig()` and `BootstrapMode` parsing in `services/bootstrap.ts`, supporting `auto`, `manual`, and `disabled` modes while defaulting unknown/missing values to `auto`.
+- Added `packages/server/src/services/bootstrap.test.ts` for bootstrap mode parsing.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/bootstrap.test.ts src/middleware/bootstrap.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

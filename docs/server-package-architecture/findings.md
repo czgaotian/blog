@@ -69,3 +69,4 @@
 - Round 2 Phase 11 legacy create/update slice converted duplicate legacy collection create/update routes into compatibility shims over `collection-domain.ts`, while keeping the legacy starter schema and snake_case API contract explicit at the route adapter.
 - Round 2 Phase 12 first slice introduced `cache-keys.ts` as the cache key registry for content and collection domain invalidation. The first pass preserves existing key strings while moving ownership out of mutation services.
 - Round 2 Phase 13 first slice added registry tests instead of renaming routes immediately. This gives a safety net for feature order and `/api/plugins/*` compatibility aliases before plugin-era naming is cleaned up.
+- Round 2 Phase 14 first slice added bootstrap mode parsing without changing runtime behavior. The next bootstrap slice can wire `manual` or `disabled` into middleware behind tested config semantics.

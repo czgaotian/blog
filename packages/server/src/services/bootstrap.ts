@@ -9,6 +9,13 @@ type BootstrapEnv = {
   JWT_SECRET?: string
   CORS_ORIGINS?: string
   ENVIRONMENT?: string
+  BOOTSTRAP_MODE?: string
+}
+
+export type BootstrapMode = 'auto' | 'manual' | 'disabled'
+
+export interface BootstrapRuntimeConfig {
+  mode: BootstrapMode
 }
 
 export type BootstrapStepName = 'migrations' | 'collections' | 'formCollections' | 'security'
@@ -36,6 +43,16 @@ const stepNames: BootstrapStepName[] = ['migrations', 'collections', 'formCollec
 let bootstrapComplete = false
 let bootstrapRunning = false
 let bootstrapStatus: BootstrapStatus = createInitialStatus()
+
+export function getBootstrapRuntimeConfig(env: Pick<BootstrapEnv, 'BOOTSTRAP_MODE'> = {}): BootstrapRuntimeConfig {
+  const rawMode = env.BOOTSTRAP_MODE?.trim().toLowerCase()
+
+  if (rawMode === 'manual' || rawMode === 'disabled') {
+    return { mode: rawMode }
+  }
+
+  return { mode: 'auto' }
+}
 
 export function verifySecurityConfig(env: BootstrapEnv): void {
   const warnings: string[] = []
