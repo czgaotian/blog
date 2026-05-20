@@ -35,6 +35,28 @@ export type UpdateCollectionResult =
   | { updated: false; reason: 'not_found' }
   | { updated: false; reason: 'no_fields'; name: string }
 
+export interface AddCollectionFieldInput {
+  fieldName: string
+  fieldLabel: string
+  fieldType: string
+  isRequired: boolean
+  isSearchable: boolean
+  fieldOptions: Record<string, unknown>
+}
+
+export interface AddCollectionFieldOptions {
+  db: D1Database
+  collectionId: string
+  input: AddCollectionFieldInput
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export type AddCollectionFieldResult =
+  | { added: true; id: string; collectionId: string; collectionName: string }
+  | { added: false; reason: 'collection_not_found' }
+  | { added: false; reason: 'duplicate_field'; fieldName: string }
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -81,6 +103,49 @@ export async function createCollection(options: CreateCollectionOptions): Promis
     created: true,
     id,
     name: input.name,
+  }
+}
+
+export async function addCollectionField(options: AddCollectionFieldOptions): Promise<AddCollectionFieldResult> {
+  const { db, collectionId, input, cacheKv } = options
+  const row = await db
+    .prepare('SELECT * FROM collections WHERE id = ?')
+    .bind(collectionId)
+    .first() as any
+
+  if (!row) {
+    return { added: false, reason: 'collection_not_found' }
+  }
+
+  const schema = parseCollectionSchema(row.schema)
+  if (!schema.properties) schema.properties = {}
+  if (!schema.required) schema.required = []
+
+  if (schema.properties[input.fieldName]) {
+    return {
+      added: false,
+      reason: 'duplicate_field',
+      fieldName: input.fieldName,
+    }
+  }
+
+  schema.properties[input.fieldName] = buildFieldConfig(input)
+  if (input.isRequired && !schema.required.includes(input.fieldName)) {
+    schema.required.push(input.fieldName)
+  }
+
+  await db
+    .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
+    .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
+    .run()
+
+  await invalidateCollectionCache(cacheKv, row.name)
+
+  return {
+    added: true,
+    id: `schema-${input.fieldName}`,
+    collectionId,
+    collectionName: row.name,
   }
 }
 
@@ -135,6 +200,36 @@ export async function updateCollection(options: UpdateCollectionOptions): Promis
     id,
     name: existing.name,
   }
+}
+
+function parseCollectionSchema(rawSchema: unknown): any {
+  if (!rawSchema) return { type: 'object', properties: {}, required: [] }
+  if (typeof rawSchema === 'object') return rawSchema
+
+  try {
+    return JSON.parse(String(rawSchema))
+  } catch {
+    return { type: 'object', properties: {}, required: [] }
+  }
+}
+
+function buildFieldConfig(input: AddCollectionFieldInput): Record<string, unknown> {
+  const fieldConfig: Record<string, unknown> = {
+    type: input.fieldType === 'number' ? 'number' : input.fieldType === 'boolean' ? 'boolean' : 'string',
+    title: input.fieldLabel,
+    searchable: input.isSearchable,
+    ...input.fieldOptions,
+  }
+
+  if (hasFormat(input.fieldType)) {
+    fieldConfig.format = input.fieldType
+  }
+
+  return fieldConfig
+}
+
+function hasFormat(fieldType: string): boolean {
+  return ['richtext', 'quill', 'markdown', 'date', 'slug', 'media', 'reference'].includes(fieldType)
 }
 
 export interface DeleteCollectionOptions {

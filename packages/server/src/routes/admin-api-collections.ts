@@ -13,6 +13,7 @@ import {
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
 import {
+  addCollectionField,
   createCollection,
   deleteCollection,
   invalidateCollectionCache,
@@ -250,38 +251,19 @@ adminApiCollectionsRoutes.post('/:id/fields', async (c) => {
 
   const db = c.env.DB
   try {
-    const row = await db.prepare('SELECT * FROM collections WHERE id = ?').bind(collectionId).first() as any
-    if (!row) return c.json({ error: 'Collection not found' }, 404)
-
-    const schema = row.schema ? (typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema) : { type: 'object', properties: {}, required: [] }
-    if (!schema.properties) schema.properties = {}
-    if (!schema.required) schema.required = []
-
-    if (schema.properties[parsed.data.fieldName]) {
+    const result = await addCollectionField({
+      db,
+      collectionId,
+      input: parsed.data,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.added && result.reason === 'collection_not_found') return c.json({ error: 'Collection not found' }, 404)
+    if (!result.added && result.reason === 'duplicate_field') {
       return c.json({ error: 'A field with this name already exists' }, 409)
     }
+    if (!result.added) return c.json({ error: 'Failed to add field' }, 500)
 
-    const fieldConfig: Record<string, unknown> = {
-      type: parsed.data.fieldType === 'number' ? 'number' : parsed.data.fieldType === 'boolean' ? 'boolean' : 'string',
-      title: parsed.data.fieldLabel,
-      searchable: parsed.data.isSearchable,
-      ...parsed.data.fieldOptions,
-    }
-    if (['richtext', 'quill', 'markdown', 'date', 'slug', 'media', 'reference'].includes(parsed.data.fieldType)) {
-      fieldConfig.format = parsed.data.fieldType
-    }
-
-    schema.properties[parsed.data.fieldName] = fieldConfig
-    if (parsed.data.isRequired && !schema.required.includes(parsed.data.fieldName)) {
-      schema.required.push(parsed.data.fieldName)
-    }
-
-    await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
-      .bind(JSON.stringify(schema), Date.now(), collectionId).run()
-
-    await invalidateCollectionCache(c.env.CACHE_KV, row.name)
-
-    return c.json({ message: 'Field added successfully', id: `schema-${parsed.data.fieldName}` }, 201)
+    return c.json({ message: 'Field added successfully', id: result.id }, 201)
   } catch (error) {
     console.error('[admin-api-collections] Error adding field:', error)
     return c.json({ error: 'Failed to add field' }, 500)

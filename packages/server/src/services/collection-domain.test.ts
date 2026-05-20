@@ -4,6 +4,7 @@ import {
   deleteCollection,
   invalidateCollectionCache,
   updateCollection,
+  addCollectionField,
 } from './collection-domain'
 
 describe('collection domain cache invalidation', () => {
@@ -179,6 +180,129 @@ describe('collection domain update', () => {
     })
 
     expect(result).toEqual({ updated: false, reason: 'not_found' })
+    expect(calls).toHaveLength(1)
+  })
+})
+
+describe('collection domain field add', () => {
+  it('adds a schema-backed field and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const collection = {
+      name: 'posts',
+      schema: JSON.stringify({ type: 'object', properties: {}, required: [] }),
+    }
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => collection,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await addCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      input: {
+        fieldName: 'summary',
+        fieldLabel: 'Summary',
+        fieldType: 'markdown',
+        isRequired: true,
+        isSearchable: true,
+        fieldOptions: { maxLength: 500 },
+      },
+      cacheKv: cacheKv as any,
+      now: 789,
+    })
+
+    expect(result).toEqual({
+      added: true,
+      id: 'schema-summary',
+      collectionId: 'col1',
+      collectionName: 'posts',
+    })
+    const updateCall = calls.find((call) => call.sql.includes('UPDATE collections SET schema = ?'))
+    expect(updateCall).toBeDefined()
+    const schema = JSON.parse(String(updateCall?.args[0]))
+    expect(schema.properties.summary).toEqual({
+      type: 'string',
+      title: 'Summary',
+      searchable: true,
+      maxLength: 500,
+      format: 'markdown',
+    })
+    expect(schema.required).toContain('summary')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collections:all')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('returns duplicate_field without updating schema', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const collection = {
+      name: 'posts',
+      schema: JSON.stringify({ type: 'object', properties: { title: { type: 'string' } }, required: [] }),
+    }
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => collection,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await addCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      input: {
+        fieldName: 'title',
+        fieldLabel: 'Title',
+        fieldType: 'text',
+        isRequired: false,
+        isSearchable: false,
+        fieldOptions: {},
+      },
+    })
+
+    expect(result).toEqual({ added: false, reason: 'duplicate_field', fieldName: 'title' })
+    expect(calls.some((call) => call.sql.includes('UPDATE collections SET schema = ?'))).toBe(false)
+  })
+
+  it('returns collection_not_found when adding a field to a missing collection', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await addCollectionField({
+      db: db as any,
+      collectionId: 'missing',
+      input: {
+        fieldName: 'summary',
+        fieldLabel: 'Summary',
+        fieldType: 'text',
+        isRequired: false,
+        isSearchable: false,
+        fieldOptions: {},
+      },
+    })
+
+    expect(result).toEqual({ added: false, reason: 'collection_not_found' })
     expect(calls).toHaveLength(1)
   })
 })

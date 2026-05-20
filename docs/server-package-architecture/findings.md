@@ -62,3 +62,4 @@
 - Round 2 Phase 11 collection inventory found five legacy duplicate collection routes in `admin-api.ts` and nine canonical collection/field routes in `admin-api-collections.ts`. The duplicates cannot be blindly removed because list/get/create/delete have intentional response shape or policy differences.
 - Round 2 Phase 11 first code slice moved canonical collection creation into `collection-domain.ts`. This locks in the canonical empty-schema behavior separately from the legacy create route's starter schema behavior.
 - Round 2 Phase 11 second code slice moved canonical collection metadata update into `collection-domain.ts`; canonical create/update/delete now share one domain service owner for top-level collection mutations.
+- Round 2 Phase 11 field-add slice moved schema-backed field creation into `collection-domain.ts`. Field config construction and required/searchable/schema defaulting are now domain-owned for the canonical add-field route.
