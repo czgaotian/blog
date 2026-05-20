@@ -3,6 +3,7 @@ import {
   createCollection,
   deleteCollection,
   invalidateCollectionCache,
+  updateCollection,
 } from './collection-domain'
 
 describe('collection domain cache invalidation', () => {
@@ -94,6 +95,91 @@ describe('collection domain creation', () => {
     expect(result).toEqual({ created: false, reason: 'duplicate', name: 'posts' })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.sql).toContain('SELECT id FROM collections WHERE name = ?')
+  })
+})
+
+describe('collection domain update', () => {
+  it('updates canonical collection metadata and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => ({ name: 'posts' }),
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await updateCollection({
+      db: db as any,
+      id: 'col1',
+      input: {
+        displayName: 'Posts',
+        description: 'Updated',
+        isActive: false,
+      },
+      cacheKv: cacheKv as any,
+      now: 456,
+    })
+
+    expect(result).toEqual({ updated: true, id: 'col1', name: 'posts' })
+    expect(calls.some((call) => call.sql.includes('SELECT name FROM collections WHERE id = ?'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('UPDATE collections SET display_name = ?, description = ?, is_active = ?, updated_at = ? WHERE id = ?'))).toBe(true)
+    expect(calls.some((call) => call.args.includes(0))).toBe(true)
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collections:all')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('returns no_fields when no canonical update fields are present', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => ({ name: 'posts' }),
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await updateCollection({
+      db: db as any,
+      id: 'col1',
+      input: {},
+    })
+
+    expect(result).toEqual({ updated: false, reason: 'no_fields', name: 'posts' })
+    expect(calls).toHaveLength(1)
+  })
+
+  it('returns not_found when canonical collection is missing', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await updateCollection({
+      db: db as any,
+      id: 'missing',
+      input: { displayName: 'Posts' },
+    })
+
+    expect(result).toEqual({ updated: false, reason: 'not_found' })
+    expect(calls).toHaveLength(1)
   })
 })
 

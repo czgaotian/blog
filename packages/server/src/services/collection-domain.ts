@@ -16,6 +16,25 @@ export type CreateCollectionResult =
   | { created: true; id: string; name: string }
   | { created: false; reason: 'duplicate'; name: string }
 
+export interface UpdateCollectionInput {
+  displayName?: string
+  description?: string | null
+  isActive?: boolean
+}
+
+export interface UpdateCollectionOptions {
+  db: D1Database
+  id: string
+  input: UpdateCollectionInput
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export type UpdateCollectionResult =
+  | { updated: true; id: string; name: string }
+  | { updated: false; reason: 'not_found' }
+  | { updated: false; reason: 'no_fields'; name: string }
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -62,6 +81,59 @@ export async function createCollection(options: CreateCollectionOptions): Promis
     created: true,
     id,
     name: input.name,
+  }
+}
+
+export async function updateCollection(options: UpdateCollectionOptions): Promise<UpdateCollectionResult> {
+  const { db, id, input, cacheKv } = options
+  const existing = await db
+    .prepare('SELECT name FROM collections WHERE id = ?')
+    .bind(id)
+    .first() as { name: string } | null
+
+  if (!existing) {
+    return {
+      updated: false,
+      reason: 'not_found',
+    }
+  }
+
+  const fields: string[] = []
+  const vals: unknown[] = []
+  if (input.displayName !== undefined) {
+    fields.push('display_name = ?')
+    vals.push(input.displayName)
+  }
+  if (input.description !== undefined) {
+    fields.push('description = ?')
+    vals.push(input.description)
+  }
+  if (input.isActive !== undefined) {
+    fields.push('is_active = ?')
+    vals.push(input.isActive ? 1 : 0)
+  }
+
+  if (fields.length === 0) {
+    return {
+      updated: false,
+      reason: 'no_fields',
+      name: existing.name,
+    }
+  }
+
+  fields.push('updated_at = ?')
+  vals.push(options.now ?? Date.now(), id)
+  await db
+    .prepare(`UPDATE collections SET ${fields.join(', ')} WHERE id = ?`)
+    .bind(...vals)
+    .run()
+
+  await invalidateCollectionCache(cacheKv, existing.name)
+
+  return {
+    updated: true,
+    id,
+    name: existing.name,
   }
 }
 

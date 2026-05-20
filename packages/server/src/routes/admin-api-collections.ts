@@ -16,6 +16,7 @@ import {
   createCollection,
   deleteCollection,
   invalidateCollectionCache,
+  updateCollection,
 } from '../services/collection-domain'
 
 const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
@@ -193,21 +194,14 @@ adminApiCollectionsRoutes.patch('/:id', async (c) => {
 
   const db = c.env.DB
   try {
-    const existing = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(id).first() as any
-    if (!existing) return c.json({ error: 'Collection not found' }, 404)
-
-    const fields: string[] = []
-    const vals: unknown[] = []
-    if (parsed.data.displayName !== undefined) { fields.push('display_name = ?'); vals.push(parsed.data.displayName) }
-    if (parsed.data.description !== undefined) { fields.push('description = ?'); vals.push(parsed.data.description) }
-    if (parsed.data.isActive !== undefined) { fields.push('is_active = ?'); vals.push(parsed.data.isActive ? 1 : 0) }
-    if (fields.length === 0) return c.json({ error: 'No fields to update' }, 400)
-
-    fields.push('updated_at = ?')
-    vals.push(Date.now(), id)
-    await db.prepare(`UPDATE collections SET ${fields.join(', ')} WHERE id = ?`).bind(...vals).run()
-
-    await invalidateCollectionCache(c.env.CACHE_KV, existing.name)
+    const result = await updateCollection({
+      db,
+      id,
+      input: parsed.data,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.updated && result.reason === 'not_found') return c.json({ error: 'Collection not found' }, 404)
+    if (!result.updated && result.reason === 'no_fields') return c.json({ error: 'No fields to update' }, 400)
 
     const response: MutateCollectionResponse = { message: 'Collection updated successfully' }
     return c.json(response)

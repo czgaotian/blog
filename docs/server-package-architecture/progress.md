@@ -114,3 +114,8 @@
 - Updated `POST /api/admin/collections` in `admin-api-collections.ts` to delegate to `createCollection()` while preserving the canonical `201` response and duplicate `409` behavior.
 - Expanded collection-domain tests for successful canonical create and duplicate-name behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 11 by moving canonical collection metadata updates into `collection-domain.ts`.
+- Added `updateCollection()` to own existence lookup, no-op detection, SQL update construction, and cache invalidation for canonical collection updates.
+- Updated `PATCH /api/admin/collections/:id` in `admin-api-collections.ts` to delegate to `updateCollection()` while preserving not-found and no-fields response behavior.
+- Expanded collection-domain tests for successful update, no-fields, and not-found behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
