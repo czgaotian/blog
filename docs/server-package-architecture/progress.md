@@ -107,3 +107,5 @@
 - Updated `POST /api/admin/content/:id/restore/:version` to delegate to the domain service while preserving its response shape.
 - Added content-domain tests for successful restore and missing version behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 11 collection ownership by inventorying canonical and legacy collection route surfaces.
+- Added `collection-route-inventory.md` documenting canonical routes in `admin-api-collections.ts`, legacy duplicates in `admin-api.ts`, response shape differences, behavior differences, and recommended migration slices.
