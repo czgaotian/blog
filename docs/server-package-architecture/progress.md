@@ -148,3 +148,6 @@
 - Replaced hard-coded content and collection cache key strings in `content-domain.ts` and `collection-domain.ts` with the registry helpers without changing key values.
 - Added `packages/server/src/services/cache-keys.test.ts`.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/cache-keys.test.ts src/services/content-domain.test.ts src/services/collection-domain.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 13 feature registry maturity work.
+- Added `packages/server/src/features/registry.test.ts` to lock built-in feature registration phases/order, plugin-era compatibility alias marking, and required binding metadata.
+- Verified with `pnpm --filter @worker-blog/server test -- src/features/registry.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
