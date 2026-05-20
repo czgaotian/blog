@@ -87,3 +87,8 @@
 - Updated `packages/server/src/routes/admin-api-content.ts` so `PUT /api/admin/content/:id` delegates to the domain service while preserving the existing response shape.
 - Expanded `packages/server/src/services/content-domain.test.ts` for admin update version creation, metadata-only updates without version creation, and not-found behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 10 by moving admin content creation into the content domain service.
+- Added `createContent()` with `admin-create` mode to own active-collection validation, slug normalization, content insert, initial version creation, and content cache invalidation.
+- Updated `POST /api/admin/content` to delegate to `createContent()` while preserving its `201` response shape and collection-not-found behavior.
+- Expanded content-domain tests for successful admin create and missing collection behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

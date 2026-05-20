@@ -1,7 +1,34 @@
 import { CACHE_CONFIGS, getCacheService } from './cache'
 
+export type ContentCreateMode = 'admin-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
 export type ContentUpdateMode = 'admin-update'
+
+export interface CreateContentInput {
+  collectionId: string
+  title: string
+  slug?: string
+  status: string
+  data: Record<string, unknown>
+}
+
+export interface CreateContentOptions {
+  db: D1Database
+  mode: ContentCreateMode
+  input: CreateContentInput
+  authorId: string
+  cacheKv?: KVNamespace
+  id?: string
+  now?: number
+}
+
+export interface CreateContentResult {
+  created: boolean
+  collectionFound: boolean
+  id?: string
+  collectionId: string
+  mode: ContentCreateMode
+}
 
 export interface UpdateContentPatch {
   title?: string
@@ -41,6 +68,48 @@ export interface DeleteContentResult {
   id: string
   collectionId?: string
   mode: ContentDeleteMode
+}
+
+export async function createContent(options: CreateContentOptions): Promise<CreateContentResult> {
+  const { db, input, authorId, cacheKv } = options
+  const collection = await db
+    .prepare('SELECT id FROM collections WHERE id = ? AND is_active = 1')
+    .bind(input.collectionId)
+    .first()
+
+  if (!collection) {
+    return {
+      created: false,
+      collectionFound: false,
+      collectionId: input.collectionId,
+      mode: options.mode,
+    }
+  }
+
+  const id = options.id ?? crypto.randomUUID()
+  const now = options.now ?? Date.now()
+  const slug = normalizeSlug(input.slug || input.title)
+  const data = { ...input.data, title: input.title }
+
+  await db
+    .prepare('INSERT INTO content (id, collection_id, slug, title, data, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, input.collectionId, slug, input.title, JSON.stringify(data), input.status, authorId, now, now)
+    .run()
+
+  await db
+    .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, 1, ?, ?, ?)')
+    .bind(crypto.randomUUID(), id, JSON.stringify(data), authorId, now)
+    .run()
+
+  await invalidateContentCache(id, input.collectionId, cacheKv)
+
+  return {
+    created: true,
+    collectionFound: true,
+    id,
+    collectionId: input.collectionId,
+    mode: options.mode,
+  }
 }
 
 export async function updateContent(options: UpdateContentOptions): Promise<UpdateContentResult> {

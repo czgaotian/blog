@@ -9,7 +9,7 @@ import {
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
-import { deleteContent, updateContent } from '../services/content-domain'
+import { createContent, deleteContent, updateContent } from '../services/content-domain'
 
 export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -195,32 +195,22 @@ adminApiContentRoutes.post('/', async (c) => {
   const db = c.env.DB
 
   try {
-    const collection = await db
-      .prepare('SELECT id FROM collections WHERE id = ? AND is_active = 1')
-      .bind(collectionId)
-      .first()
-    if (!collection) return c.json({ error: 'Collection not found' }, 404)
+    const result = await createContent({
+      db,
+      mode: 'admin-create',
+      input: {
+        collectionId,
+        title,
+        slug: rawSlug,
+        status,
+        data,
+      },
+      authorId: user.userId,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.collectionFound) return c.json({ error: 'Collection not found' }, 404)
 
-    const slug = (rawSlug || title)
-      .toLowerCase()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-')
-
-    const id = crypto.randomUUID()
-    const now = Date.now()
-
-    await db
-      .prepare('INSERT INTO content (id, collection_id, slug, title, data, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
-      .bind(id, collectionId, slug, title, JSON.stringify({ ...data, title }), status, user.userId, now, now)
-      .run()
-
-    await db
-      .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, 1, ?, ?, ?)')
-      .bind(crypto.randomUUID(), id, JSON.stringify({ ...data, title }), user.userId, now)
-      .run()
-
-    const response: MutateContentResponse = { message: 'Content created successfully', id }
+    const response: MutateContentResponse = { message: 'Content created successfully', id: result.id! }
     return c.json(response, 201)
   } catch (error) {
     console.error('[admin-api-content] Error creating content:', error)
