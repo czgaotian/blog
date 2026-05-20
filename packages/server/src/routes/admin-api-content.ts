@@ -9,7 +9,12 @@ import {
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
-import { createContent, deleteContent, updateContent } from '../services/content-domain'
+import {
+  createContent,
+  deleteContent,
+  restoreContentVersion,
+  updateContent,
+} from '../services/content-domain'
 
 export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -320,31 +325,14 @@ adminApiContentRoutes.post('/:id/restore/:version', async (c) => {
   const db = c.env.DB
 
   try {
-    const versionRow = await db
-      .prepare('SELECT data FROM content_versions WHERE content_id = ? AND version = ?')
-      .bind(id, version)
-      .first() as any
-
-    if (!versionRow) return c.json({ error: 'Version not found' }, 404)
-
-    const data = JSON.parse(versionRow.data || '{}')
-    const now = Date.now()
-
-    const versionCountRes = await db
-      .prepare('SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?')
-      .bind(id)
-      .first() as any
-    const nextVersion = (versionCountRes?.max_version || 0) + 1
-
-    await db
-      .prepare('UPDATE content SET data = ?, title = ?, updated_at = ? WHERE id = ?')
-      .bind(JSON.stringify(data), data.title || 'Untitled', now, id)
-      .run()
-
-    await db
-      .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(crypto.randomUUID(), id, nextVersion, JSON.stringify(data), user.userId, now)
-      .run()
+    const result = await restoreContentVersion({
+      db,
+      id,
+      version,
+      authorId: user.userId,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.restored) return c.json({ error: 'Version not found' }, 404)
 
     return c.json({ message: `Restored to version ${version}` })
   } catch (error) {

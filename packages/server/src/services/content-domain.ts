@@ -56,6 +56,22 @@ export interface UpdateContentResult {
   versionCreated?: boolean
 }
 
+export interface RestoreContentVersionOptions {
+  db: D1Database
+  id: string
+  version: number
+  authorId: string
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export interface RestoreContentVersionResult {
+  restored: boolean
+  id: string
+  version: number
+  collectionId?: string
+}
+
 export interface DeleteContentOptions {
   db: D1Database
   id: string
@@ -223,6 +239,56 @@ export async function deleteContent(options: DeleteContentOptions): Promise<Dele
     id,
     collectionId: existing.collection_id,
     mode,
+  }
+}
+
+export async function restoreContentVersion(
+  options: RestoreContentVersionOptions,
+): Promise<RestoreContentVersionResult> {
+  const { db, id, version, authorId, cacheKv } = options
+  const versionRow = await db
+    .prepare(`
+      SELECT cv.data, c.collection_id
+      FROM content_versions cv
+      JOIN content c ON c.id = cv.content_id
+      WHERE cv.content_id = ? AND cv.version = ?
+    `)
+    .bind(id, version)
+    .first() as { data: string; collection_id: string } | null
+
+  if (!versionRow) {
+    return {
+      restored: false,
+      id,
+      version,
+    }
+  }
+
+  const data = parseContentData(versionRow.data)
+  const now = options.now ?? Date.now()
+  const versionCountRes = await db
+    .prepare('SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?')
+    .bind(id)
+    .first() as any
+  const nextVersion = (versionCountRes?.max_version || 0) + 1
+
+  await db
+    .prepare('UPDATE content SET data = ?, title = ?, updated_at = ? WHERE id = ?')
+    .bind(JSON.stringify(data), String(data.title || 'Untitled'), now, id)
+    .run()
+
+  await db
+    .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)')
+    .bind(crypto.randomUUID(), id, nextVersion, JSON.stringify(data), authorId, now)
+    .run()
+
+  await invalidateContentCache(id, versionRow.collection_id, cacheKv)
+
+  return {
+    restored: true,
+    id,
+    version,
+    collectionId: versionRow.collection_id,
   }
 }
 

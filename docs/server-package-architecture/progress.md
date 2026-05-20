@@ -102,3 +102,8 @@
 - Removed direct cache invalidation from `PUT /api/content/:id`; the route now delegates mutation and invalidation to the content domain service.
 - Added a content-domain test proving headless update replaces data and does not create versions.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Completed the main Round 2 Phase 10 content-domain behavior consolidation by moving admin version restore into `content-domain.ts`.
+- Added `restoreContentVersion()` to own version lookup, content restore, follow-up version creation, and cache invalidation.
+- Updated `POST /api/admin/content/:id/restore/:version` to delegate to the domain service while preserving its response shape.
+- Added content-domain tests for successful restore and missing version behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

@@ -1,5 +1,10 @@
 import { describe, expect, it, vi } from 'vitest'
-import { createContent, deleteContent, updateContent } from './content-domain'
+import {
+  createContent,
+  deleteContent,
+  restoreContentVersion,
+  updateContent,
+} from './content-domain'
 
 function createMockDb(existing: any = { id: 'content-1', collection_id: 'collection-1' }) {
   const calls: Array<{ sql: string; args: any[] }> = []
@@ -396,5 +401,78 @@ describe('content domain update', () => {
     })
     expect(calls).toHaveLength(1)
     expect(calls[0]?.sql).toContain('SELECT * FROM content')
+  })
+})
+
+describe('content domain version restore', () => {
+  it('restores a version, writes a new version, and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => {
+              if (sql.includes('SELECT MAX(version)')) return { max_version: 4 }
+              return {
+                data: JSON.stringify({ title: 'Restored title', body: 'Old body' }),
+                collection_id: 'collection-1',
+              }
+            },
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await restoreContentVersion({
+      db: db as any,
+      id: 'content-1',
+      version: 2,
+      authorId: 'user-1',
+      now: 999,
+    })
+
+    expect(result).toEqual({
+      restored: true,
+      id: 'content-1',
+      version: 2,
+      collectionId: 'collection-1',
+    })
+    expect(calls.some((call) => call.sql.includes('JOIN content c ON c.id = cv.content_id'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('UPDATE content SET data = ?, title = ?, updated_at = ?'))).toBe(true)
+    expect(calls.some((call) => call.args.includes('Restored title'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
+    expect(calls.some((call) => call.args.includes(5))).toBe(true)
+  })
+
+  it('returns not restored for a missing version without mutation', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await restoreContentVersion({
+      db: db as any,
+      id: 'content-1',
+      version: 99,
+      authorId: 'user-1',
+    })
+
+    expect(result).toEqual({
+      restored: false,
+      id: 'content-1',
+      version: 99,
+    })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.sql).toContain('FROM content_versions cv')
   })
 })
