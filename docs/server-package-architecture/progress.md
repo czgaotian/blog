@@ -124,3 +124,8 @@
 - Updated `POST /api/admin/collections/:id/fields` to delegate to `addCollectionField()` while preserving collection-not-found, duplicate-field, and success response behavior.
 - Expanded collection-domain tests for successful schema field add, duplicate field, and missing collection behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 11 by moving canonical field update behavior into `collection-domain.ts`.
+- Added `updateCollectionField()` to own both schema-backed `schema-*` field updates and legacy `content_fields` row updates, including no-field detection and cache invalidation.
+- Updated `PUT /api/admin/collections/:id/fields/:fieldId` to delegate to `updateCollectionField()` while preserving collection-not-found, field-not-found, no-fields, and success responses.
+- Expanded collection-domain tests for schema-backed field update, legacy row update, and missing schema field behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

@@ -5,6 +5,7 @@ import {
   invalidateCollectionCache,
   updateCollection,
   addCollectionField,
+  updateCollectionField,
 } from './collection-domain'
 
 describe('collection domain cache invalidation', () => {
@@ -304,6 +305,123 @@ describe('collection domain field add', () => {
 
     expect(result).toEqual({ added: false, reason: 'collection_not_found' })
     expect(calls).toHaveLength(1)
+  })
+})
+
+describe('collection domain field update', () => {
+  it('updates a schema-backed field and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const collection = {
+      name: 'posts',
+      schema: JSON.stringify({
+        type: 'object',
+        properties: { title: { type: 'string', title: 'Title', format: 'markdown', searchable: false } },
+        required: ['title'],
+      }),
+    }
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => collection,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await updateCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'schema-title',
+      input: {
+        fieldLabel: 'Updated Title',
+        fieldType: 'text',
+        isRequired: false,
+        isSearchable: true,
+        fieldOptions: { maxLength: 100 },
+      },
+      cacheKv: cacheKv as any,
+      now: 111,
+    })
+
+    expect(result).toEqual({
+      updated: true,
+      fieldId: 'schema-title',
+      collectionId: 'col1',
+      collectionName: 'posts',
+    })
+    const updateCall = calls.find((call) => call.sql.includes('UPDATE collections SET schema = ?'))
+    const schema = JSON.parse(String(updateCall?.args[0]))
+    expect(schema.properties.title).toEqual({
+      type: 'string',
+      title: 'Updated Title',
+      searchable: true,
+      maxLength: 100,
+    })
+    expect(schema.required).not.toContain('title')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('updates a legacy content_fields row and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => {
+              if (sql.includes('SELECT * FROM collections')) return { name: 'posts', schema: null }
+              return { id: 'field1' }
+            },
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await updateCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'field1',
+      input: {
+        fieldLabel: 'Body',
+        fieldType: 'richtext',
+        isRequired: true,
+        isSearchable: false,
+        fieldOptions: { toolbar: 'full' },
+      },
+      cacheKv: cacheKv as any,
+      now: 222,
+    })
+
+    expect(result.updated).toBe(true)
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('UPDATE content_fields SET field_label = ?, field_type = ?, is_required = ?, is_searchable = ?, field_options = ?, updated_at = ? WHERE id = ?'))).toBe(true)
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('returns field_not_found for a missing schema field', async () => {
+    const db = {
+      prepare: vi.fn((_sql: string) => ({
+        bind: () => ({
+          first: async () => ({ name: 'posts', schema: JSON.stringify({ type: 'object', properties: {}, required: [] }) }),
+          run: async () => ({ success: true }),
+        }),
+      })),
+    }
+
+    const result = await updateCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'schema-missing',
+      input: { fieldLabel: 'Missing' },
+    })
+
+    expect(result).toEqual({ updated: false, reason: 'field_not_found' })
   })
 })
 

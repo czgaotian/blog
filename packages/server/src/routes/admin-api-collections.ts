@@ -18,6 +18,7 @@ import {
   deleteCollection,
   invalidateCollectionCache,
   updateCollection,
+  updateCollectionField,
 } from '../services/collection-domain'
 
 const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
@@ -284,59 +285,18 @@ adminApiCollectionsRoutes.put('/:id/fields/:fieldId', async (c) => {
 
   const db = c.env.DB
   try {
-    const row = await db.prepare('SELECT * FROM collections WHERE id = ?').bind(collectionId).first() as any
-    if (!row) return c.json({ error: 'Collection not found' }, 404)
+    const result = await updateCollectionField({
+      db,
+      collectionId,
+      fieldId,
+      input: parsed.data,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.updated && result.reason === 'collection_not_found') return c.json({ error: 'Collection not found' }, 404)
+    if (!result.updated && result.reason === 'field_not_found') return c.json({ error: 'Field not found' }, 404)
+    if (!result.updated && result.reason === 'no_fields') return c.json({ error: 'No fields to update' }, 400)
+    if (!result.updated) return c.json({ error: 'Failed to update field' }, 500)
 
-    if (fieldId.startsWith('schema-')) {
-      const fieldName = fieldId.replace('schema-', '')
-      const schema = row.schema ? (typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema) : { type: 'object', properties: {}, required: [] }
-      if (!schema.properties?.[fieldName]) return c.json({ error: 'Field not found' }, 404)
-      if (!schema.required) schema.required = []
-
-      const existing = schema.properties[fieldName]
-      const updated: Record<string, unknown> = {
-        ...existing,
-        ...(parsed.data.fieldOptions ?? {}),
-        title: parsed.data.fieldLabel ?? existing.title,
-        searchable: parsed.data.isSearchable ?? existing.searchable,
-      }
-      if (parsed.data.fieldType !== undefined) {
-        updated.type = parsed.data.fieldType === 'number' ? 'number' : parsed.data.fieldType === 'boolean' ? 'boolean' : 'string'
-        if (['richtext', 'quill', 'markdown', 'date', 'slug', 'media', 'reference'].includes(parsed.data.fieldType)) {
-          updated.format = parsed.data.fieldType
-        }
-      }
-      if (parsed.data.fieldType !== undefined && !['richtext', 'quill', 'markdown', 'date', 'slug', 'media', 'reference'].includes(parsed.data.fieldType)) {
-        delete updated.format
-      }
-      schema.properties[fieldName] = updated
-
-      const idx = schema.required.indexOf(fieldName)
-      if (parsed.data.isRequired === true && idx === -1) schema.required.push(fieldName)
-      else if (parsed.data.isRequired === false && idx !== -1) schema.required.splice(idx, 1)
-
-      await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
-        .bind(JSON.stringify(schema), Date.now(), collectionId).run()
-      await invalidateCollectionCache(c.env.CACHE_KV, row.name)
-      return c.json({ message: 'Field updated successfully' })
-    }
-
-    // legacy content_fields row
-    const existing = await db.prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?').bind(fieldId, collectionId).first()
-    if (!existing) return c.json({ error: 'Field not found' }, 404)
-
-    const updates: string[] = []
-    const vals: unknown[] = []
-    if (parsed.data.fieldLabel !== undefined) { updates.push('field_label = ?'); vals.push(parsed.data.fieldLabel) }
-    if (parsed.data.fieldType !== undefined) { updates.push('field_type = ?'); vals.push(parsed.data.fieldType) }
-    if (parsed.data.isRequired !== undefined) { updates.push('is_required = ?'); vals.push(parsed.data.isRequired ? 1 : 0) }
-    if (parsed.data.isSearchable !== undefined) { updates.push('is_searchable = ?'); vals.push(parsed.data.isSearchable ? 1 : 0) }
-    if (parsed.data.fieldOptions !== undefined) { updates.push('field_options = ?'); vals.push(JSON.stringify(parsed.data.fieldOptions)) }
-    if (updates.length === 0) return c.json({ error: 'No fields to update' }, 400)
-    updates.push('updated_at = ?')
-    vals.push(Date.now(), fieldId)
-    await db.prepare(`UPDATE content_fields SET ${updates.join(', ')} WHERE id = ?`).bind(...vals).run()
-    await invalidateCollectionCache(c.env.CACHE_KV, row.name)
     return c.json({ message: 'Field updated successfully' })
   } catch (error) {
     console.error('[admin-api-collections] Error updating field:', error)

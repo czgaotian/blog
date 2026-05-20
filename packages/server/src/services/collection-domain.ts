@@ -57,6 +57,29 @@ export type AddCollectionFieldResult =
   | { added: false; reason: 'collection_not_found' }
   | { added: false; reason: 'duplicate_field'; fieldName: string }
 
+export interface UpdateCollectionFieldInput {
+  fieldLabel?: string
+  fieldType?: string
+  isRequired?: boolean
+  isSearchable?: boolean
+  fieldOptions?: Record<string, unknown>
+}
+
+export interface UpdateCollectionFieldOptions {
+  db: D1Database
+  collectionId: string
+  fieldId: string
+  input: UpdateCollectionFieldInput
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export type UpdateCollectionFieldResult =
+  | { updated: true; fieldId: string; collectionId: string; collectionName: string }
+  | { updated: false; reason: 'collection_not_found' }
+  | { updated: false; reason: 'field_not_found' }
+  | { updated: false; reason: 'no_fields'; collectionName: string }
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -149,6 +172,90 @@ export async function addCollectionField(options: AddCollectionFieldOptions): Pr
   }
 }
 
+export async function updateCollectionField(
+  options: UpdateCollectionFieldOptions,
+): Promise<UpdateCollectionFieldResult> {
+  const { db, collectionId, fieldId, input, cacheKv } = options
+  const row = await db
+    .prepare('SELECT * FROM collections WHERE id = ?')
+    .bind(collectionId)
+    .first() as any
+
+  if (!row) {
+    return { updated: false, reason: 'collection_not_found' }
+  }
+
+  if (fieldId.startsWith('schema-')) {
+    const fieldName = fieldId.replace('schema-', '')
+    const schema = parseCollectionSchema(row.schema)
+    if (!schema.properties?.[fieldName]) {
+      return { updated: false, reason: 'field_not_found' }
+    }
+    if (!schema.required) schema.required = []
+
+    schema.properties[fieldName] = buildUpdatedFieldConfig(schema.properties[fieldName], input)
+
+    const idx = schema.required.indexOf(fieldName)
+    if (input.isRequired === true && idx === -1) schema.required.push(fieldName)
+    else if (input.isRequired === false && idx !== -1) schema.required.splice(idx, 1)
+
+    await db
+      .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
+      .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
+      .run()
+
+    await invalidateCollectionCache(cacheKv, row.name)
+
+    return {
+      updated: true,
+      fieldId,
+      collectionId,
+      collectionName: row.name,
+    }
+  }
+
+  const existing = await db
+    .prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?')
+    .bind(fieldId, collectionId)
+    .first()
+
+  if (!existing) {
+    return { updated: false, reason: 'field_not_found' }
+  }
+
+  const updates: string[] = []
+  const vals: unknown[] = []
+  if (input.fieldLabel !== undefined) { updates.push('field_label = ?'); vals.push(input.fieldLabel) }
+  if (input.fieldType !== undefined) { updates.push('field_type = ?'); vals.push(input.fieldType) }
+  if (input.isRequired !== undefined) { updates.push('is_required = ?'); vals.push(input.isRequired ? 1 : 0) }
+  if (input.isSearchable !== undefined) { updates.push('is_searchable = ?'); vals.push(input.isSearchable ? 1 : 0) }
+  if (input.fieldOptions !== undefined) { updates.push('field_options = ?'); vals.push(JSON.stringify(input.fieldOptions)) }
+
+  if (updates.length === 0) {
+    return {
+      updated: false,
+      reason: 'no_fields',
+      collectionName: row.name,
+    }
+  }
+
+  updates.push('updated_at = ?')
+  vals.push(options.now ?? Date.now(), fieldId)
+  await db
+    .prepare(`UPDATE content_fields SET ${updates.join(', ')} WHERE id = ?`)
+    .bind(...vals)
+    .run()
+
+  await invalidateCollectionCache(cacheKv, row.name)
+
+  return {
+    updated: true,
+    fieldId,
+    collectionId,
+    collectionName: row.name,
+  }
+}
+
 export async function updateCollection(options: UpdateCollectionOptions): Promise<UpdateCollectionResult> {
   const { db, id, input, cacheKv } = options
   const existing = await db
@@ -226,6 +333,31 @@ function buildFieldConfig(input: AddCollectionFieldInput): Record<string, unknow
   }
 
   return fieldConfig
+}
+
+function buildUpdatedFieldConfig(
+  existing: Record<string, unknown>,
+  input: UpdateCollectionFieldInput,
+): Record<string, unknown> {
+  const updated: Record<string, unknown> = {
+    ...existing,
+    ...(input.fieldOptions ?? {}),
+    title: input.fieldLabel ?? existing.title,
+    searchable: input.isSearchable ?? existing.searchable,
+  }
+
+  if (input.fieldType !== undefined) {
+    updated.type = input.fieldType === 'number' ? 'number' : input.fieldType === 'boolean' ? 'boolean' : 'string'
+    if (hasFormat(input.fieldType)) {
+      updated.format = input.fieldType
+    }
+  }
+
+  if (input.fieldType !== undefined && !hasFormat(input.fieldType)) {
+    delete updated.format
+  }
+
+  return updated
 }
 
 function hasFormat(fieldType: string): boolean {
