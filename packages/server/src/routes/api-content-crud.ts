@@ -1,9 +1,8 @@
 import { Hono } from 'hono'
 import { requireAuth, requireRole } from '../middleware'
-import { getCacheService, CACHE_CONFIGS } from '../services'
 import type { Bindings, Variables } from '../app'
 import { resolveContentVariables } from '../features/global-variables/variable-resolver'
-import { createContent, deleteContent } from '../services/content-domain'
+import { createContent, deleteContent, updateContent } from '../services/content-domain'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -155,67 +154,19 @@ apiContentCrudRoutes.post('/', requireAuth(), requireRole(['admin', 'editor', 'a
 apiContentCrudRoutes.put('/:id', requireAuth(), requireRole(['admin', 'editor', 'author']), async (c) => {
   try {
     const id = c.req.param('id')
+    if (!id) return c.json({ error: 'Content id is required' }, 400)
     const db = c.env.DB
     const body = await c.req.json()
 
-    // Check if content exists
-    const existingStmt = db.prepare('SELECT * FROM content WHERE id = ?')
-    const existing = await existingStmt.bind(id).first() as any
-
-    if (!existing) {
-      return c.json({ error: 'Content not found' }, 404)
-    }
-
-    // Build update fields dynamically
-    const updates: string[] = []
-    const params: any[] = []
-
-    if (body.title !== undefined) {
-      updates.push('title = ?')
-      params.push(body.title)
-    }
-
-    if (body.slug !== undefined) {
-      let finalSlug = body.slug.toLowerCase()
-        .replace(/[^a-z0-9\s-]/g, '')
-        .replace(/\s+/g, '-')
-        .replace(/-+/g, '-')
-        .trim()
-      updates.push('slug = ?')
-      params.push(finalSlug)
-    }
-
-    if (body.status !== undefined) {
-      updates.push('status = ?')
-      params.push(body.status)
-    }
-
-    if (body.data !== undefined) {
-      updates.push('data = ?')
-      params.push(JSON.stringify(body.data))
-    }
-
-    // Always update updated_at
-    const now = Date.now()
-    updates.push('updated_at = ?')
-    params.push(now)
-
-    // Add id to params for WHERE clause
-    params.push(id)
-
-    // Execute update
-    const updateStmt = db.prepare(`
-      UPDATE content SET ${updates.join(', ')}
-      WHERE id = ?
-    `)
-
-    await updateStmt.bind(...params).run()
-
-    // Invalidate cache
-    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    await cache.delete(cache.generateKey('content', id))
-    await cache.invalidate(`content:list:${existing.collection_id}:*`)
-    await cache.invalidate('content-filtered:*')
+    const result = await updateContent({
+      db,
+      id,
+      mode: 'headless-update',
+      patch: body,
+      authorId: c.get('user')?.userId || 'system',
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.found) return c.json({ error: 'Content not found' }, 404)
 
     // Get updated content
     const getStmt = db.prepare('SELECT * FROM content WHERE id = ?')

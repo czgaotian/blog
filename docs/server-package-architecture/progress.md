@@ -97,3 +97,8 @@
 - Updated `POST /api/content` to delegate mutation and invalidation to the content domain service while preserving its response shape.
 - Added content-domain tests for successful headless create and duplicate slug behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 10 by routing headless content update through `updateContent()` with explicit `headless-update` mode.
+- Preserved headless update compatibility differences: data replacement instead of admin merge, no content version writes, and legacy headless slug normalization.
+- Removed direct cache invalidation from `PUT /api/content/:id`; the route now delegates mutation and invalidation to the content domain service.
+- Added a content-domain test proving headless update replaces data and does not create versions.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

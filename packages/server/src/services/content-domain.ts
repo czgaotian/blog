@@ -2,7 +2,7 @@ import { CACHE_CONFIGS, getCacheService } from './cache'
 
 export type ContentCreateMode = 'admin-create' | 'headless-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
-export type ContentUpdateMode = 'admin-update'
+export type ContentUpdateMode = 'admin-update' | 'headless-update'
 
 export interface CreateContentInput {
   collectionId: string
@@ -35,7 +35,7 @@ export interface UpdateContentPatch {
   title?: string
   slug?: string
   status?: string
-  data?: Record<string, unknown>
+  data?: unknown
 }
 
 export interface UpdateContentOptions {
@@ -153,8 +153,10 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
   const now = options.now ?? Date.now()
   const newTitle = patch.title ?? existing.title
   const existingData = parseContentData(existing.data)
-  const newData = patch.data ? { ...existingData, ...patch.data, title: newTitle } : existingData
-  const newSlug = patch.slug ? normalizeSlug(patch.slug) : existing.slug
+  const newData = buildUpdatedContentData(options.mode, existingData, patch.data, newTitle)
+  const newSlug = patch.slug
+    ? normalizeSlug(patch.slug, { trim: options.mode === 'headless-update' })
+    : existing.slug
   const newStatus = patch.status ?? existing.status
 
   await db
@@ -163,7 +165,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     .run()
 
   const dataChanged = JSON.stringify(existingData) !== JSON.stringify(newData)
-  if (dataChanged) {
+  if (options.mode === 'admin-update' && dataChanged) {
     const versionRes = await db
       .prepare('SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?')
       .bind(id)
@@ -183,7 +185,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     id,
     mode: options.mode,
     collectionId: existing.collection_id,
-    versionCreated: dataChanged,
+    versionCreated: options.mode === 'admin-update' && dataChanged,
   }
 }
 
@@ -244,6 +246,23 @@ function parseContentData(data: unknown): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+function buildUpdatedContentData(
+  mode: ContentUpdateMode,
+  existingData: Record<string, unknown>,
+  patchData: unknown,
+  title: string,
+): unknown {
+  if (mode === 'headless-update') {
+    return patchData !== undefined ? patchData : existingData
+  }
+
+  if (patchData && typeof patchData === 'object') {
+    return { ...existingData, ...(patchData as Record<string, unknown>), title }
+  }
+
+  return existingData
 }
 
 function normalizeSlug(slug: string, options: { trim?: boolean } = {}): string {

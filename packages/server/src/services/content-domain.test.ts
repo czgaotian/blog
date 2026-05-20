@@ -319,6 +319,54 @@ describe('content domain update', () => {
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
   })
 
+  it('updates headless content by replacing data without creating versions', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const existing = {
+      id: 'content-1',
+      collection_id: 'collection-1',
+      title: 'Old title',
+      slug: 'old-title',
+      status: 'draft',
+      data: JSON.stringify({ body: 'Old body', keep: false }),
+    }
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => existing,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await updateContent({
+      db: db as any,
+      id: 'content-1',
+      mode: 'headless-update',
+      patch: {
+        title: 'New title',
+        slug: ' New Title! ',
+        status: 'published',
+        data: { body: 'New body' },
+      },
+      authorId: 'user-1',
+      now: 789,
+    })
+
+    expect(result).toEqual({
+      found: true,
+      id: 'content-1',
+      mode: 'headless-update',
+      collectionId: 'collection-1',
+      versionCreated: false,
+    })
+    expect(calls.some((call) => call.args.includes('-new-title-'))).toBe(true)
+    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'New body' })))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
+  })
+
   it('returns not found without mutating admin content', async () => {
     const calls: Array<{ sql: string; args: any[] }> = []
     const db = {
