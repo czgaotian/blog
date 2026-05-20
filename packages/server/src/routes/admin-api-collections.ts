@@ -12,7 +12,11 @@ import {
   type MutateCollectionResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
-import { deleteCollection, invalidateCollectionCache } from '../services/collection-domain'
+import {
+  createCollection,
+  deleteCollection,
+  invalidateCollectionCache,
+} from '../services/collection-domain'
 
 const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
 
@@ -152,21 +156,23 @@ adminApiCollectionsRoutes.post('/', async (c) => {
 
   const db = c.env.DB
   try {
-    const existing = await db.prepare('SELECT id FROM collections WHERE name = ?').bind(parsed.data.name).first()
-    if (existing) return c.json({ error: 'A collection with this name already exists' }, 409)
+    const result = await createCollection({
+      db,
+      input: {
+        name: parsed.data.name,
+        displayName: parsed.data.displayName,
+        description: parsed.data.description ?? null,
+      },
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.created && result.reason === 'duplicate') {
+      return c.json({ error: 'A collection with this name already exists' }, 409)
+    }
+    if (!result.created) {
+      return c.json({ error: 'Failed to create collection' }, 500)
+    }
 
-    const id = crypto.randomUUID()
-    const now = Date.now()
-    const schema = { type: 'object', properties: {}, required: [] }
-
-    await db
-      .prepare('INSERT INTO collections (id, name, display_name, description, schema, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)')
-      .bind(id, parsed.data.name, parsed.data.displayName, parsed.data.description ?? null, JSON.stringify(schema), now, now)
-      .run()
-
-    await invalidateCollectionCache(c.env.CACHE_KV, parsed.data.name)
-
-    const response: MutateCollectionResponse = { message: 'Collection created successfully', id }
+    const response: MutateCollectionResponse = { message: 'Collection created successfully', id: result.id }
     return c.json(response, 201)
   } catch (error) {
     console.error('[admin-api-collections] Error creating collection:', error)

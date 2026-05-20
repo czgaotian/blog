@@ -1,5 +1,9 @@
 import { describe, expect, it, vi } from 'vitest'
-import { deleteCollection, invalidateCollectionCache } from './collection-domain'
+import {
+  createCollection,
+  deleteCollection,
+  invalidateCollectionCache,
+} from './collection-domain'
 
 describe('collection domain cache invalidation', () => {
   it('clears collection list and specific collection cache keys', async () => {
@@ -26,6 +30,70 @@ describe('collection domain cache invalidation', () => {
 
   it('does nothing when CACHE_KV is unavailable', async () => {
     await expect(invalidateCollectionCache(undefined, 'posts')).resolves.toBeUndefined()
+  })
+})
+
+describe('collection domain creation', () => {
+  it('creates an empty-schema collection and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await createCollection({
+      db: db as any,
+      input: {
+        name: 'posts',
+        displayName: 'Posts',
+        description: 'Blog posts',
+      },
+      cacheKv: cacheKv as any,
+      id: 'col1',
+      now: 123,
+    })
+
+    expect(result).toEqual({ created: true, id: 'col1', name: 'posts' })
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM collections WHERE name = ?'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO collections'))).toBe(true)
+    expect(calls.some((call) => call.args.includes(JSON.stringify({ type: 'object', properties: {}, required: [] })))).toBe(true)
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collections:all')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('returns duplicate without inserting a collection', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => ({ id: 'existing' }),
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await createCollection({
+      db: db as any,
+      input: {
+        name: 'posts',
+        displayName: 'Posts',
+      },
+    })
+
+    expect(result).toEqual({ created: false, reason: 'duplicate', name: 'posts' })
+    expect(calls).toHaveLength(1)
+    expect(calls[0]?.sql).toContain('SELECT id FROM collections WHERE name = ?')
   })
 })
 

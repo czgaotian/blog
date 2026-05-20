@@ -1,3 +1,21 @@
+export interface CreateCollectionInput {
+  name: string
+  displayName: string
+  description?: string | null
+}
+
+export interface CreateCollectionOptions {
+  db: D1Database
+  input: CreateCollectionInput
+  cacheKv?: KVNamespace
+  id?: string
+  now?: number
+}
+
+export type CreateCollectionResult =
+  | { created: true; id: string; name: string }
+  | { created: false; reason: 'duplicate'; name: string }
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -11,6 +29,39 @@ export async function invalidateCollectionCache(
     }
   } catch (error) {
     console.error('[collection-domain] Error clearing collection cache:', error)
+  }
+}
+
+export async function createCollection(options: CreateCollectionOptions): Promise<CreateCollectionResult> {
+  const { db, input, cacheKv } = options
+  const existing = await db
+    .prepare('SELECT id FROM collections WHERE name = ?')
+    .bind(input.name)
+    .first()
+
+  if (existing) {
+    return {
+      created: false,
+      reason: 'duplicate',
+      name: input.name,
+    }
+  }
+
+  const id = options.id ?? crypto.randomUUID()
+  const now = options.now ?? Date.now()
+  const schema = { type: 'object', properties: {}, required: [] }
+
+  await db
+    .prepare('INSERT INTO collections (id, name, display_name, description, schema, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)')
+    .bind(id, input.name, input.displayName, input.description ?? null, JSON.stringify(schema), now, now)
+    .run()
+
+  await invalidateCollectionCache(cacheKv, input.name)
+
+  return {
+    created: true,
+    id,
+    name: input.name,
   }
 }
 

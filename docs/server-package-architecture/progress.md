@@ -109,3 +109,8 @@
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
 - Started Round 2 Phase 11 collection ownership by inventorying canonical and legacy collection route surfaces.
 - Added `collection-route-inventory.md` documenting canonical routes in `admin-api-collections.ts`, legacy duplicates in `admin-api.ts`, response shape differences, behavior differences, and recommended migration slices.
+- Continued Round 2 Phase 11 by moving canonical collection creation into `collection-domain.ts`.
+- Added `createCollection()` to own duplicate-name detection, empty schema initialization, insert, and cache invalidation for the canonical route behavior.
+- Updated `POST /api/admin/collections` in `admin-api-collections.ts` to delegate to `createCollection()` while preserving the canonical `201` response and duplicate `409` behavior.
+- Expanded collection-domain tests for successful canonical create and duplicate-name behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
