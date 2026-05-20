@@ -1,4 +1,5 @@
 import { CACHE_CONFIGS, getCacheService } from './cache'
+import { contentCacheKeys } from './cache-keys'
 
 export type ContentCreateMode = 'admin-create' | 'headless-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
@@ -298,9 +299,9 @@ export async function invalidateContentCache(
   cacheKv?: KVNamespace,
 ): Promise<void> {
   const cache = getCacheService(CACHE_CONFIGS.api!, cacheKv)
-  await cache.delete(cache.generateKey('content', id))
-  await cache.invalidate(`content:list:${collectionId}:*`)
-  await cache.invalidate('content-filtered:*')
+  await cache.delete(contentCacheKeys.item(id))
+  await cache.invalidate(contentCacheKeys.listByCollectionPattern(collectionId))
+  await cache.invalidate(contentCacheKeys.filteredPattern())
 }
 
 function parseContentData(data: unknown): Record<string, unknown> {

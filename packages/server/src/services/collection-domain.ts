@@ -1,3 +1,5 @@
+import { collectionCacheKeys } from './cache-keys'
+
 export interface CreateCollectionInput {
   name: string
   displayName: string
@@ -116,9 +118,9 @@ export async function invalidateCollectionCache(
   if (!cacheKv) return
 
   try {
-    await cacheKv.delete('cache:collections:all')
+    await cacheKv.delete(collectionCacheKeys.all())
     if (collectionName) {
-      await cacheKv.delete(`cache:collection:${collectionName}`)
+      await cacheKv.delete(collectionCacheKeys.byName(collectionName))
     }
   } catch (error) {
     console.error('[collection-domain] Error clearing collection cache:', error)

@@ -143,3 +143,8 @@
 - Extended `createCollection()` with optional schema and created-at metadata so the legacy route can preserve its starter schema and response shape while canonical create keeps the empty schema default.
 - Updated legacy `POST /api/admin/collections` and `PATCH /api/admin/collections/:id` to delegate to `createCollection()` / `updateCollection()` while preserving legacy duplicate `400`, snake_case update input, and legacy response shape.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts src/routes/admin-api-routes.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 12 cache key registry work.
+- Added `packages/server/src/services/cache-keys.ts` with centralized content item/list/filter keys and collection list/by-name keys.
+- Replaced hard-coded content and collection cache key strings in `content-domain.ts` and `collection-domain.ts` with the registry helpers without changing key values.
+- Added `packages/server/src/services/cache-keys.test.ts`.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/cache-keys.test.ts src/services/content-domain.test.ts src/services/collection-domain.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
