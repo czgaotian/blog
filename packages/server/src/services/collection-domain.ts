@@ -93,6 +93,21 @@ export type DeleteCollectionFieldResult =
   | { deleted: false; reason: 'collection_not_found' }
   | { deleted: false; reason: 'field_not_found' }
 
+export interface ReorderCollectionFieldsOptions {
+  db: D1Database
+  collectionId: string
+  fieldIds: string[]
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export interface ReorderCollectionFieldsResult {
+  reordered: true
+  collectionId: string
+  collectionName?: string
+  reorderedCount: number
+}
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -338,6 +353,41 @@ export async function deleteCollectionField(
     fieldId,
     collectionId,
     collectionName: collRow?.name,
+  }
+}
+
+export async function reorderCollectionFields(
+  options: ReorderCollectionFieldsOptions,
+): Promise<ReorderCollectionFieldsResult> {
+  const { db, collectionId, fieldIds, cacheKv } = options
+  const { results: validRows } = await db
+    .prepare('SELECT id FROM content_fields WHERE collection_id = ?')
+    .bind(collectionId)
+    .all()
+  const validIds = new Set((validRows || []).map((row: any) => String(row.id)))
+  const safeFieldIds = fieldIds.filter((id) => validIds.has(id))
+  const now = options.now ?? Date.now()
+
+  for (let i = 0; i < safeFieldIds.length; i++) {
+    await db
+      .prepare('UPDATE content_fields SET field_order = ?, updated_at = ? WHERE id = ?')
+      .bind(i + 1, now, safeFieldIds[i])
+      .run()
+  }
+
+  const collRow = await db
+    .prepare('SELECT name FROM collections WHERE id = ?')
+    .bind(collectionId)
+    .first() as { name: string } | null
+  if (collRow) {
+    await invalidateCollectionCache(cacheKv, collRow.name)
+  }
+
+  return {
+    reordered: true,
+    collectionId,
+    collectionName: collRow?.name,
+    reorderedCount: safeFieldIds.length,
   }
 }
 

@@ -18,6 +18,7 @@ import {
   deleteCollection,
   deleteCollectionField,
   invalidateCollectionCache,
+  reorderCollectionFields,
   updateCollection,
   updateCollectionField,
 } from '../services/collection-domain'
@@ -343,19 +344,12 @@ adminApiCollectionsRoutes.post('/:id/fields/reorder', async (c) => {
 
   const db = c.env.DB
   try {
-    const { results: validRows } = await db
-      .prepare('SELECT id FROM content_fields WHERE collection_id = ?')
-      .bind(collectionId)
-      .all()
-    const validIds = new Set((validRows || []).map((r: any) => String(r.id)))
-    const safeFieldIds = parsed.data.fieldIds.filter((id) => validIds.has(id))
-
-    for (let i = 0; i < safeFieldIds.length; i++) {
-      await db.prepare('UPDATE content_fields SET field_order = ?, updated_at = ? WHERE id = ?')
-        .bind(i + 1, Date.now(), safeFieldIds[i]).run()
-    }
-    const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
-    if (collRow) await invalidateCollectionCache(c.env.CACHE_KV, collRow.name)
+    await reorderCollectionFields({
+      db,
+      collectionId,
+      fieldIds: parsed.data.fieldIds,
+      cacheKv: c.env.CACHE_KV,
+    })
     return c.json({ message: 'Fields reordered successfully' })
   } catch (error) {
     console.error('[admin-api-collections] Error reordering fields:', error)

@@ -134,3 +134,8 @@
 - Updated `DELETE /api/admin/collections/:id/fields/:fieldId` to delegate to `deleteCollectionField()` while preserving collection-not-found, field-not-found, and success responses.
 - Expanded collection-domain tests for schema-backed field deletion, legacy row deletion, and missing legacy field behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 11 by moving canonical field reorder behavior into `collection-domain.ts`.
+- Added `reorderCollectionFields()` to own valid legacy field id filtering, field order updates, and cache invalidation.
+- Updated `POST /api/admin/collections/:id/fields/reorder` to delegate to `reorderCollectionFields()`.
+- Added a collection-domain test proving invalid field ids are ignored and valid ids are reordered in request order.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

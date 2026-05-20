@@ -4,6 +4,7 @@ import {
   deleteCollection,
   deleteCollectionField,
   invalidateCollectionCache,
+  reorderCollectionFields,
   updateCollection,
   addCollectionField,
   updateCollectionField,
@@ -523,6 +524,45 @@ describe('collection domain field delete', () => {
 
     expect(result).toEqual({ deleted: false, reason: 'field_not_found' })
     expect(calls).toHaveLength(1)
+  })
+})
+
+describe('collection domain field reorder', () => {
+  it('reorders only valid legacy field ids and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            all: async () => ({ results: [{ id: 'field2' }, { id: 'field1' }] }),
+            first: async () => ({ name: 'posts' }),
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await reorderCollectionFields({
+      db: db as any,
+      collectionId: 'col1',
+      fieldIds: ['field1', 'missing', 'field2'],
+      cacheKv: cacheKv as any,
+      now: 444,
+    })
+
+    expect(result).toEqual({
+      reordered: true,
+      collectionId: 'col1',
+      collectionName: 'posts',
+      reorderedCount: 2,
+    })
+    const updateCalls = calls.filter((call) => call.sql.includes('UPDATE content_fields SET field_order = ?'))
+    expect(updateCalls).toHaveLength(2)
+    expect(updateCalls[0]?.args).toEqual([1, 444, 'field1'])
+    expect(updateCalls[1]?.args).toEqual([2, 444, 'field2'])
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
   })
 })
 

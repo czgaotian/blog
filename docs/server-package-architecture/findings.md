@@ -65,3 +65,4 @@
 - Round 2 Phase 11 field-add slice moved schema-backed field creation into `collection-domain.ts`. Field config construction and required/searchable/schema defaulting are now domain-owned for the canonical add-field route.
 - Round 2 Phase 11 field-update slice moved both schema-backed and legacy `content_fields` update behavior into `collection-domain.ts`, preserving the canonical route's compatibility with old field-row storage.
 - Round 2 Phase 11 field-delete slice moved both schema-backed and legacy `content_fields` delete behavior into `collection-domain.ts`, including required-array cleanup for schema fields.
+- Round 2 Phase 11 field-reorder slice moved legacy `content_fields` reorder behavior into `collection-domain.ts`. Canonical collection create/update/delete and field add/update/delete/reorder behavior now all have collection-domain owners.
