@@ -64,3 +64,4 @@
 - Round 2 Phase 11 second code slice moved canonical collection metadata update into `collection-domain.ts`; canonical create/update/delete now share one domain service owner for top-level collection mutations.
 - Round 2 Phase 11 field-add slice moved schema-backed field creation into `collection-domain.ts`. Field config construction and required/searchable/schema defaulting are now domain-owned for the canonical add-field route.
 - Round 2 Phase 11 field-update slice moved both schema-backed and legacy `content_fields` update behavior into `collection-domain.ts`, preserving the canonical route's compatibility with old field-row storage.
+- Round 2 Phase 11 field-delete slice moved both schema-backed and legacy `content_fields` delete behavior into `collection-domain.ts`, including required-array cleanup for schema fields.

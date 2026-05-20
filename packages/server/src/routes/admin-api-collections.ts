@@ -16,6 +16,7 @@ import {
   addCollectionField,
   createCollection,
   deleteCollection,
+  deleteCollectionField,
   invalidateCollectionCache,
   updateCollection,
   updateCollectionField,
@@ -312,29 +313,16 @@ adminApiCollectionsRoutes.delete('/:id/fields/:fieldId', async (c) => {
   const db = c.env.DB
 
   try {
-    if (fieldId.startsWith('schema-')) {
-      const fieldName = fieldId.replace('schema-', '')
-      const row = await db.prepare('SELECT * FROM collections WHERE id = ?').bind(collectionId).first() as any
-      if (!row) return c.json({ error: 'Collection not found' }, 404)
-      const schema = row.schema ? (typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema) : null
-      if (!schema?.properties?.[fieldName]) return c.json({ error: 'Field not found' }, 404)
-      delete schema.properties[fieldName]
-      if (Array.isArray(schema.required)) {
-        const idx = schema.required.indexOf(fieldName)
-        if (idx !== -1) schema.required.splice(idx, 1)
-      }
-      await db.prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
-        .bind(JSON.stringify(schema), Date.now(), collectionId).run()
-      await invalidateCollectionCache(c.env.CACHE_KV, row.name)
-      return c.json({ message: 'Field deleted successfully' })
-    }
-    const fieldRow = await db.prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?').bind(fieldId, collectionId).first()
-    if (!fieldRow) return c.json({ error: 'Field not found' }, 404)
-    await db.prepare('DELETE FROM content_fields WHERE id = ?').bind(fieldId).run()
-    try {
-      const collRow = await db.prepare('SELECT name FROM collections WHERE id = ?').bind(collectionId).first() as any
-      if (collRow) await invalidateCollectionCache(c.env.CACHE_KV, collRow.name)
-    } catch { /* ignore */ }
+    const result = await deleteCollectionField({
+      db,
+      collectionId,
+      fieldId,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.deleted && result.reason === 'collection_not_found') return c.json({ error: 'Collection not found' }, 404)
+    if (!result.deleted && result.reason === 'field_not_found') return c.json({ error: 'Field not found' }, 404)
+    if (!result.deleted) return c.json({ error: 'Failed to delete field' }, 500)
+
     return c.json({ message: 'Field deleted successfully' })
   } catch (error) {
     console.error('[admin-api-collections] Error deleting field:', error)

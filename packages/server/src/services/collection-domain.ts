@@ -80,6 +80,19 @@ export type UpdateCollectionFieldResult =
   | { updated: false; reason: 'field_not_found' }
   | { updated: false; reason: 'no_fields'; collectionName: string }
 
+export interface DeleteCollectionFieldOptions {
+  db: D1Database
+  collectionId: string
+  fieldId: string
+  cacheKv?: KVNamespace
+  now?: number
+}
+
+export type DeleteCollectionFieldResult =
+  | { deleted: true; fieldId: string; collectionId: string; collectionName?: string }
+  | { deleted: false; reason: 'collection_not_found' }
+  | { deleted: false; reason: 'field_not_found' }
+
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -253,6 +266,78 @@ export async function updateCollectionField(
     fieldId,
     collectionId,
     collectionName: row.name,
+  }
+}
+
+export async function deleteCollectionField(
+  options: DeleteCollectionFieldOptions,
+): Promise<DeleteCollectionFieldResult> {
+  const { db, collectionId, fieldId, cacheKv } = options
+
+  if (fieldId.startsWith('schema-')) {
+    const fieldName = fieldId.replace('schema-', '')
+    const row = await db
+      .prepare('SELECT * FROM collections WHERE id = ?')
+      .bind(collectionId)
+      .first() as any
+
+    if (!row) {
+      return { deleted: false, reason: 'collection_not_found' }
+    }
+
+    const schema = parseCollectionSchema(row.schema)
+    if (!schema.properties?.[fieldName]) {
+      return { deleted: false, reason: 'field_not_found' }
+    }
+
+    delete schema.properties[fieldName]
+    if (Array.isArray(schema.required)) {
+      const idx = schema.required.indexOf(fieldName)
+      if (idx !== -1) schema.required.splice(idx, 1)
+    }
+
+    await db
+      .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
+      .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
+      .run()
+
+    await invalidateCollectionCache(cacheKv, row.name)
+
+    return {
+      deleted: true,
+      fieldId,
+      collectionId,
+      collectionName: row.name,
+    }
+  }
+
+  const fieldRow = await db
+    .prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?')
+    .bind(fieldId, collectionId)
+    .first()
+
+  if (!fieldRow) {
+    return { deleted: false, reason: 'field_not_found' }
+  }
+
+  await db
+    .prepare('DELETE FROM content_fields WHERE id = ?')
+    .bind(fieldId)
+    .run()
+
+  const collRow = await db
+    .prepare('SELECT name FROM collections WHERE id = ?')
+    .bind(collectionId)
+    .first() as { name: string } | null
+  if (collRow) {
+    await invalidateCollectionCache(cacheKv, collRow.name)
+  }
+
+  return {
+    deleted: true,
+    fieldId,
+    collectionId,
+    collectionName: collRow?.name,
   }
 }
 

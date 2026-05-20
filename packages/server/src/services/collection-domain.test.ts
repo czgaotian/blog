@@ -2,6 +2,7 @@ import { describe, expect, it, vi } from 'vitest'
 import {
   createCollection,
   deleteCollection,
+  deleteCollectionField,
   invalidateCollectionCache,
   updateCollection,
   addCollectionField,
@@ -422,6 +423,106 @@ describe('collection domain field update', () => {
     })
 
     expect(result).toEqual({ updated: false, reason: 'field_not_found' })
+  })
+})
+
+describe('collection domain field delete', () => {
+  it('deletes a schema-backed field and invalidates cache', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const collection = {
+      name: 'posts',
+      schema: JSON.stringify({
+        type: 'object',
+        properties: { title: { type: 'string', title: 'Title' } },
+        required: ['title'],
+      }),
+    }
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => collection,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await deleteCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'schema-title',
+      cacheKv: cacheKv as any,
+      now: 333,
+    })
+
+    expect(result).toEqual({
+      deleted: true,
+      fieldId: 'schema-title',
+      collectionId: 'col1',
+      collectionName: 'posts',
+    })
+    const updateCall = calls.find((call) => call.sql.includes('UPDATE collections SET schema = ?'))
+    const schema = JSON.parse(String(updateCall?.args[0]))
+    expect(schema.properties.title).toBeUndefined()
+    expect(schema.required).not.toContain('title')
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('deletes a legacy content_fields row and invalidates cache when collection exists', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => {
+              if (sql.includes('SELECT name FROM collections')) return { name: 'posts' }
+              return { id: 'field1' }
+            },
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
+
+    const result = await deleteCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'field1',
+      cacheKv: cacheKv as any,
+    })
+
+    expect(result.deleted).toBe(true)
+    expect(calls.some((call) => call.sql.includes('DELETE FROM content_fields WHERE id = ?'))).toBe(true)
+    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
+  })
+
+  it('returns field_not_found for a missing legacy field', async () => {
+    const calls: Array<{ sql: string; args: any[] }> = []
+    const db = {
+      prepare: vi.fn((sql: string) => ({
+        bind: (...args: any[]) => {
+          calls.push({ sql, args })
+          return {
+            first: async () => null,
+            run: async () => ({ success: true }),
+          }
+        },
+      })),
+    }
+
+    const result = await deleteCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'field1',
+    })
+
+    expect(result).toEqual({ deleted: false, reason: 'field_not_found' })
+    expect(calls).toHaveLength(1)
   })
 })
 

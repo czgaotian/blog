@@ -129,3 +129,8 @@
 - Updated `PUT /api/admin/collections/:id/fields/:fieldId` to delegate to `updateCollectionField()` while preserving collection-not-found, field-not-found, no-fields, and success responses.
 - Expanded collection-domain tests for schema-backed field update, legacy row update, and missing schema field behavior.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 11 by moving canonical field deletion behavior into `collection-domain.ts`.
+- Added `deleteCollectionField()` to own schema-backed field deletion, legacy `content_fields` row deletion, required-array cleanup, and cache invalidation.
+- Updated `DELETE /api/admin/collections/:id/fields/:fieldId` to delegate to `deleteCollectionField()` while preserving collection-not-found, field-not-found, and success responses.
+- Expanded collection-domain tests for schema-backed field deletion, legacy row deletion, and missing legacy field behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
