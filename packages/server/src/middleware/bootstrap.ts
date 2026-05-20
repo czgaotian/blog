@@ -1,5 +1,6 @@
 import { Context, Next } from "hono";
 import {
+  getBootstrapRuntimeConfig,
   isBootstrapComplete,
   resetBootstrap,
   runBootstrap,
@@ -13,6 +14,7 @@ type Bindings = {
   JWT_SECRET?: string;
   CORS_ORIGINS?: string;
   ENVIRONMENT?: string;
+  BOOTSTRAP_MODE?: string;
 };
 
 export { resetBootstrap, verifySecurityConfig };
@@ -23,6 +25,11 @@ export { resetBootstrap, verifySecurityConfig };
  */
 export function bootstrapMiddleware(config: WorkerBlogConfig = {}) {
   return async (c: Context<{ Bindings: Bindings }>, next: Next) => {
+    const runtimeConfig = getBootstrapRuntimeConfig(c.env);
+    if (runtimeConfig.mode !== 'auto') {
+      return next();
+    }
+
     // Skip if already bootstrapped in this worker instance
     if (isBootstrapComplete()) {
       return next();

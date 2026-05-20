@@ -100,6 +100,42 @@ describe('bootstrapMiddleware', () => {
     ])
   })
 
+  it('should skip automatic bootstrap in manual mode', async () => {
+    const app = new Hono()
+    const env = { ...createMockEnv(), BOOTSTRAP_MODE: 'manual' }
+
+    app.use('*', async (c, next) => {
+      c.env = env as any
+      await next()
+    })
+    app.use('*', bootstrapMiddleware())
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    const res = await app.request('/test')
+
+    expect(res.status).toBe(200)
+    expect(MigrationService).not.toHaveBeenCalled()
+    expect(getBootstrapStatus().complete).toBe(false)
+  })
+
+  it('should skip automatic bootstrap in disabled mode', async () => {
+    const app = new Hono()
+    const env = { ...createMockEnv(), BOOTSTRAP_MODE: 'disabled' }
+
+    app.use('*', async (c, next) => {
+      c.env = env as any
+      await next()
+    })
+    app.use('*', bootstrapMiddleware())
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    const res = await app.request('/test')
+
+    expect(res.status).toBe(200)
+    expect(MigrationService).not.toHaveBeenCalled()
+    expect(getBootstrapStatus().complete).toBe(false)
+  })
+
   it('should skip bootstrap on subsequent requests', async () => {
     const app = new Hono()
     const env = createMockEnv()

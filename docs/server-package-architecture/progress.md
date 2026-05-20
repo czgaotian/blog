@@ -155,3 +155,7 @@
 - Added `getBootstrapRuntimeConfig()` and `BootstrapMode` parsing in `services/bootstrap.ts`, supporting `auto`, `manual`, and `disabled` modes while defaulting unknown/missing values to `auto`.
 - Added `packages/server/src/services/bootstrap.test.ts` for bootstrap mode parsing.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/bootstrap.test.ts src/middleware/bootstrap.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 14 by wiring `BOOTSTRAP_MODE` into `bootstrapMiddleware`.
+- Preserved current default behavior for `auto`, and made `manual` / `disabled` skip automatic request-time bootstrap.
+- Added `BOOTSTRAP_MODE` to server `Bindings` and middleware tests for manual and disabled modes.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/bootstrap.test.ts src/middleware/bootstrap.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
