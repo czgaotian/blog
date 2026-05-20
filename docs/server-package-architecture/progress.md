@@ -79,3 +79,11 @@
 - Verified with full `pnpm --filter @worker-blog/server test` and `pnpm type-check`.
 - Wrote `server-optimization-round-2-plan.md` for the second-round deepening work after Phase 1-9 first-pass completion.
 - The round 2 plan focuses on completing content/collection domain ownership, centralizing cache keys, maturing the feature registry, making bootstrap policy configurable, adding opt-in durable request logging, expanding route smoke tests, and quarantining legacy surfaces.
+
+## 2026-05-20
+
+- Started executing Round 2 Phase 10 content domain ownership.
+- Added `updateContent()` to `packages/server/src/services/content-domain.ts` for `admin-update` mode, moving admin update mutation, slug normalization, version creation, and cache invalidation out of `admin-api-content.ts`.
+- Updated `packages/server/src/routes/admin-api-content.ts` so `PUT /api/admin/content/:id` delegates to the domain service while preserving the existing response shape.
+- Expanded `packages/server/src/services/content-domain.test.ts` for admin update version creation, metadata-only updates without version creation, and not-found behavior.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/content-domain.test.ts src/routes/admin-api-content.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

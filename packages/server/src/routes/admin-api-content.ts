@@ -9,7 +9,7 @@ import {
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
 import type { Bindings, Variables } from '../app'
-import { deleteContent } from '../services/content-domain'
+import { deleteContent, updateContent } from '../services/content-domain'
 
 export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -242,37 +242,15 @@ adminApiContentRoutes.put('/:id', async (c) => {
   const db = c.env.DB
 
   try {
-    const existing = await db
-      .prepare('SELECT * FROM content WHERE id = ?')
-      .bind(id)
-      .first() as any
-    if (!existing) return c.json({ error: 'Content not found' }, 404)
-
-    const now = Date.now()
-    const newTitle = parsed.data.title ?? existing.title
-    const existingData = JSON.parse(existing.data || '{}')
-    const newData = parsed.data.data ? { ...existingData, ...parsed.data.data, title: newTitle } : existingData
-    const newSlug = parsed.data.slug
-      ? parsed.data.slug.toLowerCase().replace(/[^a-z0-9\s-]/g, '').replace(/\s+/g, '-').replace(/-+/g, '-')
-      : existing.slug
-    const newStatus = parsed.data.status ?? existing.status
-
-    await db
-      .prepare('UPDATE content SET title = ?, slug = ?, data = ?, status = ?, updated_at = ? WHERE id = ?')
-      .bind(newTitle, newSlug, JSON.stringify(newData), newStatus, now, id)
-      .run()
-
-    if (JSON.stringify(existingData) !== JSON.stringify(newData)) {
-      const versionRes = await db
-        .prepare('SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?')
-        .bind(id)
-        .first() as any
-      const nextVersion = (versionRes?.max_version || 0) + 1
-      await db
-        .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-        .bind(crypto.randomUUID(), id, nextVersion, JSON.stringify(newData), user.userId, now)
-        .run()
-    }
+    const result = await updateContent({
+      db,
+      id,
+      mode: 'admin-update',
+      patch: parsed.data,
+      authorId: user.userId,
+      cacheKv: c.env.CACHE_KV,
+    })
+    if (!result.found) return c.json({ error: 'Content not found' }, 404)
 
     return c.json({ message: 'Content updated successfully' })
   } catch (error) {
