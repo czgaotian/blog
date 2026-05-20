@@ -71,3 +71,4 @@
 - Round 2 Phase 13 first slice added registry tests instead of renaming routes immediately. This gives a safety net for feature order and `/api/plugins/*` compatibility aliases before plugin-era naming is cleaned up.
 - Round 2 Phase 14 first slice added bootstrap mode parsing without changing runtime behavior. The next bootstrap slice can wire `manual` or `disabled` into middleware behind tested config semantics.
 - Round 2 Phase 14 middleware slice wired `BOOTSTRAP_MODE` into request-time bootstrap. `auto` remains the default and preserves existing behavior; `manual` and `disabled` now skip automatic bootstrap, with manual trigger endpoint still left for a later slice.
+- Round 2 Phase 15 first slice added opt-in request logging as a standalone middleware instead of enabling D1 writes on the hot path by default. It logs sanitized paths and request/user context, and safely handles environments where Hono has no execution context.

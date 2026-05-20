@@ -159,3 +159,8 @@
 - Preserved current default behavior for `auto`, and made `manual` / `disabled` skip automatic request-time bootstrap.
 - Added `BOOTSTRAP_MODE` to server `Bindings` and middleware tests for manual and disabled modes.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/bootstrap.test.ts src/middleware/bootstrap.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 15 opt-in durable request logging.
+- Added `requestLoggingMiddleware()` with default-off behavior, sanitized route logging, request id/user id context, `Logger.logRequest()` integration, and safe `waitUntil` usage when an execution context is available.
+- Exported the middleware and options type from the middleware barrel.
+- Added `packages/server/src/middleware/request-logging.test.ts` covering default-off behavior, sanitized enabled logging, and `waitUntil` scheduling.
+- Verified with `pnpm --filter @worker-blog/server test -- src/middleware/request-logging.test.ts src/middleware/index.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

@@ -27,6 +27,10 @@ export { metricsMiddleware } from './metrics'
 // Request context middleware
 export { requestContextMiddleware } from './request-context'
 
+// Opt-in durable request logging middleware
+export { requestLoggingMiddleware } from './request-logging'
+export type { RequestLoggingOptions } from './request-logging'
+
 // CSRF protection middleware
 export { csrfProtection, generateCsrfToken, validateCsrfToken } from './csrf'
 
