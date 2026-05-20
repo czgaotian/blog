@@ -34,6 +34,7 @@ export interface Bindings {
   ENVIRONMENT?: string
   CORS_ORIGINS?: string
   BOOTSTRAP_MODE?: string
+  REQUEST_LOGGING_ENABLED?: string
   JWT_SECRET?: string
   JWT_EXPIRES_IN?: string
   JWT_REFRESH_GRACE_SECONDS?: string

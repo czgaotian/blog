@@ -17,9 +17,11 @@ import {
 import { bootstrapMiddleware } from './middleware/bootstrap'
 import { metricsMiddleware } from './middleware/metrics'
 import { requestContextMiddleware } from './middleware/request-context'
+import { requestLoggingMiddleware } from './middleware/request-logging'
 import { csrfProtection } from './middleware/csrf'
 import { securityHeadersMiddleware } from './middleware/security-headers'
 import { requireAuth, requireRole } from './middleware/auth'
+import { getServerEnvConfig } from './config/env'
 import { createDatabaseToolsAdminRoutes } from './features/database-tools/admin-routes'
 import { createSeedDataAdminRoutes } from './features/seed-data/admin-routes'
 import { createMagicLinkAuthFeature } from './features/auth/magic-link'
@@ -69,6 +71,11 @@ export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogCon
 
   // Request context middleware
   app.use('*', requestContextMiddleware())
+
+  // Durable request logging - opt-in via env so default hot paths stay in-memory only
+  app.use('*', requestLoggingMiddleware({
+    enabled: (env) => getServerEnvConfig(env).requestLoggingEnabled,
+  }))
 
   // Security middleware
   app.use('*', securityHeadersMiddleware())

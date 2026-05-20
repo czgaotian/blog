@@ -51,6 +51,24 @@ describe('requestLoggingMiddleware', () => {
     )
   })
 
+  it('supports per-request enabled config', async () => {
+    const logger = { logRequest: vi.fn().mockResolvedValue(undefined) }
+    const app = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+    app.use('*', requestLoggingMiddleware({
+      enabled: (env) => env.REQUEST_LOGGING_ENABLED === 'true',
+      loggerFactory: () => logger as any,
+    }))
+    app.get('/test', (c) => c.json({ ok: true }))
+
+    const disabledRes = await app.request('/test', {}, { DB: {}, REQUEST_LOGGING_ENABLED: 'false' })
+    const enabledRes = await app.request('/test', {}, { DB: {}, REQUEST_LOGGING_ENABLED: 'true' })
+
+    expect(disabledRes.status).toBe(200)
+    expect(enabledRes.status).toBe(200)
+    expect(logger.logRequest).toHaveBeenCalledTimes(1)
+  })
+
   it('uses waitUntil when available', async () => {
     const logger = { logRequest: vi.fn().mockResolvedValue(undefined) }
     const waitUntil = vi.fn()

@@ -164,3 +164,8 @@
 - Exported the middleware and options type from the middleware barrel.
 - Added `packages/server/src/middleware/request-logging.test.ts` covering default-off behavior, sanitized enabled logging, and `waitUntil` scheduling.
 - Verified with `pnpm --filter @worker-blog/server test -- src/middleware/request-logging.test.ts src/middleware/index.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 15 by wiring durable request logging into core middleware behind `REQUEST_LOGGING_ENABLED`.
+- Extended `getServerEnvConfig()` with explicit request logging boolean parsing while keeping the default disabled.
+- Updated `requestLoggingMiddleware()` to support per-request env-driven enabled resolution, then registered it after request context middleware so request ids and timing are available.
+- Added `packages/server/src/config/env.test.ts` and expanded request logging tests for env-driven enablement.
+- Verified with `pnpm --filter @worker-blog/server test -- src/config/env.test.ts src/middleware/request-logging.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.

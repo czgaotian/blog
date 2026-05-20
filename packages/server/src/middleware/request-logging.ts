@@ -7,8 +7,10 @@ type WaitUntilContext = {
   waitUntil?: (promise: Promise<unknown>) => void
 }
 
+type EnabledResolver = boolean | ((env: Bindings) => boolean)
+
 export interface RequestLoggingOptions {
-  enabled?: boolean
+  enabled?: EnabledResolver
   loggerFactory?: (db: D1Database) => Pick<Logger, 'logRequest'>
 }
 
@@ -24,7 +26,7 @@ export function requestLoggingMiddleware(options: RequestLoggingOptions = {}): M
 
     await next()
 
-    if (!enabled) {
+    if (!isEnabled(enabled, c.env)) {
       return
     }
 
@@ -56,6 +58,10 @@ export function requestLoggingMiddleware(options: RequestLoggingOptions = {}): M
 
     await logPromise
   }
+}
+
+function isEnabled(enabled: EnabledResolver, env: Bindings): boolean {
+  return typeof enabled === 'function' ? enabled(env) : enabled
 }
 
 function getExecutionContext(c: { executionCtx?: WaitUntilContext }): WaitUntilContext | undefined {
