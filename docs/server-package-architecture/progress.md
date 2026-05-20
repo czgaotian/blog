@@ -174,3 +174,6 @@
 - Added `packages/server/src/app-registration.test.ts` as shallow app factory smoke coverage for public API discovery, public health, admin auth guarding, admin SPA fallback, favicon, and `/files/*`.
 - The smoke tests confirmed `/api/health` is currently served by `routes/api.ts`; the later app-level health route in `app-registration.ts` is shadowed by the `/api` mount.
 - Verified with `pnpm --filter @worker-blog/server test -- src/app-registration.test.ts src/features/registry.test.ts src/routes/admin-spa.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Started Round 2 Phase 17 dead code and legacy surface quarantine work with an inventory-only slice.
+- Added `docs/server-package-architecture/legacy-surface-inventory.md` classifying live runtime features, public compatibility surfaces, internal plugin-era naming debt, and quarantine candidates.
+- Identified `features/design`, `features/editor-integrations`, `features/email-templates`, `features/redirect-management`, and possibly `features/shortcodes` as candidates that need import/export verification before any move or deletion.
