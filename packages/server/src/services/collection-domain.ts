@@ -10,10 +10,11 @@ export interface CreateCollectionOptions {
   cacheKv?: KVNamespace
   id?: string
   now?: number
+  schema?: unknown
 }
 
 export type CreateCollectionResult =
-  | { created: true; id: string; name: string }
+  | { created: true; id: string; name: string; createdAt: number }
   | { created: false; reason: 'duplicate'; name: string }
 
 export interface UpdateCollectionInput {
@@ -141,7 +142,7 @@ export async function createCollection(options: CreateCollectionOptions): Promis
 
   const id = options.id ?? crypto.randomUUID()
   const now = options.now ?? Date.now()
-  const schema = { type: 'object', properties: {}, required: [] }
+  const schema = options.schema ?? { type: 'object', properties: {}, required: [] }
 
   await db
     .prepare('INSERT INTO collections (id, name, display_name, description, schema, is_active, created_at, updated_at) VALUES (?, ?, ?, ?, ?, 1, ?, ?)')
@@ -154,6 +155,7 @@ export async function createCollection(options: CreateCollectionOptions): Promis
     created: true,
     id,
     name: input.name,
+    createdAt: now,
   }
 }
 

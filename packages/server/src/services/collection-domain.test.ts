@@ -66,7 +66,7 @@ describe('collection domain creation', () => {
       now: 123,
     })
 
-    expect(result).toEqual({ created: true, id: 'col1', name: 'posts' })
+    expect(result).toEqual({ created: true, id: 'col1', name: 'posts', createdAt: 123 })
     expect(calls.some((call) => call.sql.includes('SELECT id FROM collections WHERE name = ?'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO collections'))).toBe(true)
     expect(calls.some((call) => call.args.includes(JSON.stringify({ type: 'object', properties: {}, required: [] })))).toBe(true)

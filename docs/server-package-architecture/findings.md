@@ -66,3 +66,4 @@
 - Round 2 Phase 11 field-update slice moved both schema-backed and legacy `content_fields` update behavior into `collection-domain.ts`, preserving the canonical route's compatibility with old field-row storage.
 - Round 2 Phase 11 field-delete slice moved both schema-backed and legacy `content_fields` delete behavior into `collection-domain.ts`, including required-array cleanup for schema fields.
 - Round 2 Phase 11 field-reorder slice moved legacy `content_fields` reorder behavior into `collection-domain.ts`. Canonical collection create/update/delete and field add/update/delete/reorder behavior now all have collection-domain owners.
+- Round 2 Phase 11 legacy create/update slice converted duplicate legacy collection create/update routes into compatibility shims over `collection-domain.ts`, while keeping the legacy starter schema and snake_case API contract explicit at the route adapter.

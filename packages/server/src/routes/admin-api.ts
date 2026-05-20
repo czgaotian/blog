@@ -16,7 +16,12 @@ import { adminApiRoutesRoutes } from './admin-api-routes'
 import { adminApiSettingsRoutes } from './admin-api-settings'
 import { adminApiUsersRoutes } from './admin-api-users'
 import { getBootstrapStatus } from '../services/bootstrap'
-import { deleteCollection, invalidateCollectionCache } from '../services/collection-domain'
+import {
+  createCollection,
+  deleteCollection,
+  invalidateCollectionCache,
+  updateCollection,
+} from '../services/collection-domain'
 import type { Bindings, Variables } from '../app'
 
 export const adminApiRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -522,14 +527,6 @@ adminApiRoutes.post('/collections', async (c) => {
       // Handle both camelCase and snake_case for display_name
       const displayName = validatedData.displayName || validatedData.display_name || ''
 
-      // Check if collection already exists
-      const existingStmt = db.prepare('SELECT id FROM collections WHERE name = ?')
-      const existing = await existingStmt.bind(validatedData.name).first()
-
-      if (existing) {
-        return c.json({ error: 'A collection with this name already exists' }, 400)
-      }
-
       // Create basic schema
       const basicSchema = {
         type: "object",
@@ -554,33 +551,29 @@ adminApiRoutes.post('/collections', async (c) => {
         required: ["title"]
       }
 
-      const collectionId = crypto.randomUUID()
-      const now = Date.now()
-
-      const insertStmt = db.prepare(`
-        INSERT INTO collections (id, name, display_name, description, schema, is_active, created_at, updated_at)
-        VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-      `)
-
-      await insertStmt.bind(
-        collectionId,
-        validatedData.name,
-        displayName,
-        validatedData.description || null,
-        JSON.stringify(basicSchema),
-        1, // is_active
-        now,
-        now
-      ).run()
-
-      await invalidateCollectionCache(c.env.CACHE_KV, validatedData.name)
+      const result = await createCollection({
+        db,
+        input: {
+          name: validatedData.name,
+          displayName,
+          description: validatedData.description || null,
+        },
+        schema: basicSchema,
+        cacheKv: c.env.CACHE_KV,
+      })
+      if (!result.created && result.reason === 'duplicate') {
+        return c.json({ error: 'A collection with this name already exists' }, 400)
+      }
+      if (!result.created) {
+        return c.json({ error: 'Failed to create collection' }, 500)
+      }
 
       return c.json({
-        id: collectionId,
+        id: result.id,
         name: validatedData.name,
         displayName: displayName,
         description: validatedData.description,
-        created_at: now
+        created_at: result.createdAt
       }, 201)
     } catch (error) {
       console.error('Error creating collection:', error)
@@ -603,50 +596,22 @@ adminApiRoutes.patch('/collections/:id', async (c) => {
       const validatedData = validation.data
       const db = c.env.DB
 
-      // Check if collection exists
-      const checkStmt = db.prepare('SELECT * FROM collections WHERE id = ?')
-      const existing = await checkStmt.bind(id).first() as any
-
-      if (!existing) {
+      const result = await updateCollection({
+        db,
+        id,
+        input: {
+          displayName: validatedData.display_name,
+          description: validatedData.description,
+          isActive: validatedData.is_active,
+        },
+        cacheKv: c.env.CACHE_KV,
+      })
+      if (!result.updated && result.reason === 'not_found') {
         return c.json({ error: 'Collection not found' }, 404)
       }
-
-      // Build update query
-      const updateFields: string[] = []
-      const updateParams: any[] = []
-
-      if (validatedData.display_name !== undefined) {
-        updateFields.push('display_name = ?')
-        updateParams.push(validatedData.display_name)
-      }
-
-      if (validatedData.description !== undefined) {
-        updateFields.push('description = ?')
-        updateParams.push(validatedData.description)
-      }
-
-      if (validatedData.is_active !== undefined) {
-        updateFields.push('is_active = ?')
-        updateParams.push(validatedData.is_active ? 1 : 0)
-      }
-
-      if (updateFields.length === 0) {
+      if (!result.updated && result.reason === 'no_fields') {
         return c.json({ error: 'No fields to update' }, 400)
       }
-
-      updateFields.push('updated_at = ?')
-      updateParams.push(Date.now())
-      updateParams.push(id)
-
-      const updateStmt = db.prepare(`
-        UPDATE collections
-        SET ${updateFields.join(', ')}
-        WHERE id = ?
-      `)
-
-      await updateStmt.bind(...updateParams).run()
-
-      await invalidateCollectionCache(c.env.CACHE_KV, existing.name)
 
       return c.json({ message: 'Collection updated successfully' })
     } catch (error) {

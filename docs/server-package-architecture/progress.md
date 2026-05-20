@@ -139,3 +139,7 @@
 - Updated `POST /api/admin/collections/:id/fields/reorder` to delegate to `reorderCollectionFields()`.
 - Added a collection-domain test proving invalid field ids are ignored and valid ids are reordered in request order.
 - Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
+- Continued Round 2 Phase 11 by converting legacy collection create/update routes in `admin-api.ts` into compatibility shims over `collection-domain.ts`.
+- Extended `createCollection()` with optional schema and created-at metadata so the legacy route can preserve its starter schema and response shape while canonical create keeps the empty schema default.
+- Updated legacy `POST /api/admin/collections` and `PATCH /api/admin/collections/:id` to delegate to `createCollection()` / `updateCollection()` while preserving legacy duplicate `400`, snake_case update input, and legacy response shape.
+- Verified with `pnpm --filter @worker-blog/server test -- src/services/collection-domain.test.ts src/routes/admin-api-collections.test.ts src/routes/admin-api-routes.test.ts`, full `pnpm --filter @worker-blog/server test`, and `pnpm type-check`.
