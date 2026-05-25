@@ -80,13 +80,13 @@ adminApiCollectionsRoutes.get('/', async (c) => {
   const search = c.req.query('search') || ''
 
   try {
-    const conditions = ["(source_type IS NULL OR source_type = 'user')"]
+    const conditions: string[] = []
     const params: unknown[] = []
     if (search) {
       conditions.push('(name LIKE ? OR display_name LIKE ?)')
       params.push(`%${search}%`, `%${search}%`)
     }
-    const where = `WHERE ${conditions.join(' AND ')}`
+    const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const { results } = await db
       .prepare(`SELECT id, name, display_name, description, is_active, managed, created_at, updated_at FROM collections ${where} ORDER BY created_at DESC`)

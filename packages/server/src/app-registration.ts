@@ -6,10 +6,8 @@ import {
   adminApiRoutes,
   authRoutes,
   testCleanupRoutes,
-  publicFormsRoutes,
   createAdminSpaRoutes,
   adminApiContentRoutes,
-  adminApiFormsRoutes,
   adminApiMediaRoutes,
   adminApiCollectionsRoutes,
   adminApiProfileRoutes,
@@ -24,36 +22,14 @@ import { requireAuth, requireRole } from './middleware/auth'
 import { getServerEnvConfig } from './config/env'
 import { createDatabaseToolsAdminRoutes } from './features/database-tools/admin-routes'
 import { createSeedDataAdminRoutes } from './features/seed-data/admin-routes'
-import { createMagicLinkAuthFeature } from './features/auth/magic-link'
 import { securityAuditMiddleware } from './features/security-audit'
+import { securityAuditApiRoutes } from './features/security-audit/routes/api'
+import securityAuditAdminApiRoutes from './features/security-audit/routes/admin-api'
 import { eventsApiRoutes } from './features/analytics/routes/api'
-import cacheFeature from './features/cache'
-import {
-  lateBuiltInFeatureRegistry,
-  postCacheBuiltInFeatureRegistry,
-  postEventsBuiltInFeatureRegistry,
-  preCacheBuiltInFeatureRegistry,
-} from './features/registry'
+import analyticsAdminApiRoutes from './features/analytics/routes/admin-api'
 import { faviconSvg } from './assets/favicon'
 import { setAppInstance } from './services/route-metadata'
 import type { WorkerBlogApp, WorkerBlogConfig } from './app'
-import type { BuiltInFeatureRoute } from './features/registry'
-
-function registerBuiltInFeatureRoutes(
-  app: WorkerBlogApp,
-  routes: BuiltInFeatureRoute[],
-): void {
-  for (const route of routes) {
-    if (route.path.startsWith('/api/')) {
-      app.route(route.path, route.handler as any)
-      continue
-    }
-
-    if (route.path.startsWith('/auth/')) {
-      app.route(`/api${route.path}`, route.handler as any)
-    }
-  }
-}
 
 export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogConfig): void {
   // Metrics middleware - track all requests for real-time analytics
@@ -106,37 +82,21 @@ export function registerCoreApiRoutes(app: WorkerBlogApp): void {
   app.route('/api/admin/collections', adminApiCollectionsRoutes)
   app.route('/api/admin/profile', adminApiProfileRoutes)
   app.route('/api/admin', adminApiRoutes)
-  app.route('/api/forms', publicFormsRoutes)
   app.route('/api/admin/database-tools', createDatabaseToolsAdminRoutes())
   app.route('/api/admin/seed-data', createSeedDataAdminRoutes())
   app.route('/api/admin/content', adminApiContentRoutes)
-  app.route('/api/admin/forms', adminApiFormsRoutes)
   app.route('/api/admin/media', adminApiMediaRoutes)
 }
 
 export function registerFeatureRoutes(app: WorkerBlogApp): void {
   // Security audit middleware - logs auth events (login, register, logout)
   app.use('/api/auth/*', securityAuditMiddleware())
-
-  // Built-in feature routes.
-  for (const feature of preCacheBuiltInFeatureRegistry) {
-    registerBuiltInFeatureRoutes(app, feature.routes)
-  }
-
-  // Cache dashboard and management API.
-  // Fixes GitHub Issue #461: Cache routes were not registered
-  app.route('/api/admin/cache', cacheFeature.getRoutes())
-
-  for (const feature of postCacheBuiltInFeatureRegistry) {
-    registerBuiltInFeatureRoutes(app, feature.routes)
-  }
+  app.route('/api/security-audit', securityAuditApiRoutes)
+  app.route('/api/admin/security-audit', securityAuditAdminApiRoutes)
 
   // Public event tracking API — POST /api/events (open), GET /api/events (admin)
   app.route('/api/events', eventsApiRoutes)
-
-  for (const feature of postEventsBuiltInFeatureRegistry) {
-    registerBuiltInFeatureRoutes(app, feature.routes)
-  }
+  app.route('/api/admin/analytics', analyticsAdminApiRoutes)
 }
 
 export function registerAssetsAndFallbackRoutes(
@@ -150,14 +110,6 @@ export function registerAssetsAndFallbackRoutes(
 
   // Test cleanup routes (only for development/test environments)
   app.route('/', testCleanupRoutes)
-
-  for (const feature of lateBuiltInFeatureRegistry) {
-    registerBuiltInFeatureRoutes(app, feature.routes)
-  }
-
-  // Magic link auth (passwordless authentication via email links).
-  const magicLinkFeature = createMagicLinkAuthFeature()
-  registerBuiltInFeatureRoutes(app, magicLinkFeature.routes as any)
 
   // Serve favicon
   app.get('/favicon.svg', (c) => {

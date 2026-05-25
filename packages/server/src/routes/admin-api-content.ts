@@ -74,7 +74,7 @@ adminApiContentRoutes.get('/', async (c) => {
   const status = c.req.query('status') || ''
   const search = c.req.query('search') || ''
 
-  const conditions: string[] = ["(col.source_type IS NULL OR col.source_type = 'user')"]
+  const conditions: string[] = []
   const params: unknown[] = []
 
   if (status && status !== 'all') {
@@ -94,7 +94,7 @@ adminApiContentRoutes.get('/', async (c) => {
     params.push(`%${search}%`, `%${search}%`)
   }
 
-  const where = `WHERE ${conditions.join(' AND ')}`
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
   try {
     const countRes = await db

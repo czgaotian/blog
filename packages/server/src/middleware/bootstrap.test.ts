@@ -12,10 +12,6 @@ vi.mock('../services/collection-sync', () => ({
   syncCollections: vi.fn().mockResolvedValue([])
 }))
 
-vi.mock('../services/form-collection-sync', () => ({
-  syncAllFormCollections: vi.fn().mockResolvedValue(undefined)
-}))
-
 vi.mock('../services/migrations', () => {
   const mockRunPendingMigrations = vi.fn().mockResolvedValue(undefined)
   return {
@@ -28,7 +24,6 @@ vi.mock('../services/migrations', () => {
 
 // Import the mocked modules after mocking
 import { syncCollections } from '../services/collection-sync'
-import { syncAllFormCollections } from '../services/form-collection-sync'
 import { MigrationService } from '../services/migrations'
 
 // Create mock environment
@@ -84,7 +79,6 @@ describe('bootstrapMiddleware', () => {
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
     expect(MigrationService).toHaveBeenCalled()
     expect(syncCollections).toHaveBeenCalled()
-    expect(syncAllFormCollections).toHaveBeenCalled()
 
     const status = getBootstrapStatus()
     expect(status.complete).toBe(true)
@@ -93,7 +87,6 @@ describe('bootstrapMiddleware', () => {
     expect(status.lastCompletedAt).toBeDefined()
     expect(status.totalDurationMs).toBeGreaterThanOrEqual(0)
     expect(status.steps.map((step) => step.state)).toEqual([
-      'success',
       'success',
       'success',
       'success',

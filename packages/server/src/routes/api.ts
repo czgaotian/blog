@@ -3,7 +3,7 @@ import { cors } from 'hono/cors'
 import { schemaDefinitions } from '@worker-blog/shared/schemas'
 import { getCacheService, CACHE_CONFIGS } from '../services'
 import { QueryFilterBuilder, QueryFilter } from '@worker-blog/shared/utils'
-import { isPluginActive, optionalAuth } from '../middleware'
+import { optionalAuth } from '../middleware'
 import { normalizePublicContentFilter } from './api-content-access-policy'
 import apiContentCrudRoutes from './api-content-crud'
 import type { Bindings, Variables as AppVariables } from '../app'
@@ -25,10 +25,8 @@ apiRoutes.use('*', async (c, next) => {
   c.header('X-Response-Time', `${totalTime}ms`)
 })
 
-// Check if cache plugin is active
 apiRoutes.use('*', async (c, next) => {
-  const cacheEnabled = await isPluginActive(c.env.DB, 'core-cache')
-  c.set('cacheEnabled', cacheEnabled)
+  c.set('cacheEnabled', true)
   await next()
 })
 
@@ -480,7 +478,6 @@ apiRoutes.get('/collections', async (c) => {
     const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     const cacheKey = cache.generateKey('collections', 'all')
 
-    // Use cache only if cache plugin is active
     if (cacheEnabled) {
       const cacheResult = await cache.getWithSource<any>(cacheKey)
       if (cacheResult.hit && cacheResult.data) {
@@ -512,7 +509,7 @@ apiRoutes.get('/collections', async (c) => {
     c.header('X-Cache-Status', 'MISS')
     c.header('X-Cache-Source', 'database')
 
-    const stmt = db.prepare("SELECT * FROM collections WHERE is_active = 1 AND (source_type IS NULL OR source_type = 'user')")
+    const stmt = db.prepare('SELECT * FROM collections WHERE is_active = 1')
     const { results } = await stmt.all()
 
     // Parse schema and format results
@@ -534,7 +531,6 @@ apiRoutes.get('/collections', async (c) => {
       }, executionStart)
     }
 
-    // Cache the response only if cache plugin is enabled
     if (cacheEnabled) {
       await cache.set(cacheKey, responseData)
     }
@@ -599,7 +595,6 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
       }, 400)
     }
 
-    // Only use cache if cache plugin is active
     const cacheEnabled = c.get('cacheEnabled')
     const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     const cacheKey = cache.generateKey('content-filtered', JSON.stringify({ filter: normalizedFilter, query: queryResult.sql }))
@@ -743,7 +738,6 @@ apiRoutes.get('/collections/:collection/content', optionalAuth(), async (c) => {
     const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
     const cacheKey = cache.generateKey('collection-content-filtered', `${collection}:${JSON.stringify({ filter: normalizedFilter, query: queryResult.sql })}`)
 
-    // Only check cache if plugin is enabled
     if (cacheEnabled) {
       const cacheResult = await cache.getWithSource<any>(cacheKey)
       if (cacheResult.hit && cacheResult.data) {

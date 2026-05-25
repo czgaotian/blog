@@ -4,7 +4,7 @@ import { drizzle } from 'drizzle-orm/d1'
 import { eq, and, gte, lte, desc, asc, count, like, inArray } from 'drizzle-orm'
 
 export type LogLevel = 'debug' | 'info' | 'warn' | 'error' | 'fatal'
-export type LogCategory = 'auth' | 'api' | 'workflow' | 'plugin' | 'media' | 'system' | 'security' | 'error'
+export type LogCategory = 'auth' | 'api' | 'media' | 'system' | 'security' | 'error'
 
 export interface LogEntry {
   level: LogLevel

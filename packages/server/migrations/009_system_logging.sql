@@ -6,7 +6,7 @@
 CREATE TABLE IF NOT EXISTS system_logs (
     id TEXT PRIMARY KEY,
     level TEXT NOT NULL CHECK (level IN ('debug', 'info', 'warn', 'error', 'fatal')),
-    category TEXT NOT NULL CHECK (category IN ('auth', 'api', 'workflow', 'plugin', 'media', 'system', 'security', 'error')),
+    category TEXT NOT NULL CHECK (category IN ('auth', 'api', 'media', 'system', 'security', 'error')),
     message TEXT NOT NULL,
     data TEXT,  -- JSON data
     user_id TEXT,
@@ -28,7 +28,7 @@ CREATE TABLE IF NOT EXISTS system_logs (
 -- Log configuration table for managing log settings per category
 CREATE TABLE IF NOT EXISTS log_config (
     id TEXT PRIMARY KEY,
-    category TEXT NOT NULL UNIQUE CHECK (category IN ('auth', 'api', 'workflow', 'plugin', 'media', 'system', 'security', 'error')),
+    category TEXT NOT NULL UNIQUE CHECK (category IN ('auth', 'api', 'media', 'system', 'security', 'error')),
     enabled BOOLEAN NOT NULL DEFAULT TRUE,
     level TEXT NOT NULL DEFAULT 'info' CHECK (level IN ('debug', 'info', 'warn', 'error', 'fatal')),
     retention_days INTEGER NOT NULL DEFAULT 30,
@@ -49,8 +49,6 @@ CREATE INDEX IF NOT EXISTS idx_system_logs_source ON system_logs(source);
 INSERT OR IGNORE INTO log_config (id, category, enabled, level, retention_days, max_size_mb) VALUES
 ('log-config-auth', 'auth', TRUE, 'info', 90, 50),
 ('log-config-api', 'api', TRUE, 'info', 30, 100),
-('log-config-workflow', 'workflow', TRUE, 'info', 60, 50),
-('log-config-plugin', 'plugin', TRUE, 'warn', 30, 25),
 ('log-config-media', 'media', TRUE, 'info', 30, 50),
 ('log-config-system', 'system', TRUE, 'info', 90, 100),
 ('log-config-security', 'security', TRUE, 'warn', 180, 100),

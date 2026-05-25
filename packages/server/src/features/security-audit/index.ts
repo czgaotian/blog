@@ -12,7 +12,7 @@ export const securityAuditFeature = {
       handler: securityAuditApiRoutes as any,
     },
     {
-      path: '/api/plugins/security-audit',
+      path: '/api/admin/security-audit',
       handler: securityAuditAdminApiRoutes as any,
     },
   ],

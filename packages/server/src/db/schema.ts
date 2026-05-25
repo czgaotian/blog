@@ -26,8 +26,6 @@ export const collections = sqliteTable('collections', {
   schema: text('schema', { mode: 'json' }).notNull(), // JSON schema definition
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   managed: integer('managed', { mode: 'boolean' }).notNull().default(false), // Config-managed collections cannot be edited in UI
-  sourceType: text('source_type').default('user'), // 'user' (normal), 'form' (form-derived)
-  sourceId: text('source_id'), // stores the form ID for form-derived collections
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 });
@@ -81,31 +79,6 @@ export const media = sqliteTable('media', {
   deletedAt: integer('deleted_at'),
 });
 
-// API tokens for programmatic access
-export const apiTokens = sqliteTable('api_tokens', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull(),
-  token: text('token').notNull().unique(),
-  userId: text('user_id').notNull().references(() => users.id),
-  permissions: text('permissions', { mode: 'json' }).notNull(), // Array of permissions
-  expiresAt: integer('expires_at', { mode: 'timestamp' }),
-  lastUsedAt: integer('last_used_at', { mode: 'timestamp' }),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
-
-
-// Workflow history for content workflow tracking
-export const workflowHistory = sqliteTable('workflow_history', {
-  id: text('id').primaryKey(),
-  contentId: text('content_id').notNull().references(() => content.id),
-  action: text('action').notNull(),
-  fromStatus: text('from_status').notNull(),
-  toStatus: text('to_status').notNull(),
-  userId: text('user_id').notNull().references(() => users.id),
-  comment: text('comment'),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
-
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users, {
   email: (schema: any) => schema.email(),
@@ -144,20 +117,11 @@ export const insertMediaSchema = createInsertSchema(media, {
 export const selectMediaSchema = createSelectSchema(media);
 
 
-export const insertWorkflowHistorySchema = createInsertSchema(workflowHistory, {
-  action: (schema: any) => schema.min(1),
-  fromStatus: (schema: any) => schema.min(1),
-  toStatus: (schema: any) => schema.min(1),
-});
-
-export const selectWorkflowHistorySchema = createSelectSchema(workflowHistory);
-
-
 // System logs table for comprehensive logging
 export const systemLogs = sqliteTable('system_logs', {
   id: text('id').primaryKey(),
   level: text('level').notNull(), // 'debug', 'info', 'warn', 'error', 'fatal'
-  category: text('category').notNull(), // 'auth', 'api', 'workflow', 'plugin', 'media', 'system', etc.
+  category: text('category').notNull(), // 'auth', 'api', 'media', 'system', 'security', 'error', etc.
   message: text('message').notNull(),
   data: text('data', { mode: 'json' }), // Additional structured data
   userId: text('user_id').references(() => users.id),
@@ -212,15 +176,13 @@ export type Content = typeof content.$inferSelect;
 export type NewContent = typeof content.$inferInsert;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
-export type WorkflowHistory = typeof workflowHistory.$inferSelect;
-export type NewWorkflowHistory = typeof workflowHistory.$inferInsert;
 export type SystemLog = typeof systemLogs.$inferSelect;
 export type NewSystemLog = typeof systemLogs.$inferInsert;
 export type LogConfig = typeof logConfig.$inferSelect;
 export type NewLogConfig = typeof logConfig.$inferInsert;
 
 // =====================================================
-// Security Audit Plugin Tables
+// Security Audit Tables
 // =====================================================
 
 export const securityEvents = sqliteTable('security_events', {
@@ -249,110 +211,3 @@ export const selectSecurityEventSchema = createSelectSchema(securityEvents);
 
 export type SecurityEventRecord = typeof securityEvents.$inferSelect;
 export type NewSecurityEventRecord = typeof securityEvents.$inferInsert;
-
-// =====================================================
-// Form.io Integration Tables
-// =====================================================
-
-// Forms table - stores Form.io form definitions
-export const forms = sqliteTable('forms', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull().unique(), // Machine name (e.g., "contact-form")
-  displayName: text('display_name').notNull(), // Human name (e.g., "Contact Form")
-  description: text('description'),
-  category: text('category').notNull().default('general'), // contact, survey, registration, etc.
-  
-  // Form.io schema (JSON)
-  formioSchema: text('formio_schema', { mode: 'json' }).notNull(), // Complete Form.io JSON schema
-  
-  // Settings (JSON)
-  settings: text('settings', { mode: 'json' }), // emailNotifications, successMessage, etc.
-  
-  // Status & Management
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  isPublic: integer('is_public', { mode: 'boolean' }).notNull().default(true),
-  managed: integer('managed', { mode: 'boolean' }).notNull().default(false),
-  
-  // Metadata
-  icon: text('icon'),
-  color: text('color'),
-  tags: text('tags', { mode: 'json' }), // JSON array
-  
-  // Stats
-  submissionCount: integer('submission_count').notNull().default(0),
-  viewCount: integer('view_count').notNull().default(0),
-  
-  // Ownership
-  createdBy: text('created_by').references(() => users.id),
-  updatedBy: text('updated_by').references(() => users.id),
-  
-  // Timestamps
-  createdAt: integer('created_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
-});
-
-// Form submissions table
-export const formSubmissions = sqliteTable('form_submissions', {
-  id: text('id').primaryKey(),
-  formId: text('form_id').notNull().references(() => forms.id, { onDelete: 'cascade' }),
-  
-  // Submission data
-  submissionData: text('submission_data', { mode: 'json' }).notNull(), // The actual form data
-  
-  // Submission metadata
-  status: text('status').notNull().default('pending'), // pending, reviewed, approved, rejected, spam
-  submissionNumber: integer('submission_number'),
-  
-  // User information
-  userId: text('user_id').references(() => users.id),
-  userEmail: text('user_email'),
-  
-  // Tracking
-  ipAddress: text('ip_address'),
-  userAgent: text('user_agent'),
-  referrer: text('referrer'),
-  utmSource: text('utm_source'),
-  utmMedium: text('utm_medium'),
-  utmCampaign: text('utm_campaign'),
-  
-  // Review/Processing
-  reviewedBy: text('reviewed_by').references(() => users.id),
-  reviewedAt: integer('reviewed_at'),
-  reviewNotes: text('review_notes'),
-  
-  // Flags
-  isSpam: integer('is_spam', { mode: 'boolean' }).notNull().default(false),
-  isArchived: integer('is_archived', { mode: 'boolean' }).notNull().default(false),
-
-  // Content integration
-  contentId: text('content_id').references(() => content.id), // Links submission to its content item
-
-  // Timestamps
-  submittedAt: integer('submitted_at').notNull(),
-  updatedAt: integer('updated_at').notNull(),
-});
-
-// Form files table - links submissions to uploaded files
-export const formFiles = sqliteTable('form_files', {
-  id: text('id').primaryKey(),
-  submissionId: text('submission_id').notNull().references(() => formSubmissions.id, { onDelete: 'cascade' }),
-  mediaId: text('media_id').notNull().references(() => media.id, { onDelete: 'cascade' }),
-  fieldName: text('field_name').notNull(), // Form field that uploaded this file
-  uploadedAt: integer('uploaded_at').notNull(),
-});
-
-// Zod schemas for validation
-export const insertFormSchema = createInsertSchema(forms);
-export const selectFormSchema = createSelectSchema(forms);
-export const insertFormSubmissionSchema = createInsertSchema(formSubmissions);
-export const selectFormSubmissionSchema = createSelectSchema(formSubmissions);
-export const insertFormFileSchema = createInsertSchema(formFiles);
-export const selectFormFileSchema = createSelectSchema(formFiles);
-
-// TypeScript types
-export type Form = typeof forms.$inferSelect;
-export type NewForm = typeof forms.$inferInsert;
-export type FormSubmission = typeof formSubmissions.$inferSelect;
-export type NewFormSubmission = typeof formSubmissions.$inferInsert;
-export type FormFile = typeof formFiles.$inferSelect;
-export type NewFormFile = typeof formFiles.$inferInsert;

@@ -74,7 +74,7 @@ adminApiRoutes.get('/stats', async (c) => {
     // Get collections count
     let collectionsCount = 0
     try {
-      const collectionsStmt = db.prepare("SELECT COUNT(*) as count FROM collections WHERE is_active = 1 AND (source_type IS NULL OR source_type = 'user')")
+      const collectionsStmt = db.prepare('SELECT COUNT(*) as count FROM collections WHERE is_active = 1')
       const collectionsResult = await collectionsStmt.first()
       collectionsCount = (collectionsResult as any)?.count || 0
     } catch (error) {
@@ -84,7 +84,7 @@ adminApiRoutes.get('/stats', async (c) => {
     // Get content count
     let contentCount = 0
     try {
-      const contentStmt = db.prepare("SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL AND (col.source_type IS NULL OR col.source_type = 'user')")
+      const contentStmt = db.prepare('SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL')
       const contentResult = await contentStmt.first()
       contentCount = (contentResult as any)?.count || 0
     } catch (error) {
@@ -267,7 +267,6 @@ adminApiRoutes.get('/collections', async (c) => {
         SELECT id, name, display_name, description, created_at, updated_at, is_active, managed
         FROM collections
         WHERE ${includeInactive ? '1=1' : 'is_active = 1'}
-        AND (source_type IS NULL OR source_type = 'user')
         AND (name LIKE ? OR display_name LIKE ? OR description LIKE ?)
         ORDER BY created_at DESC
       `)
@@ -278,8 +277,7 @@ adminApiRoutes.get('/collections', async (c) => {
       stmt = db.prepare(`
         SELECT id, name, display_name, description, created_at, updated_at, is_active, managed
         FROM collections
-        WHERE (source_type IS NULL OR source_type = 'user')
-        ${includeInactive ? '' : 'AND is_active = 1'}
+        ${includeInactive ? '' : 'WHERE is_active = 1'}
         ORDER BY created_at DESC
       `)
       const queryResults = await stmt.all()

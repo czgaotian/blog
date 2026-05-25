@@ -1,30 +1,21 @@
-/**
- * Core cache compatibility layer.
- *
- * Core routes historically imported this module directly, while the richer
- * built-in cache feature owns the canonical cache implementation. Keep the
- * small core API stable and delegate storage to the feature cache service so
- * namespace instances, stats, and future KV wiring share one implementation.
- */
-
-import {
-  CacheService as FeatureCacheService,
-  getCacheService as getFeatureCacheService,
-} from '../features/cache/services/cache'
-import type { CacheConfig as FeatureCacheConfig } from '../features/cache/services/cache-config'
-
 export interface CacheConfig {
   ttl: number
   keyPrefix: string
 }
 
+interface CacheEntry {
+  value: unknown
+  expiresAt: number
+}
+
 export class CacheService {
   private config: CacheConfig
-  private cache: FeatureCacheService
+  private memory = new Map<string, CacheEntry>()
+  private kvNamespace?: KVNamespace
 
-  constructor(config: CacheConfig, cache?: FeatureCacheService) {
+  constructor(config: CacheConfig, kvNamespace?: KVNamespace) {
     this.config = config
-    this.cache = cache || new FeatureCacheService(toFeatureConfig(config))
+    this.kvNamespace = kvNamespace
   }
 
   generateKey(type: string, identifier?: string): string {
@@ -36,7 +27,20 @@ export class CacheService {
   }
 
   async get<T>(key: string): Promise<T | null> {
-    return this.cache.get<T>(key)
+    const entry = this.memory.get(key)
+    if (entry) {
+      if (entry.expiresAt > Date.now()) {
+        return entry.value as T
+      }
+      this.memory.delete(key)
+    }
+
+    if (!this.kvNamespace) {
+      return null
+    }
+
+    const value = await this.kvNamespace.get<T>(key, 'json')
+    return value ?? null
   }
 
   async getWithSource<T>(key: string): Promise<{
@@ -45,41 +49,78 @@ export class CacheService {
     source: string
     ttl?: number
   }> {
-    const result = await this.cache.getWithSource<T>(key)
-    const response: {
-      hit: boolean
-      data: T | null
-      source: string
-      ttl?: number
-    } = {
-      hit: result.hit,
-      data: result.data,
-      source: result.hit ? result.source : 'none',
+    const entry = this.memory.get(key)
+    if (entry) {
+      if (entry.expiresAt > Date.now()) {
+        return {
+          hit: true,
+          data: entry.value as T,
+          source: 'memory',
+          ttl: Math.max(0, Math.ceil((entry.expiresAt - Date.now()) / 1000)),
+        }
+      }
+      this.memory.delete(key)
     }
-    if (result.ttl !== undefined) {
-      response.ttl = result.ttl
+
+    if (this.kvNamespace) {
+      const value = await this.kvNamespace.get<T>(key, 'json')
+      if (value !== null) {
+        return {
+          hit: true,
+          data: value,
+          source: 'kv',
+        }
+      }
     }
-    return response
+
+    return {
+      hit: false,
+      data: null,
+      source: 'none',
+    }
   }
 
   async set(key: string, value: any, ttl?: number): Promise<void> {
-    await this.cache.set(key, value, ttl ? { ttl } : undefined)
+    const ttlSeconds = ttl ?? this.config.ttl
+    this.memory.set(key, {
+      value,
+      expiresAt: Date.now() + ttlSeconds * 1000,
+    })
+
+    if (this.kvNamespace) {
+      await this.kvNamespace.put(key, JSON.stringify(value), { expirationTtl: ttlSeconds })
+    }
   }
 
   async delete(key: string): Promise<void> {
-    await this.cache.delete(key)
+    this.memory.delete(key)
+    if (this.kvNamespace) {
+      await this.kvNamespace.delete(key)
+    }
   }
 
   async invalidate(pattern: string): Promise<void> {
-    await this.cache.invalidate(pattern)
+    const regex = wildcardToRegex(pattern)
+    for (const key of this.memory.keys()) {
+      if (regex.test(key)) {
+        this.memory.delete(key)
+      }
+    }
   }
 
   async clear(): Promise<void> {
-    await this.cache.clear()
+    this.memory.clear()
   }
 
   async getOrSet<T>(key: string, callback: () => Promise<T>, ttl?: number): Promise<T> {
-    return this.cache.getOrSet(key, callback, ttl ? { ttl } : undefined)
+    const cached = await this.get<T>(key)
+    if (cached !== null) {
+      return cached
+    }
+
+    const value = await callback()
+    await this.set(key, value, ttl)
+    return value
   }
 }
 
@@ -111,20 +152,13 @@ export function getCacheService(config: CacheConfig, kvNamespace?: KVNamespace):
     return existing
   }
 
-  const service = new CacheService(
-    config,
-    getFeatureCacheService(toFeatureConfig(config, !!kvNamespace), kvNamespace),
-  )
+  const service = new CacheService(config, kvNamespace)
   coreCacheInstances.set(key, service)
   return service
 }
 
-function toFeatureConfig(config: CacheConfig, kvEnabled = false): FeatureCacheConfig {
-  return {
-    ttl: config.ttl,
-    kvEnabled,
-    memoryEnabled: true,
-    namespace: config.keyPrefix,
-    invalidateOn: [],
-  }
+function wildcardToRegex(pattern: string): RegExp {
+  const escaped = pattern.replace(/[.+^${}()|[\]\\]/g, '\\$&')
+  const wildcarded = escaped.replace(/\*/g, '.*').replace(/\?/g, '.')
+  return new RegExp(`^${wildcarded}$`)
 }

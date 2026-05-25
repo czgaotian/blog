@@ -6,7 +6,7 @@ import type {
 } from '@worker-blog/shared/admin-api'
 import { AdminApiError, adminFetch } from './client'
 
-const BASE_PATH = '/api/plugins/security-audit'
+const BASE_PATH = '/api/admin/security-audit'
 
 function unwrapAdminResponse<T>(response: AdminApiResponse<T>): T {
   if (!response.success) {
@@ -18,7 +18,7 @@ function unwrapAdminResponse<T>(response: AdminApiResponse<T>): T {
 
 export function useSecurityAuditAdmin() {
   return useQuery<SecurityAuditAdminDashboardData>({
-    queryKey: ['plugins', 'security-audit'],
+    queryKey: ['admin', 'security-audit'],
     queryFn: async () => unwrapAdminResponse(await adminFetch<AdminApiResponse<SecurityAuditAdminDashboardData>>(BASE_PATH)),
   })
 }
@@ -32,7 +32,7 @@ export function useReleaseSecurityAuditLockout() {
         method: 'DELETE',
       })),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['plugins', 'security-audit'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'security-audit'] })
     },
   })
 }
@@ -47,7 +47,7 @@ export function usePurgeSecurityAuditEvents() {
         body: JSON.stringify({ daysToKeep }),
       })),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['plugins', 'security-audit'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'security-audit'] })
     },
   })
 }

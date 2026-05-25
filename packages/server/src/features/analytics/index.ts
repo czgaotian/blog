@@ -75,7 +75,7 @@ export const analyticsFeature = {
       handler: analyticsAPI,
     },
     {
-      path: '/api/plugins/analytics',
+      path: '/api/admin/analytics',
       handler: analyticsAdminApiRoutes as any,
     },
   ],

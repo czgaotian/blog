@@ -12,8 +12,6 @@ function createMockEnv(overrides: Partial<{
   CACHE_KV: any
   MEDIA_BUCKET: any
   ENVIRONMENT: string
-  EMAIL_QUEUE: any
-  SENDGRID_API_KEY: string
   IMAGES_ACCOUNT_ID: string
   IMAGES_API_TOKEN: string
 }> = {}) {
@@ -320,8 +318,6 @@ describe('API System Routes', () => {
         DB: {},
         CACHE_KV: {},
         MEDIA_BUCKET: {},
-        EMAIL_QUEUE: {},
-        SENDGRID_API_KEY: 'key',
         IMAGES_ACCOUNT_ID: 'account',
         IMAGES_API_TOKEN: 'token'
       })
@@ -335,8 +331,6 @@ describe('API System Routes', () => {
       expect(json.features.database).toBe(true)
       expect(json.features.cache).toBe(true)
       expect(json.features.media_bucket).toBe(true)
-      expect(json.features.email_queue).toBe(true)
-      expect(json.features.sendgrid).toBe(true)
       expect(json.features.cloudflare_images).toBe(true)
     })
 
@@ -360,8 +354,6 @@ describe('API System Routes', () => {
 
       expect(json.features.cache).toBe(false)
       expect(json.features.media_bucket).toBe(false)
-      expect(json.features.email_queue).toBe(false)
-      expect(json.features.sendgrid).toBe(false)
       expect(json.features.cloudflare_images).toBe(false)
     })
 

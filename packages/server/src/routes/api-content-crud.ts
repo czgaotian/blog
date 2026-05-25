@@ -1,7 +1,6 @@
 import { Hono } from 'hono'
 import { requireAuth, requireRole } from '../middleware'
 import type { Bindings, Variables } from '../app'
-import { resolveContentVariables } from '../features/global-variables/variable-resolver'
 import { createContent, deleteContent, updateContent } from '../services/content-domain'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -71,12 +70,6 @@ apiContentCrudRoutes.get('/:id', async (c) => {
       data: (content as any).data ? JSON.parse((content as any).data) : {},
       created_at: (content as any).created_at,
       updated_at: (content as any).updated_at
-    }
-
-    // Resolve {variable_key} tokens in content data
-    const resolveVars = c.req.query('resolve_variables') !== 'false'
-    if (resolveVars) {
-      transformedContent.data = await resolveContentVariables(transformedContent.data, db)
     }
 
     return c.json({ data: transformedContent })

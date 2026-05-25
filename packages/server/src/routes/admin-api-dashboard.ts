@@ -20,13 +20,13 @@ adminApiDashboardRoutes.get('/', async (c) => {
   // Stats
   let collections = 0, contentItems = 0, mediaFiles = 0, mediaSize = 0, users = 0, databaseSize = 0
   try {
-    const r = await db.prepare("SELECT COUNT(*) as count FROM collections WHERE is_active = 1 AND (source_type IS NULL OR source_type = 'user')").first()
+    const r = await db.prepare('SELECT COUNT(*) as count FROM collections WHERE is_active = 1').first()
     collections = (r as any)?.count || 0
   } catch (e) {
     console.error('Error fetching collections count:', e)
   }
   try {
-    const r = await db.prepare("SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL AND (col.source_type IS NULL OR col.source_type = 'user')").first()
+    const r = await db.prepare('SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL').first()
     contentItems = (r as any)?.count || 0
   } catch (e) {
     console.error('Error fetching content items count:', e)

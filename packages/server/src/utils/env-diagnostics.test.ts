@@ -6,7 +6,7 @@ describe('summarizeEnvironmentBindings', () => {
     const summary = summarizeEnvironmentBindings({
       DB: { prepare: () => ({}) },
       JWT_SECRET: 'super-secret',
-      SENDGRID_API_KEY: 'sg-secret',
+      IMAGES_API_TOKEN: 'image-secret',
       ENVIRONMENT: 'test',
       EMPTY_VALUE: '',
     })
@@ -15,11 +15,11 @@ describe('summarizeEnvironmentBindings', () => {
       DB: 'binding',
       EMPTY_VALUE: 'empty',
       ENVIRONMENT: 'configured',
+      IMAGES_API_TOKEN: 'configured-secret',
       JWT_SECRET: 'configured-secret',
-      SENDGRID_API_KEY: 'configured-secret',
     })
     expect(JSON.stringify(summary)).not.toContain('super-secret')
-    expect(JSON.stringify(summary)).not.toContain('sg-secret')
+    expect(JSON.stringify(summary)).not.toContain('image-secret')
   })
 
   it('returns an empty summary for non-object input', () => {

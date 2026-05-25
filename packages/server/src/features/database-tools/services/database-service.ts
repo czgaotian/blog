@@ -97,20 +97,12 @@ export class DatabaseToolsService {
       const tablesToTruncate = [
         'content',
         'content_versions', 
-        'content_workflow_status',
         'collections',
         'media',
-        'sessions',
-        'notifications',
-        'api_tokens',
-        'workflow_history',
-        'scheduled_content',
-        'faqs',
-        'faq_categories',
-        'plugins',
-        'plugin_settings',
-        'email_templates',
-        'email_themes'
+        'activity_logs',
+        'system_logs',
+        'security_events',
+        'analytics_events',
       ]
 
       // Check which tables exist

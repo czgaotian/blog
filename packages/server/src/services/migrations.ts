@@ -94,25 +94,10 @@ export class MigrationService {
       }
     }
 
-    // Check if FAQ tables exist (migration 002)
-    // Migration 002 creates only the 'faqs' table
-    if (!appliedMigrations.has('002')) {
-      const hasFaqTables = await this.checkTablesExist(['faqs'])
-      if (hasFaqTables) {
-        appliedMigrations.set('002', {
-          id: '002',
-          applied_at: new Date().toISOString(),
-          name: 'Faq Plugin',
-          filename: '002_faq_plugin.sql'
-        })
-        await this.markMigrationApplied('002', 'Faq Plugin', '002_faq_plugin.sql')
-      }
-    }
-
     // Check if stage 5 enhancement tables exist (migration 003)
-    // Migration 003 creates content_fields, content_relationships, workflow_templates tables
+    // Migration 003 creates content_fields.
     if (!appliedMigrations.has('003')) {
-      const hasStage5Tables = await this.checkTablesExist(['content_fields', 'content_relationships', 'workflow_templates'])
+      const hasStage5Tables = await this.checkTablesExist(['content_fields'])
       if (hasStage5Tables) {
         appliedMigrations.set('003', {
           id: '003',
@@ -124,37 +109,9 @@ export class MigrationService {
       }
     }
 
-    // Check if testimonials table exists (migration 012)
-    if (!appliedMigrations.has('012')) {
-      const hasTestimonialsTables = await this.checkTablesExist(['testimonials'])
-      if (hasTestimonialsTables) {
-        appliedMigrations.set('012', {
-          id: '012',
-          applied_at: new Date().toISOString(),
-          name: 'Testimonials Plugin',
-          filename: '012_testimonials_plugin.sql'
-        })
-        await this.markMigrationApplied('012', 'Testimonials Plugin', '012_testimonials_plugin.sql')
-      }
-    }
-
-    // Check if code_examples table exists (migration 013)
-    if (!appliedMigrations.has('013')) {
-      const hasCodeExamplesTables = await this.checkTablesExist(['code_examples'])
-      if (hasCodeExamplesTables) {
-        appliedMigrations.set('013', {
-          id: '013',
-          applied_at: new Date().toISOString(),
-          name: 'Code Examples Plugin',
-          filename: '013_code_examples_plugin.sql'
-        })
-        await this.markMigrationApplied('013', 'Code Examples Plugin', '013_code_examples_plugin.sql')
-      }
-    }
-
     // Check if user management tables exist (migration 004)
     if (!appliedMigrations.has('004')) {
-      const hasUserTables = await this.checkTablesExist(['api_tokens', 'workflow_history'])
+      const hasUserTables = await this.checkTablesExist(['activity_logs', 'password_history'])
       if (hasUserTables) {
         appliedMigrations.set('004', {
           id: '004',
@@ -212,27 +169,6 @@ export class MigrationService {
         })
         await this.markMigrationApplied('018', 'Settings Table', '018_settings_table.sql')
       }
-    }
-
-    // Check if forms tables exist (migration 029)
-    // Migration 029 was reassigned between releases: older versions used it for "Ai Search Plugin",
-    // newer versions use it for "Add Forms System". This handles the case where 029 is marked as
-    // applied (from the old AI Search migration) but the forms tables don't actually exist.
-    const hasFormsTables = await this.checkTablesExist(['forms', 'form_submissions', 'form_files'])
-    if (!appliedMigrations.has('029') && hasFormsTables) {
-      appliedMigrations.set('029', {
-        id: '029',
-        applied_at: new Date().toISOString(),
-        name: 'Add Forms System',
-        filename: '029_add_forms_system.sql'
-      })
-      await this.markMigrationApplied('029', 'Add Forms System', '029_add_forms_system.sql')
-    } else if (appliedMigrations.has('029') && !hasFormsTables) {
-      // Migration was marked as applied (possibly from old "Ai Search Plugin" migration)
-      // but forms tables don't exist - remove it so the forms migration will re-run
-      console.log('[Migration] Migration 029 marked as applied but forms tables missing - will re-run')
-      appliedMigrations.delete('029')
-      await this.removeMigrationApplied('029')
     }
 
     // Check if user_profiles table exists (migration 032)

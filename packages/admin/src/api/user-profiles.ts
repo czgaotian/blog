@@ -8,14 +8,14 @@ import { adminFetch } from './client'
 
 export function useUserProfileSchema() {
   return useQuery<UserProfileSchemaData>({
-    queryKey: ['plugins', 'user-profiles', 'schema'],
+    queryKey: ['admin', 'user-profiles', 'schema'],
     queryFn: () => adminFetch<UserProfileSchemaData>('/api/user-profiles/schema'),
   })
 }
 
 export function useUserProfileCustomData(userId?: string) {
   return useQuery<UserProfileCustomDataResponse>({
-    queryKey: ['plugins', 'user-profiles', userId],
+    queryKey: ['admin', 'user-profiles', userId],
     queryFn: () => adminFetch<UserProfileCustomDataResponse>(`/api/user-profiles/${userId}`),
     enabled: Boolean(userId),
   })
@@ -31,7 +31,7 @@ export function useUpdateUserProfileCustomData(userId?: string) {
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['plugins', 'user-profiles', userId] })
+      qc.invalidateQueries({ queryKey: ['admin', 'user-profiles', userId] })
     },
   })
 }

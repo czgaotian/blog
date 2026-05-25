@@ -19,10 +19,8 @@ export { default as authRoutes } from './auth'
 export { default as testCleanupRoutes } from './test-cleanup'
 
 // Admin UI routes
-export { default as publicFormsRoutes } from './public-forms'
 export { createAdminSpaRoutes } from './admin-spa'
 export { adminApiContentRoutes } from './admin-api-content'
-export { adminApiFormsRoutes } from './admin-api-forms'
 export { adminApiMediaRoutes } from './admin-api-media'
 export { adminApiCollectionsRoutes } from './admin-api-collections'
 export { adminApiProfileRoutes } from './admin-api-profile'
@@ -37,7 +35,6 @@ export const ROUTES_INFO = {
     'adminApiRoutes',
     'authRoutes',
     'testCleanupRoutes',
-    'publicFormsRoutes',
     'createAdminSpaRoutes'
   ],
   status: 'Core package routes ready',

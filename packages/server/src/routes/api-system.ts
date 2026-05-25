@@ -208,8 +208,6 @@ apiSystemRoutes.get('/env', (c) => {
       database: !!c.env.DB,
       cache: !!c.env.CACHE_KV,
       media_bucket: !!c.env.MEDIA_BUCKET,
-      email_queue: !!c.env.EMAIL_QUEUE,
-      sendgrid: !!c.env.SENDGRID_API_KEY,
       cloudflare_images: !!(c.env.IMAGES_ACCOUNT_ID && c.env.IMAGES_API_TOKEN)
     },
     timestamp: new Date().toISOString()

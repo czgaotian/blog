@@ -37,16 +37,6 @@ export { csrfProtection, generateCsrfToken, validateCsrfToken } from './csrf'
 // Rate limiting middleware
 export { rateLimit } from './rate-limit'
 
-// Legacy plugin compatibility helpers.
-// Migrated functionality is built in, so plugin checks are no longer runtime
-// gates backed by plugin tables.
-export {
-  getActivePlugins,
-  isPluginActive,
-  requireActivePlugin,
-  requireActivePlugins,
-} from './plugin-middleware'
-
 // Re-export types and functions that are referenced but implemented in monolith
 // These are placeholder exports to maintain API compatibility
 export type Permission = string

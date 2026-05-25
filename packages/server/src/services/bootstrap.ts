@@ -1,5 +1,4 @@
 import { syncCollections } from './collection-sync'
-import { syncAllFormCollections } from './form-collection-sync'
 import { MigrationService } from './migrations'
 import type { WorkerBlogConfig } from '../app'
 
@@ -18,7 +17,7 @@ export interface BootstrapRuntimeConfig {
   mode: BootstrapMode
 }
 
-export type BootstrapStepName = 'migrations' | 'collections' | 'formCollections' | 'security'
+export type BootstrapStepName = 'migrations' | 'collections' | 'security'
 export type BootstrapStepState = 'pending' | 'success' | 'error'
 
 export interface BootstrapStepStatus {
@@ -38,7 +37,7 @@ export interface BootstrapStatus {
   steps: BootstrapStepStatus[]
 }
 
-const stepNames: BootstrapStepName[] = ['migrations', 'collections', 'formCollections', 'security']
+const stepNames: BootstrapStepName[] = ['migrations', 'collections', 'security']
 
 let bootstrapComplete = false
 let bootstrapRunning = false
@@ -145,16 +144,6 @@ export async function runBootstrap(env: BootstrapEnv, _config: WorkerBlogConfig 
       }
     })
 
-    console.log("[Bootstrap] Syncing form collections...")
-    await recordStep('formCollections', async () => {
-      try {
-        await syncAllFormCollections(env.DB)
-      } catch (error) {
-        console.error("[Bootstrap] Error syncing form collections:", error)
-        throw error
-      }
-    })
-
     bootstrapComplete = true
     console.log("[Bootstrap] System initialization completed")
   } catch (error) {
@@ -200,7 +189,7 @@ async function recordStep(name: BootstrapStepName, action: () => Promise<void> |
       error: serializeError(error),
     })
 
-    if (name === 'collections' || name === 'formCollections') {
+    if (name === 'collections') {
       return
     }
 

@@ -16,17 +16,13 @@ import { UserEditPage } from './pages/user-edit'
 import { SpaTestPage } from './pages/spa-test'
 import { NotFoundPage } from './pages/not-found'
 import { ContentListPage } from './pages/content-list'
-import { FormsListPage } from './pages/forms-list'
 import { MediaLibraryPage } from './pages/media-library'
 import { CollectionsListPage } from './pages/collections-list'
 import { CollectionEditPage } from './pages/collection-edit'
 import { ProfilePage } from './pages/profile'
 import { ActivityLogsPage } from './pages/activity-logs'
-import { AISearchSettingsPage } from './pages/ai-search-settings'
-import { StripePage } from './pages/stripe'
 import { SecurityAuditPage } from './pages/security-audit'
 import { AnalyticsPage } from './pages/analytics'
-import { WorkflowPage } from './pages/workflow'
 
 export const router = createBrowserRouter(
   [
@@ -53,18 +49,14 @@ export const router = createBrowserRouter(
         { path: 'users', element: <UsersListPage /> },
         { path: 'users/:id/edit', element: <UserEditPage /> },
         { path: 'content', element: <ContentListPage /> },
-        { path: 'forms', element: <FormsListPage /> },
         { path: 'media', element: <MediaLibraryPage /> },
         { path: 'collections', element: <CollectionsListPage /> },
         { path: 'collections/new', element: <CollectionEditPage /> },
         { path: 'collections/:id/edit', element: <CollectionEditPage /> },
         { path: 'profile', element: <ProfilePage /> },
         { path: 'activity-logs', element: <ActivityLogsPage /> },
-        { path: 'plugins/ai-search', element: <AISearchSettingsPage /> },
-        { path: 'plugins/stripe', element: <StripePage /> },
-        { path: 'plugins/security-audit', element: <SecurityAuditPage /> },
-        { path: 'plugins/analytics', element: <AnalyticsPage /> },
-        { path: 'plugins/workflow', element: <WorkflowPage /> },
+        { path: 'security-audit', element: <SecurityAuditPage /> },
+        { path: 'analytics', element: <AnalyticsPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },
         { path: '*', element: <NotFoundPage /> },
       ],

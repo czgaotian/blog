@@ -5,9 +5,6 @@ interface CloudflareBindings {
   DB: D1Database;
   KV: KVNamespace;
   MEDIA_BUCKET: R2Bucket;
-  EMAIL_QUEUE?: Queue;
-  SENDGRID_API_KEY?: string;
-  DEFAULT_FROM_EMAIL?: string;
   IMAGES_ACCOUNT_ID?: string;
   IMAGES_API_TOKEN?: string;
 }

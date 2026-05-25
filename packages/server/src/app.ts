@@ -5,8 +5,7 @@
  */
 
 import { Hono } from 'hono'
-import type { Context } from 'hono'
-import type { D1Database, KVNamespace, R2Bucket } from '@cloudflare/workers-types'
+import type { Bindings, Variables, WorkerBlogApp, WorkerBlogConfig } from './types/app'
 import { getCoreVersion } from './utils/version'
 import {
   registerAssetsAndFallbackRoutes,
@@ -15,89 +14,7 @@ import {
   registerFeatureRoutes,
 } from './app-registration'
 
-// ============================================================================
-// Type Definitions
-// ============================================================================
-
-export interface Bindings {
-  DB: D1Database
-  CACHE_KV: KVNamespace
-  MEDIA_BUCKET: R2Bucket
-  ASSETS: Fetcher
-  EMAIL_QUEUE?: Queue
-  SENDGRID_API_KEY?: string
-  RESEND_API_KEY?: string
-  DEFAULT_FROM_EMAIL?: string
-  DEFAULT_FROM_NAME?: string
-  IMAGES_ACCOUNT_ID?: string
-  IMAGES_API_TOKEN?: string
-  ENVIRONMENT?: string
-  CORS_ORIGINS?: string
-  BOOTSTRAP_MODE?: string
-  REQUEST_LOGGING_ENABLED?: string
-  JWT_SECRET?: string
-  JWT_EXPIRES_IN?: string
-  JWT_REFRESH_GRACE_SECONDS?: string
-  BUCKET_NAME?: string
-  GOOGLE_MAPS_API_KEY?: string
-  STRIPE_PUBLISHABLE_KEY?: string
-  STRIPE_SECRET_KEY?: string
-  STRIPE_WEBHOOK_SECRET?: string
-  STRIPE_PRICE_ID?: string
-  STRIPE_SUCCESS_URL?: string
-  STRIPE_CANCEL_URL?: string
-  GITHUB_OAUTH_CLIENT_ID?: string
-  GITHUB_OAUTH_CLIENT_SECRET?: string
-  GOOGLE_OAUTH_CLIENT_ID?: string
-  GOOGLE_OAUTH_CLIENT_SECRET?: string
-  TURNSTILE_SITE_KEY?: string
-  TURNSTILE_SECRET_KEY?: string
-}
-
-export interface Variables {
-  user?: {
-    userId: string
-    email: string
-    role: string
-    exp: number
-    iat: number
-  }
-  requestId?: string
-  startTime?: number
-  appName?: string
-  appVersion?: string
-  csrfToken?: string
-}
-
-export interface WorkerBlogConfig {
-  // Collections configuration
-  collections?: {
-    directory?: string
-    autoSync?: boolean
-  }
-
-  // Custom routes
-  routes?: Array<{
-    path: string
-    handler: Hono
-  }>
-
-  // Custom middleware
-  middleware?: {
-    beforeAuth?: Array<(c: Context, next: () => Promise<void>) => Promise<void>>
-    afterAuth?: Array<(c: Context, next: () => Promise<void>) => Promise<void>>
-  }
-
-  // Admin access control
-  // Roles allowed to access the /admin panel. Defaults to ['admin'].
-  adminAccessRoles?: string[]
-
-  // App metadata
-  version?: string
-  name?: string
-}
-
-export type WorkerBlogApp = Hono<{ Bindings: Bindings; Variables: Variables }>
+export type { Bindings, Variables, WorkerBlogApp, WorkerBlogConfig } from './types/app'
 
 // ============================================================================
 // Application Factory
