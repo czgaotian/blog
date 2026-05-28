@@ -32,7 +32,7 @@ export async function isRegistrationEnabled(_db: D1Database): Promise<boolean> {
 }
 
 /**
- * Check if this would be the first user registration (bootstrap scenario)
+ * Check if this would be the first user registration.
  * The first user should always be allowed to register even if registration is disabled
  * @param db - D1 database instance
  * @returns true if no users exist in the database

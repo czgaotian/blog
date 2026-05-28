@@ -33,7 +33,7 @@ export function SpaTestPage() {
 
       {meQuery.isError ? (
         <Alert title="Session check failed" tone="danger">
-          The shell loaded, but `/api/admin/me` did not return bootstrap data.
+          The shell loaded, but `/api/admin/me` did not return session data.
         </Alert>
       ) : null}
 
@@ -66,7 +66,7 @@ export function SpaTestPage() {
           </TableBody>
         </Table>
 
-        {meQuery.isLoading ? <LoadingState label="Checking admin bootstrap data" /> : null}
+        {meQuery.isLoading ? <LoadingState label="Checking admin session data" /> : null}
 
         <Pagination page={1} pageCount={1} />
       </div>

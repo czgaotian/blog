@@ -93,7 +93,7 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/media/upload': { description: 'Upload a media file', category: 'Media', authentication: true },
   'DELETE /api/media/:id': { description: 'Delete a media file', category: 'Media', authentication: true },
 
-  'GET /api/admin/me': { description: 'Get admin session bootstrap data', category: 'Admin', authentication: true },
+  'GET /api/admin/me': { description: 'Get admin session data', category: 'Admin', authentication: true },
   'GET /api/admin/dashboard': { description: 'Get admin dashboard data', category: 'Admin', authentication: true },
   'GET /api/admin/collections': { description: 'List collections for admin management', category: 'Admin', authentication: true },
   'POST /api/admin/collections': { description: 'Create a collection', category: 'Admin', authentication: true },

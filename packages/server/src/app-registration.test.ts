@@ -3,7 +3,6 @@ import { createWorkerBlogApp } from './app'
 
 function createTestEnv(overrides: Record<string, unknown> = {}) {
   return {
-    BOOTSTRAP_MODE: 'manual',
     DB: {},
     CACHE_KV: {},
     MEDIA_BUCKET: {

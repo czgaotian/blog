@@ -12,7 +12,6 @@ import {
   adminApiCollectionsRoutes,
   adminApiProfileRoutes,
 } from './routes'
-import { bootstrapMiddleware } from './middleware/bootstrap'
 import { metricsMiddleware } from './middleware/metrics'
 import { requestContextMiddleware } from './middleware/request-context'
 import { requestLoggingMiddleware } from './middleware/request-logging'
@@ -34,9 +33,6 @@ import type { WorkerBlogApp, WorkerBlogConfig } from './app'
 export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogConfig): void {
   // Metrics middleware - track all requests for real-time analytics
   app.use('*', metricsMiddleware())
-
-  // Bootstrap middleware - runs migrations before dynamic schema reads
-  app.use('*', bootstrapMiddleware(config))
 
   // Custom middleware - before auth
   if (config.middleware?.beforeAuth) {

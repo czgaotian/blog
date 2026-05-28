@@ -4,11 +4,7 @@
  * Request processing middleware for Worker Blog
  *
  * Note: Most middleware is currently in the monolith and will be migrated later.
- * For now, we only export the bootstrap middleware which is used for system initialization.
  */
-
-// Bootstrap middleware
-export { bootstrapMiddleware, verifySecurityConfig } from './bootstrap'
 
 // Auth middleware
 export {

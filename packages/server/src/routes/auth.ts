@@ -53,7 +53,7 @@ authRoutes.post('/register',
     try {
       const db = c.env.DB
 
-      // Check if this is the first user (bootstrap scenario) - always allow
+      // Check if this is the first user - always allow
       const isFirstUser = await isFirstUserRegistration(db)
 
       // If not first user, check if registration is enabled
