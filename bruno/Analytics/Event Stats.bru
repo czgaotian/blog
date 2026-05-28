@@ -1,0 +1,20 @@
+meta {
+  name: Event Stats
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/events/stats
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  startDate:
+  endDate:
+}

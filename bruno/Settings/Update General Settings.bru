@@ -1,0 +1,27 @@
+meta {
+  name: Update General Settings
+  type: http
+  seq: 2
+}
+
+put {
+  url: {{baseUrl}}/api/admin/settings/general
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "siteName": "Worker Blog",
+    "siteDescription": "A lightweight CMS",
+    "adminEmail": "{{adminEmail}}",
+    "timezone": "UTC",
+    "language": "en",
+    "maintenanceMode": false
+  }
+}

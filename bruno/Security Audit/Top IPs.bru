@@ -1,0 +1,19 @@
+meta {
+  name: Top IPs
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/security-audit/stats/ips
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  limit: 10
+}

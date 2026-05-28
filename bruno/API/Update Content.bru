@@ -1,0 +1,27 @@
+meta {
+  name: Update Content
+  type: http
+  seq: 9
+}
+
+put {
+  url: {{baseUrl}}/api/content/{{contentId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Headless Bruno Updated",
+    "slug": "headless-bruno",
+    "status": "draft",
+    "data": {
+      "body": "Updated through /api/content."
+    }
+  }
+}

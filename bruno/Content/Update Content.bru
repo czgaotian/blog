@@ -1,0 +1,27 @@
+meta {
+  name: Update Content
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/admin/content/{{contentId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "title": "Hello Bruno Updated",
+    "slug": "hello-bruno",
+    "status": "draft",
+    "data": {
+      "body": "Updated from Bruno."
+    }
+  }
+}

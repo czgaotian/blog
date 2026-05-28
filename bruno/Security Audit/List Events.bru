@@ -1,0 +1,25 @@
+meta {
+  name: List Events
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/security-audit/events
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  page: 1
+  limit: 50
+  type:
+  severity:
+  email:
+  ip:
+  search:
+}

@@ -1,0 +1,25 @@
+meta {
+  name: Activity Logs
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/admin/users/activity-logs
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  page: 1
+  limit: 50
+  action:
+  resource_type:
+  date_from:
+  date_to:
+  user_id:
+}

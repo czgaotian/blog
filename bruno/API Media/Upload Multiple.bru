@@ -1,0 +1,20 @@
+meta {
+  name: Upload Multiple
+  type: http
+  seq: 2
+}
+
+post {
+  url: {{baseUrl}}/api/media/upload-multiple
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+body:multipart-form {
+  files: @{{mediaFile}}
+  folder: uploads
+}

@@ -1,0 +1,15 @@
+meta {
+  name: Delete Content
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/admin/content/{{contentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

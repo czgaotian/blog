@@ -1,0 +1,27 @@
+meta {
+  name: Update Media
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/admin/media/{{mediaId}}
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "alt": "Updated alt text",
+    "caption": "Updated from Bruno",
+    "tags": [
+      "bruno"
+    ],
+    "folder": "uploads"
+  }
+}

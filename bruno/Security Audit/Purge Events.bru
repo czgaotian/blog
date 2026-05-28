@@ -1,0 +1,22 @@
+meta {
+  name: Purge Events
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{baseUrl}}/api/security-audit/events/purge
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "daysToKeep": 90
+  }
+}

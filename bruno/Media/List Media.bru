@@ -1,0 +1,23 @@
+meta {
+  name: List Media
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/media
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  page: 1
+  limit: 24
+  folder:
+  type:
+  search:
+}

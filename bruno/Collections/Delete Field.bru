@@ -1,0 +1,15 @@
+meta {
+  name: Delete Field
+  type: http
+  seq: 8
+}
+
+delete {
+  url: {{baseUrl}}/api/admin/collections/{{collectionId}}/fields/{{fieldId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

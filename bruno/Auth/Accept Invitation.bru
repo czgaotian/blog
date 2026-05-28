@@ -1,0 +1,24 @@
+meta {
+  name: Accept Invitation
+  type: http
+  seq: 8
+}
+
+post {
+  url: {{baseUrl}}/api/auth/accept-invitation
+  body: json
+  auth: none
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "token": "{{invitationToken}}",
+    "username": "invited_user",
+    "password": "change-me-please",
+    "confirmPassword": "change-me-please"
+  }
+}

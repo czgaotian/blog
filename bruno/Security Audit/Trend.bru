@@ -1,0 +1,19 @@
+meta {
+  name: Trend
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/security-audit/stats/trend
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  hours: 24
+}

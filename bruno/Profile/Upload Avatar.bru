@@ -1,0 +1,19 @@
+meta {
+  name: Upload Avatar
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/admin/profile/avatar
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+body:multipart-form {
+  avatar: @{{mediaFile}}
+}

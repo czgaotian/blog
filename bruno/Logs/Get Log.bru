@@ -1,0 +1,15 @@
+meta {
+  name: Get Log
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/admin/logs/{{logId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

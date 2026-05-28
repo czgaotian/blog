@@ -1,0 +1,15 @@
+meta {
+  name: Delete File
+  type: http
+  seq: 7
+}
+
+delete {
+  url: {{baseUrl}}/api/media/{{mediaId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

@@ -1,0 +1,27 @@
+meta {
+  name: Upload Media
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/admin/media/upload
+  body: multipartForm
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+body:multipart-form {
+  files: @{{mediaFile}}
+  folder: uploads
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.uploaded && body.uploaded[0] && body.uploaded[0].id) {
+    bru.setVar("mediaId", body.uploaded[0].id);
+  }
+}

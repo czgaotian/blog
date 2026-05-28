@@ -1,0 +1,23 @@
+meta {
+  name: Update Security Settings
+  type: http
+  seq: 3
+}
+
+put {
+  url: {{baseUrl}}/api/admin/settings/security
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "jwtExpiresIn": "7d",
+    "jwtRefreshGraceSeconds": 604800
+  }
+}

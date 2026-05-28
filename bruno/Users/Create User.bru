@@ -1,0 +1,33 @@
+meta {
+  name: Create User
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/admin/users
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "editor@example.com",
+    "password": "change-me-please",
+    "role": "editor",
+    "firstName": "Editor",
+    "lastName": "User"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.userId) {
+    bru.setVar("userId", body.userId);
+  }
+}

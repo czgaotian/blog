@@ -1,0 +1,26 @@
+meta {
+  name: List Events
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/events
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  event:
+  category:
+  userId:
+  sessionId:
+  startDate:
+  endDate:
+  limit: 50
+  offset: 0
+}

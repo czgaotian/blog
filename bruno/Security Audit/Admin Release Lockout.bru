@@ -1,0 +1,15 @@
+meta {
+  name: Admin Release Lockout
+  type: http
+  seq: 11
+}
+
+delete {
+  url: {{baseUrl}}/api/admin/security-audit/lockouts/{{lockoutKey}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

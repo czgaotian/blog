@@ -1,0 +1,22 @@
+meta {
+  name: Create Folder
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/media/create-folder
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "folderName": "bruno"
+  }
+}

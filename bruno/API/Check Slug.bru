@@ -1,0 +1,17 @@
+meta {
+  name: Check Slug
+  type: http
+  seq: 6
+}
+
+get {
+  url: {{baseUrl}}/api/content/check-slug
+  body: none
+  auth: none
+}
+
+params:query {
+  collectionId: {{collectionId}}
+  slug: hello-bruno
+  excludeId:
+}

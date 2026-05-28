@@ -1,0 +1,15 @@
+meta {
+  name: List Versions
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/admin/content/{{contentId}}/versions
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

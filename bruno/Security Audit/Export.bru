@@ -1,0 +1,23 @@
+meta {
+  name: Export
+  type: http
+  seq: 10
+}
+
+get {
+  url: {{baseUrl}}/api/security-audit/export
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  type:
+  severity:
+  email:
+  ip:
+  search:
+}

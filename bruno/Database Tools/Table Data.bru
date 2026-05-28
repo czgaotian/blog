@@ -1,0 +1,22 @@
+meta {
+  name: Table Data
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/admin/database-tools/tables/{{tableName}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  limit: 100
+  offset: 0
+  sort:
+  dir: asc
+}

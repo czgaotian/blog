@@ -1,0 +1,23 @@
+meta {
+  name: Export Activity Logs
+  type: http
+  seq: 7
+}
+
+get {
+  url: {{baseUrl}}/api/admin/users/activity-logs/export
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  action:
+  resource_type:
+  date_from:
+  date_to:
+  user_id:
+}

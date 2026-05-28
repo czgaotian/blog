@@ -1,0 +1,20 @@
+meta {
+  name: Get Reference
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/admin/references
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  collection: {{collectionName}}
+  id: {{contentId}}
+}

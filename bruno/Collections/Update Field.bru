@@ -1,11 +1,11 @@
 meta {
-  name: Add Field
+  name: Update Field
   type: http
-  seq: 4
+  seq: 6
 }
 
-post {
-  url: {{baseUrl}}/api/admin/collections/{{collectionId}}/fields
+put {
+  url: {{baseUrl}}/api/admin/collections/{{collectionId}}/fields/{{fieldId}}
   body: json
   auth: none
 }
@@ -17,18 +17,10 @@ headers {
 
 body:json {
   {
-    "fieldName": "body",
     "fieldLabel": "Body",
     "fieldType": "richtext",
     "isRequired": false,
     "isSearchable": true,
     "fieldOptions": {}
-  }
-}
-
-script:post-response {
-  const body = res.getBody();
-  if (body && body.id) {
-    bru.setVar("fieldId", body.id);
   }
 }

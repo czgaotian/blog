@@ -1,0 +1,19 @@
+meta {
+  name: Activity
+  type: http
+  seq: 4
+}
+
+get {
+  url: {{baseUrl}}/api/admin/activity
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  limit: 10
+}

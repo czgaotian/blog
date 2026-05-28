@@ -1,0 +1,15 @@
+meta {
+  name: Public Collection Content
+  type: http
+  seq: 5
+}
+
+get {
+  url: {{baseUrl}}/api/collections/{{collectionName}}/content
+  body: none
+  auth: none
+}
+
+params:query {
+  limit: 50
+}

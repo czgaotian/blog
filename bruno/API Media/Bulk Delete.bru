@@ -1,0 +1,24 @@
+meta {
+  name: Bulk Delete
+  type: http
+  seq: 6
+}
+
+post {
+  url: {{baseUrl}}/api/media/bulk-delete
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fileIds": [
+      "{{mediaId}}"
+    ]
+  }
+}
