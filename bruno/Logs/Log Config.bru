@@ -1,0 +1,15 @@
+meta {
+  name: Log Config
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/admin/logs/config
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

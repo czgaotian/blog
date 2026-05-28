@@ -1,0 +1,31 @@
+meta {
+  name: Create Collection
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/admin/collections
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "name": "posts",
+    "displayName": "Posts",
+    "description": "Blog posts"
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.id) {
+    bru.setVar("collectionId", body.id);
+  }
+}

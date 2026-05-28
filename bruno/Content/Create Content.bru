@@ -1,0 +1,35 @@
+meta {
+  name: Create Content
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/admin/content
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "collectionId": "{{collectionId}}",
+    "title": "Hello Bruno",
+    "slug": "hello-bruno",
+    "status": "draft",
+    "data": {
+      "body": "Created from Bruno."
+    }
+  }
+}
+
+script:post-response {
+  const body = res.getBody();
+  if (body && body.id) {
+    bru.setVar("contentId", body.id);
+  }
+}

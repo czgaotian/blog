@@ -1,0 +1,15 @@
+meta {
+  name: Admin Analytics
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/admin/analytics
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

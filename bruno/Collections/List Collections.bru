@@ -1,0 +1,19 @@
+meta {
+  name: List Collections
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/collections
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  search:
+}

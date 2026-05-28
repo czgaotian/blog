@@ -1,0 +1,15 @@
+meta {
+  name: Get Content
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/admin/content/{{contentId}}
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}

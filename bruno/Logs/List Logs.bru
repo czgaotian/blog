@@ -1,0 +1,23 @@
+meta {
+  name: List Logs
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/logs
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  page: 1
+  limit: 50
+  level:
+  category:
+  search:
+}

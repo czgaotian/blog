@@ -1,0 +1,25 @@
+meta {
+  name: Dashboard
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/admin/security-audit
+  body: none
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+}
+
+params:query {
+  page: 1
+  limit: 50
+  type:
+  severity:
+  email:
+  ip:
+  search:
+}

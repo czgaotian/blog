@@ -1,0 +1,27 @@
+meta {
+  name: Add Field
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{baseUrl}}/api/admin/collections/{{collectionId}}/fields
+  body: json
+  auth: none
+}
+
+headers {
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "fieldName": "body",
+    "fieldLabel": "Body",
+    "fieldType": "richtext",
+    "isRequired": false,
+    "isSearchable": true,
+    "fieldOptions": {}
+  }
+}
