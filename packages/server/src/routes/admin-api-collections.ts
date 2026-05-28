@@ -89,7 +89,7 @@ adminApiCollectionsRoutes.get('/', async (c) => {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const { results } = await db
-      .prepare(`SELECT id, name, display_name, description, is_active, managed, created_at, updated_at FROM collections ${where} ORDER BY created_at DESC`)
+      .prepare(`SELECT id, name, display_name, description, is_active, created_at, updated_at FROM collections ${where} ORDER BY created_at DESC`)
       .bind(...params)
       .all()
 
@@ -104,7 +104,6 @@ adminApiCollectionsRoutes.get('/', async (c) => {
       displayName: row.display_name,
       description: row.description ?? null,
       isActive: Boolean(row.is_active),
-      managed: Boolean(row.managed),
       fieldCount: fieldCounts.get(String(row.id)) || 0,
       createdAt: new Date(Number(row.created_at)).toISOString(),
       updatedAt: new Date(Number(row.updated_at)).toISOString(),
@@ -137,7 +136,6 @@ adminApiCollectionsRoutes.get('/:id', async (c) => {
       displayName: row.display_name,
       description: row.description ?? null,
       isActive: Boolean(row.is_active),
-      managed: Boolean(row.managed),
       fields,
       createdAt: new Date(Number(row.created_at)).toISOString(),
       updatedAt: new Date(Number(row.updated_at)).toISOString(),
@@ -228,7 +226,6 @@ adminApiCollectionsRoutes.delete('/:id', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (!result.deleted && result.reason === 'not_found') return c.json({ error: 'Collection not found' }, 404)
-    if (!result.deleted && result.reason === 'managed') return c.json({ error: 'Cannot delete a managed collection' }, 400)
     if (!result.deleted && result.reason === 'has_content') {
       return c.json({ error: `Cannot delete collection: it has ${result.count} content items` }, 400)
     }

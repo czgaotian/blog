@@ -569,14 +569,14 @@ describe('collection domain field reorder', () => {
 function createMockDb(options: { collection?: any; contentCount?: number } = {}) {
   const collection = Object.prototype.hasOwnProperty.call(options, 'collection')
     ? options.collection
-    : { name: 'posts', managed: 0 }
+    : { name: 'posts' }
   const contentCount = options.contentCount ?? 0
   const runCalls: string[] = []
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: (..._args: any[]) => ({
         first: async () => {
-          if (sql.includes('SELECT name, managed FROM collections')) return collection
+          if (sql.includes('SELECT name FROM collections')) return collection
           if (sql.includes('SELECT COUNT(*) as count FROM content')) return { count: contentCount }
           return null
         },
@@ -607,18 +607,6 @@ describe('collection domain deletion', () => {
     expect(runCalls.some((sql) => sql.includes('DELETE FROM collections'))).toBe(true)
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collections:all')
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
-  })
-
-  it('blocks managed collections by default', async () => {
-    const { db, runCalls } = createMockDb({ collection: { name: 'posts', managed: 1 } })
-
-    const result = await deleteCollection({
-      db: db as any,
-      id: 'col1',
-    })
-
-    expect(result).toEqual({ deleted: false, reason: 'managed', name: 'posts' })
-    expect(runCalls).toHaveLength(0)
   })
 
   it('blocks collections that still contain content', async () => {

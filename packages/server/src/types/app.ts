@@ -34,12 +34,6 @@ export interface Variables {
 }
 
 export interface WorkerBlogConfig {
-  // Collections configuration
-  collections?: {
-    directory?: string
-    autoSync?: boolean
-  }
-
   // Custom routes
   routes?: Array<{
     path: string

@@ -7,11 +7,6 @@ import { Hono } from 'hono'
 import { bootstrapMiddleware, resetBootstrap } from './bootstrap'
 import { getBootstrapStatus } from '../services/bootstrap'
 
-// Mock the services that bootstrap depends on
-vi.mock('../services/collection-sync', () => ({
-  syncCollections: vi.fn().mockResolvedValue([])
-}))
-
 vi.mock('../services/migrations', () => {
   const mockRunPendingMigrations = vi.fn().mockResolvedValue(undefined)
   return {
@@ -22,8 +17,6 @@ vi.mock('../services/migrations', () => {
   }
 })
 
-// Import the mocked modules after mocking
-import { syncCollections } from '../services/collection-sync'
 import { MigrationService } from '../services/migrations'
 
 // Create mock environment
@@ -78,7 +71,6 @@ describe('bootstrapMiddleware', () => {
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] Starting system initialization...')
     expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
     expect(MigrationService).toHaveBeenCalled()
-    expect(syncCollections).toHaveBeenCalled()
 
     const status = getBootstrapStatus()
     expect(status.complete).toBe(true)
@@ -87,7 +79,6 @@ describe('bootstrapMiddleware', () => {
     expect(status.lastCompletedAt).toBeDefined()
     expect(status.totalDurationMs).toBeGreaterThanOrEqual(0)
     expect(status.steps.map((step) => step.state)).toEqual([
-      'success',
       'success',
       'success',
     ])
@@ -248,32 +239,6 @@ describe('bootstrapMiddleware', () => {
 
     await app.request('/favicon.ico')
     expect(MigrationService).not.toHaveBeenCalled()
-  })
-
-  it('should continue even if collection sync fails', async () => {
-    const app = new Hono()
-    const env = createMockEnv()
-    vi.mocked(syncCollections).mockRejectedValueOnce(new Error('Sync failed'))
-
-    app.use('*', async (c, next) => {
-      c.env = env as any
-      await next()
-    })
-    app.use('*', bootstrapMiddleware())
-    app.get('/test', (c) => c.json({ ok: true }))
-
-    const res = await app.request('/test')
-
-    expect(res.status).toBe(200)
-    expect(errorSpy).toHaveBeenCalledWith('[Bootstrap] Error syncing collections:', expect.any(Error))
-    expect(consoleSpy).toHaveBeenCalledWith('[Bootstrap] System initialization completed')
-
-    const status = getBootstrapStatus()
-    expect(status.complete).toBe(true)
-    expect(status.steps.find((step) => step.name === 'collections')).toMatchObject({
-      state: 'error',
-      error: 'Sync failed'
-    })
   })
 
   it('should continue on fatal bootstrap error', async () => {

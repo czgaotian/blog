@@ -507,28 +507,22 @@ export interface DeleteCollectionOptions {
   db: D1Database
   id: string
   cacheKv?: KVNamespace
-  blockManaged?: boolean
 }
 
 export type DeleteCollectionResult =
   | { deleted: true; id: string; name: string }
   | { deleted: false; reason: 'not_found' }
-  | { deleted: false; reason: 'managed'; name: string }
   | { deleted: false; reason: 'has_content'; name: string; count: number }
 
 export async function deleteCollection(options: DeleteCollectionOptions): Promise<DeleteCollectionResult> {
-  const { db, id, cacheKv, blockManaged = true } = options
+  const { db, id, cacheKv } = options
   const collection = await db
-    .prepare('SELECT name, managed FROM collections WHERE id = ?')
+    .prepare('SELECT name FROM collections WHERE id = ?')
     .bind(id)
-    .first() as { name: string; managed?: number | boolean } | null
+    .first() as { name: string } | null
 
   if (!collection) {
     return { deleted: false, reason: 'not_found' }
-  }
-
-  if (blockManaged && Boolean(collection.managed)) {
-    return { deleted: false, reason: 'managed', name: collection.name }
   }
 
   const contentResult = await db

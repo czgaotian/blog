@@ -30,12 +30,7 @@ export type { Bindings, Variables, WorkerBlogApp, WorkerBlogConfig } from './typ
  * ```typescript
  * import { createWorkerBlogApp } from '@worker-blog/server'
  *
- * const app = createWorkerBlogApp({
- *   collections: {
- *     directory: './src/collections',
- *     autoSync: true
- *   },
- * })
+ * const app = createWorkerBlogApp()
  *
  * export default app
  * ```

@@ -12,7 +12,6 @@ const mockCollection = {
   display_name: 'Blog Posts',
   description: 'A collection of blog posts',
   is_active: 1,
-  managed: 0,
   schema: JSON.stringify({ type: 'object', properties: { title: { type: 'string', title: 'Title' } }, required: ['title'] }),
   created_at: 1700000000000,
   updated_at: 1700000000000,
@@ -72,9 +71,6 @@ function makeMockDb(overrides: Partial<{
             return fieldFirst
           }
           if (sql.includes('SELECT name FROM collections WHERE id = ?')) {
-            return collectionFirst
-          }
-          if (sql.includes('SELECT name, managed FROM collections')) {
             return collectionFirst
           }
           throw new Error(`Unexpected SQL in mock first(): ${sql}`)
@@ -143,7 +139,6 @@ describe('GET /api/admin/collections', () => {
     expect(col).toHaveProperty('name', 'blog_posts')
     expect(col).toHaveProperty('displayName', 'Blog Posts')
     expect(col).toHaveProperty('isActive')
-    expect(col).toHaveProperty('managed')
     expect(col).toHaveProperty('fieldCount')
     expect(col).toHaveProperty('createdAt')
     expect(col).toHaveProperty('updatedAt')
@@ -328,20 +323,6 @@ describe('DELETE /api/admin/collections/:id', () => {
     expect(res.status).toBe(400)
     const json = await res.json() as any
     expect(json.error).toMatch(/content items/)
-  })
-
-  it('blocks delete of managed collection', async () => {
-    const { db } = makeMockDb({
-      collectionFirst: { ...mockCollection, managed: 1 },
-      contentCount: 0,
-    })
-    const app = createApp()
-    const res = await app.request('/api/admin/collections/col1', {
-      method: 'DELETE',
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(400)
-    const json = await res.json() as any
-    expect(json.error).toMatch(/managed/)
   })
 
   it('returns 404 for unknown id', async () => {

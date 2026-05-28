@@ -264,7 +264,7 @@ adminApiRoutes.get('/collections', async (c) => {
 
     if (search) {
       stmt = db.prepare(`
-        SELECT id, name, display_name, description, created_at, updated_at, is_active, managed
+        SELECT id, name, display_name, description, created_at, updated_at, is_active
         FROM collections
         WHERE ${includeInactive ? '1=1' : 'is_active = 1'}
         AND (name LIKE ? OR display_name LIKE ? OR description LIKE ?)
@@ -275,7 +275,7 @@ adminApiRoutes.get('/collections', async (c) => {
       results = queryResults.results
     } else {
       stmt = db.prepare(`
-        SELECT id, name, display_name, description, created_at, updated_at, is_active, managed
+        SELECT id, name, display_name, description, created_at, updated_at, is_active
         FROM collections
         ${includeInactive ? '' : 'WHERE is_active = 1'}
         ORDER BY created_at DESC
@@ -297,7 +297,6 @@ adminApiRoutes.get('/collections', async (c) => {
       created_at: Number(row.created_at),
       updated_at: Number(row.updated_at),
       is_active: row.is_active === 1,
-      managed: row.managed === 1,
       field_count: fieldCounts.get(String(row.id)) || 0
     }))
 
@@ -355,7 +354,6 @@ adminApiRoutes.get('/collections/:id', async (c) => {
       display_name: collection.display_name,
       description: collection.description,
       is_active: collection.is_active === 1,
-      managed: collection.managed === 1,
       schema: collection.schema ? JSON.parse(collection.schema) : null,
       created_at: Number(collection.created_at),
       updated_at: Number(collection.updated_at),
@@ -631,7 +629,6 @@ adminApiRoutes.delete('/collections/:id', async (c) => {
       db,
       id,
       cacheKv: c.env.CACHE_KV,
-      blockManaged: false,
     })
     if (!result.deleted && result.reason === 'not_found') {
       return c.json({ error: 'Collection not found' }, 404)
@@ -641,10 +638,6 @@ adminApiRoutes.delete('/collections/:id', async (c) => {
         error: `Cannot delete collection: it contains ${result.count} content item(s). Delete all content first.`
       }, 400)
     }
-    if (!result.deleted && result.reason === 'managed') {
-      return c.json({ error: 'Cannot delete a managed collection' }, 400)
-    }
-
     return c.json({ message: 'Collection deleted successfully' })
   } catch (error) {
     console.error('Error deleting collection:', error)

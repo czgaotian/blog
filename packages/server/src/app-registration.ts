@@ -35,7 +35,7 @@ export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogCon
   // Metrics middleware - track all requests for real-time analytics
   app.use('*', metricsMiddleware())
 
-  // Bootstrap middleware - runs migrations and syncs collections
+  // Bootstrap middleware - runs migrations before dynamic schema reads
   app.use('*', bootstrapMiddleware(config))
 
   // Custom middleware - before auth

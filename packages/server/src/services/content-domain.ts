@@ -1,5 +1,6 @@
 import { CACHE_CONFIGS, getCacheService } from './cache'
 import { contentCacheKeys } from './cache-keys'
+import { validateContentData } from './schema-validator'
 
 export type ContentCreateMode = 'admin-create' | 'headless-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
@@ -26,6 +27,7 @@ export interface CreateContentOptions {
 export interface CreateContentResult {
   created: boolean
   collectionFound: boolean
+  validationErrors?: string[]
   duplicateSlug?: boolean
   id?: string
   collectionId: string
@@ -53,6 +55,7 @@ export interface UpdateContentResult {
   found: boolean
   id: string
   mode: ContentUpdateMode
+  validationErrors?: string[]
   collectionId?: string
   versionCreated?: boolean
 }
@@ -91,12 +94,13 @@ export interface DeleteContentResult {
 export async function createContent(options: CreateContentOptions): Promise<CreateContentResult> {
   const { db, input, authorId, cacheKv } = options
   const slug = normalizeSlug(input.slug || input.title, { trim: options.mode === 'headless-create' })
+  let collectionSchema: unknown
 
   if (options.mode === 'admin-create') {
     const collection = await db
-      .prepare('SELECT id FROM collections WHERE id = ? AND is_active = 1')
+      .prepare('SELECT id, schema FROM collections WHERE id = ? AND is_active = 1')
       .bind(input.collectionId)
-      .first()
+      .first() as { id: string; schema?: unknown } | null
 
     if (!collection) {
       return {
@@ -106,7 +110,25 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
         mode: options.mode,
       }
     }
+
+    collectionSchema = collection.schema
   } else {
+    const collection = await db
+      .prepare('SELECT id, schema FROM collections WHERE id = ? AND is_active = 1')
+      .bind(input.collectionId)
+      .first() as { id: string; schema?: unknown } | null
+
+    if (!collection) {
+      return {
+        created: false,
+        collectionFound: false,
+        collectionId: input.collectionId,
+        mode: options.mode,
+      }
+    }
+
+    collectionSchema = collection.schema
+
     const existing = await db
       .prepare('SELECT id FROM content WHERE collection_id = ? AND slug = ?')
       .bind(input.collectionId, slug)
@@ -125,9 +147,21 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
 
   const id = options.id ?? crypto.randomUUID()
   const now = options.now ?? Date.now()
-  const data = options.mode === 'admin-create'
-    ? { ...input.data, title: input.title }
-    : input.data
+  const validation = validateContentData(collectionSchema, input.data, {
+    title: input.title,
+    slug,
+    status: input.status,
+  })
+  if (!validation.valid) {
+    return {
+      created: false,
+      collectionFound: true,
+      validationErrors: validation.errors,
+      collectionId: input.collectionId,
+      mode: options.mode,
+    }
+  }
+  const data = validation.data
 
   await db
     .prepare('INSERT INTO content (id, collection_id, slug, title, data, status, author_id, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)')
@@ -155,7 +189,12 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
 export async function updateContent(options: UpdateContentOptions): Promise<UpdateContentResult> {
   const { db, id, patch, authorId, cacheKv } = options
   const existing = await db
-    .prepare('SELECT * FROM content WHERE id = ?')
+    .prepare(`
+      SELECT c.*, col.schema as collection_schema
+      FROM content c
+      JOIN collections col ON col.id = c.collection_id
+      WHERE c.id = ?
+    `)
     .bind(id)
     .first() as any
 
@@ -175,13 +214,27 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     ? normalizeSlug(patch.slug, { trim: options.mode === 'headless-update' })
     : existing.slug
   const newStatus = patch.status ?? existing.status
+  const validation = validateContentData(existing.collection_schema, newData, {
+    title: newTitle,
+    slug: newSlug,
+    status: newStatus,
+  })
+  if (!validation.valid) {
+    return {
+      found: true,
+      id,
+      mode: options.mode,
+      collectionId: existing.collection_id,
+      validationErrors: validation.errors,
+    }
+  }
 
   await db
     .prepare('UPDATE content SET title = ?, slug = ?, data = ?, status = ?, updated_at = ? WHERE id = ?')
-    .bind(newTitle, newSlug, JSON.stringify(newData), newStatus, now, id)
+    .bind(newTitle, newSlug, JSON.stringify(validation.data), newStatus, now, id)
     .run()
 
-  const dataChanged = JSON.stringify(existingData) !== JSON.stringify(newData)
+  const dataChanged = JSON.stringify(existingData) !== JSON.stringify(validation.data)
   if (options.mode === 'admin-update' && dataChanged) {
     const versionRes = await db
       .prepare('SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?')
@@ -191,7 +244,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
 
     await db
       .prepare('INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)')
-      .bind(crypto.randomUUID(), id, nextVersion, JSON.stringify(newData), authorId, now)
+      .bind(crypto.randomUUID(), id, nextVersion, JSON.stringify(validation.data), authorId, now)
       .run()
   }
 
@@ -319,14 +372,14 @@ function buildUpdatedContentData(
   mode: ContentUpdateMode,
   existingData: Record<string, unknown>,
   patchData: unknown,
-  title: string,
+  _title: string,
 ): unknown {
   if (mode === 'headless-update') {
     return patchData !== undefined ? patchData : existingData
   }
 
   if (patchData && typeof patchData === 'object') {
-    return { ...existingData, ...(patchData as Record<string, unknown>), title }
+    return { ...existingData, ...(patchData as Record<string, unknown>) }
   }
 
   return existingData

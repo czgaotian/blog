@@ -25,7 +25,6 @@ export interface CollectionListItem {
   displayName: string
   description: string | null
   isActive: boolean
-  managed: boolean
   fieldCount: number
   createdAt: string
   updatedAt: string
@@ -42,7 +41,6 @@ export interface CollectionDetailResponse {
   displayName: string
   description: string | null
   isActive: boolean
-  managed: boolean
   fields: CollectionField[]
   createdAt: string
   updatedAt: string

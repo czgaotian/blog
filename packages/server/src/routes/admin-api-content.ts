@@ -214,6 +214,9 @@ adminApiContentRoutes.post('/', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (!result.collectionFound) return c.json({ error: 'Collection not found' }, 404)
+    if (result.validationErrors) {
+      return c.json({ error: 'Validation failed', issues: result.validationErrors }, 422)
+    }
 
     const response: MutateContentResponse = { message: 'Content created successfully', id: result.id! }
     return c.json(response, 201)
@@ -246,6 +249,9 @@ adminApiContentRoutes.put('/:id', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (!result.found) return c.json({ error: 'Content not found' }, 404)
+    if (result.validationErrors) {
+      return c.json({ error: 'Validation failed', issues: result.validationErrors }, 422)
+    }
 
     return c.json({ message: 'Content updated successfully' })
   } catch (error) {

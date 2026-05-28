@@ -73,9 +73,7 @@ export function CollectionsListPage() {
                   </TableCell>
                   <TableCell className="text-sm">{col.fieldCount}</TableCell>
                   <TableCell>
-                    {col.managed ? (
-                      <Badge className="bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300">managed</Badge>
-                    ) : col.isActive ? (
+                    {col.isActive ? (
                       <Badge className="bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300">active</Badge>
                     ) : (
                       <Badge className="bg-muted text-muted-foreground">inactive</Badge>
@@ -85,14 +83,12 @@ export function CollectionsListPage() {
                     {new Date(col.updatedAt).toLocaleDateString()}
                   </TableCell>
                   <TableCell className="text-right">
-                    {!col.managed && (
-                      <Link
-                        to={`/admin/collections/${col.id}/edit`}
-                        className="text-xs font-medium text-primary hover:underline"
-                      >
-                        Edit
-                      </Link>
-                    )}
+                    <Link
+                      to={`/admin/collections/${col.id}/edit`}
+                      className="text-xs font-medium text-primary hover:underline"
+                    >
+                      Edit
+                    </Link>
                   </TableCell>
                 </TableRow>
               ))

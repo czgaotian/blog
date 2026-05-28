@@ -89,28 +89,3 @@ CREATE INDEX IF NOT EXISTS idx_media_type ON media(mime_type);
 CREATE INDEX IF NOT EXISTS idx_media_uploaded_by ON media(uploaded_by);
 CREATE INDEX IF NOT EXISTS idx_media_uploaded_at ON media(uploaded_at);
 CREATE INDEX IF NOT EXISTS idx_media_deleted ON media(deleted_at);
-
-INSERT OR IGNORE INTO collections (
-  id, name, display_name, description, schema,
-  is_active, created_at, updated_at
-) VALUES
-(
-  'pages-collection',
-  'pages',
-  'Pages',
-  'Static page content collection',
-  '{"type":"object","properties":{"title":{"type":"string","title":"Title","required":true},"content":{"type":"string","title":"Content","format":"richtext"},"slug":{"type":"string","title":"Slug"},"meta_description":{"type":"string","title":"Meta Description"},"featured_image":{"type":"string","title":"Featured Image","format":"media"}},"required":["title"]}',
-  1,
-  strftime('%s', 'now') * 1000,
-  strftime('%s', 'now') * 1000
-),
-(
-  'posts-collection',
-  'posts',
-  'Posts',
-  'Blog post content collection',
-  '{"type":"object","properties":{"title":{"type":"string","title":"Title","required":true},"content":{"type":"string","title":"Content","format":"richtext"},"excerpt":{"type":"string","title":"Excerpt"},"featured_image":{"type":"string","title":"Featured Image","format":"media"},"tags":{"type":"array","title":"Tags","items":{"type":"string"}}},"required":["title"]}',
-  1,
-  strftime('%s', 'now') * 1000,
-  strftime('%s', 'now') * 1000
-);

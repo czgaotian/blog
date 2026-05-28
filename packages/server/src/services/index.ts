@@ -4,24 +4,6 @@
  * Core business logic services for Worker Blog
  */
 
-// Collection Management
-export {
-  loadCollectionConfigs,
-  loadCollectionConfig,
-  getAvailableCollectionNames,
-  validateCollectionConfig,
-  registerCollections,
-} from './collection-loader'
-
-export {
-  syncCollections,
-  syncCollection,
-  isCollectionManaged,
-  getManagedCollections,
-  cleanupRemovedCollections,
-  fullCollectionSync,
-} from './collection-sync'
-
 // Database Migrations
 export { MigrationService } from './migrations'
 export type { Migration, MigrationStatus } from './migrations'

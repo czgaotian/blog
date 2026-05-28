@@ -318,7 +318,7 @@ export function CollectionEditPage() {
         </div>
       )}
 
-      {!isNew && !data?.managed && (
+      {!isNew && (
         <div className="border-t border-border pt-6">
           <p className="mb-3 text-sm font-medium text-destructive">Danger zone</p>
           {!confirmDelete ? (

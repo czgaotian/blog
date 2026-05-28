@@ -60,10 +60,10 @@ describe('content domain creation', () => {
       collectionId: 'collection-1',
       mode: 'admin-create',
     })
-    expect(calls.some((call) => call.sql.includes('SELECT id FROM collections'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('SELECT id, schema FROM collections'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content ('))).toBe(true)
     expect(calls.some((call) => call.args.includes('new-post'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello', title: 'New Post' })))).toBe(true)
+    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello' })))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
   })
 
@@ -100,7 +100,7 @@ describe('content domain creation', () => {
       mode: 'admin-create',
     })
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('SELECT id FROM collections')
+    expect(calls[0]?.sql).toContain('SELECT id, schema FROM collections')
   })
 
   it('creates headless content without an initial version and checks duplicate slugs', async () => {
@@ -110,7 +110,10 @@ describe('content domain creation', () => {
         bind: (...args: any[]) => {
           calls.push({ sql, args })
           return {
-            first: async () => null,
+            first: async () => {
+              if (sql.includes('SELECT id, schema FROM collections')) return { id: 'collection-1' }
+              return null
+            },
             run: async () => ({ success: true }),
           }
         },
@@ -135,7 +138,7 @@ describe('content domain creation', () => {
     expect(result.created).toBe(true)
     expect(result.collectionFound).toBe(true)
     expect(result.id).toBe('content-1')
-    expect(calls.some((call) => call.sql.includes('SELECT id FROM collections'))).toBe(false)
+    expect(calls.some((call) => call.sql.includes('SELECT id, schema FROM collections'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('SELECT id FROM content WHERE collection_id = ? AND slug = ?'))).toBe(true)
     expect(calls.some((call) => call.args.includes('-new-post-'))).toBe(true)
     expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello' })))).toBe(true)
@@ -149,7 +152,10 @@ describe('content domain creation', () => {
         bind: (...args: any[]) => {
           calls.push({ sql, args })
           return {
-            first: async () => ({ id: 'existing-content' }),
+            first: async () => {
+              if (sql.includes('SELECT id, schema FROM collections')) return { id: 'collection-1' }
+              return { id: 'existing-content' }
+            },
             run: async () => ({ success: true }),
           }
         },
@@ -175,8 +181,8 @@ describe('content domain creation', () => {
       collectionId: 'collection-1',
       mode: 'headless-create',
     })
-    expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('SELECT id FROM content')
+    expect(calls).toHaveLength(2)
+    expect(calls[1]?.sql).toContain('SELECT id FROM content')
   })
 })
 
@@ -244,7 +250,7 @@ describe('content domain update', () => {
       title: 'Old title',
       slug: 'old-title',
       status: 'draft',
-      data: JSON.stringify({ title: 'Old title', body: 'Old body' }),
+      data: JSON.stringify({ body: 'Old body' }),
     }
     const db = {
       prepare: vi.fn((sql: string) => ({
@@ -297,7 +303,7 @@ describe('content domain update', () => {
       title: 'Old title',
       slug: 'old-title',
       status: 'draft',
-      data: JSON.stringify({ title: 'Old title', body: 'Old body' }),
+      data: JSON.stringify({ body: 'Old body' }),
     }
     const db = {
       prepare: vi.fn((sql: string) => ({
@@ -400,7 +406,7 @@ describe('content domain update', () => {
       mode: 'admin-update',
     })
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('SELECT * FROM content')
+    expect(calls[0]?.sql).toContain('FROM content c')
   })
 })
 

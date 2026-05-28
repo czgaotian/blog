@@ -1,4 +1,3 @@
-import { syncCollections } from './collection-sync'
 import { MigrationService } from './migrations'
 import type { WorkerBlogConfig } from '../app'
 
@@ -17,7 +16,7 @@ export interface BootstrapRuntimeConfig {
   mode: BootstrapMode
 }
 
-export type BootstrapStepName = 'migrations' | 'collections' | 'security'
+export type BootstrapStepName = 'migrations' | 'security'
 export type BootstrapStepState = 'pending' | 'success' | 'error'
 
 export interface BootstrapStepStatus {
@@ -37,7 +36,7 @@ export interface BootstrapStatus {
   steps: BootstrapStepStatus[]
 }
 
-const stepNames: BootstrapStepName[] = ['migrations', 'collections', 'security']
+const stepNames: BootstrapStepName[] = ['migrations', 'security']
 
 let bootstrapComplete = false
 let bootstrapRunning = false
@@ -134,16 +133,6 @@ export async function runBootstrap(env: BootstrapEnv, _config: WorkerBlogConfig 
       await migrationService.runPendingMigrations()
     })
 
-    console.log("[Bootstrap] Syncing collection configurations...")
-    await recordStep('collections', async () => {
-      try {
-        await syncCollections(env.DB)
-      } catch (error) {
-        console.error("[Bootstrap] Error syncing collections:", error)
-        throw error
-      }
-    })
-
     bootstrapComplete = true
     console.log("[Bootstrap] System initialization completed")
   } catch (error) {
@@ -188,10 +177,6 @@ async function recordStep(name: BootstrapStepName, action: () => Promise<void> |
       durationMs: Date.now() - started,
       error: serializeError(error),
     })
-
-    if (name === 'collections') {
-      return
-    }
 
     throw error
   }
