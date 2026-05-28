@@ -123,26 +123,6 @@ export class MigrationService {
       }
     }
 
-    // Check if managed column exists (migration 011)
-    // This handles both cases:
-    // 1. Migration not marked as applied but column exists -> mark as applied
-    // 2. Migration marked as applied but column doesn't exist -> remove from applied (will re-run)
-    const hasManagedColumn = await this.checkColumnExists('collections', 'managed')
-    if (!appliedMigrations.has('011') && hasManagedColumn) {
-      appliedMigrations.set('011', {
-        id: '011',
-        applied_at: new Date().toISOString(),
-        name: 'Config Managed Collections',
-        filename: '011_config_managed_collections.sql'
-      })
-      await this.markMigrationApplied('011', 'Config Managed Collections', '011_config_managed_collections.sql')
-    } else if (appliedMigrations.has('011') && !hasManagedColumn) {
-      // Migration was marked as applied but column doesn't exist - remove it so it will re-run
-      console.log('[Migration] Migration 011 marked as applied but managed column missing - will re-run')
-      appliedMigrations.delete('011')
-      await this.removeMigrationApplied('011')
-    }
-
     // Check if system_logs table exists (migration 009)
     if (!appliedMigrations.has('009')) {
       const hasLoggingTables = await this.checkTablesExist(['system_logs', 'log_config'])
@@ -495,12 +475,6 @@ export class MigrationService {
       } catch (error) {
         issues.push(`Missing table: ${table}`)
       }
-    }
-
-    // Check for managed column in collections
-    const hasManagedColumn = await this.checkColumnExists('collections', 'managed')
-    if (!hasManagedColumn) {
-      issues.push('Missing column: collections.managed')
     }
 
     return {

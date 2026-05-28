@@ -69,9 +69,9 @@ export const bundledMigrations: BundledMigration[] = [
   },
   {
     id: "011",
-    name: "Config Managed Collections",
+    name: "Legacy Collection Mode Noop",
     filename: "011_config_managed_collections.sql",
-    sql: "-- Migration: Add Config-Managed Collections Support\n-- Description: Add 'managed' column to collections table to support config-based collection definitions\n-- Created: 2025-10-03\n\n-- Add 'managed' column to collections table\n-- This column indicates whether a collection is managed by configuration files (true) or user-created (false)\n-- Managed collections cannot be edited through the admin UI\n-- Use a safe approach to add the column only if it doesn't exist\nALTER TABLE collections ADD COLUMN managed INTEGER DEFAULT 0 NOT NULL;\n\n-- Create an index on the managed column for faster queries\nCREATE INDEX IF NOT EXISTS idx_collections_managed ON collections(managed);\n\n-- Create an index on managed + is_active for efficient filtering\nCREATE INDEX IF NOT EXISTS idx_collections_managed_active ON collections(managed, is_active);\n",
+    sql: "-- Migration 011: Legacy collection mode removed\n-- Description: Kept as a no-op so historical migration ordering remains stable.\n-- Created: 2025-10-03\n\nSELECT 1;\n",
   },
   {
     id: "012",
