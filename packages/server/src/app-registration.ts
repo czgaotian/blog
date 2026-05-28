@@ -2,13 +2,10 @@ import { Hono } from 'hono'
 import {
   apiRoutes,
   apiMediaRoutes,
-  apiSystemRoutes,
   adminApiRoutes,
   authRoutes,
-  testCleanupRoutes,
   createAdminSpaRoutes,
   adminApiContentRoutes,
-  adminApiMediaRoutes,
   adminApiCollectionsRoutes,
   adminApiProfileRoutes,
 } from './routes'
@@ -19,15 +16,12 @@ import { csrfProtection } from './middleware/csrf'
 import { securityHeadersMiddleware } from './middleware/security-headers'
 import { requireAuth, requireRole } from './middleware/auth'
 import { getServerEnvConfig } from './config/env'
-import { createDatabaseToolsAdminRoutes } from './features/database-tools/admin-routes'
-import { createSeedDataAdminRoutes } from './features/seed-data/admin-routes'
 import { securityAuditMiddleware } from './features/security-audit'
 import { securityAuditApiRoutes } from './features/security-audit/routes/api'
 import securityAuditAdminApiRoutes from './features/security-audit/routes/admin-api'
 import { eventsApiRoutes } from './features/analytics/routes/api'
 import analyticsAdminApiRoutes from './features/analytics/routes/admin-api'
 import { faviconSvg } from './assets/favicon'
-import { setAppInstance } from './services/route-metadata'
 import type { WorkerBlogApp, WorkerBlogConfig } from './app'
 
 export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogConfig): void {
@@ -74,14 +68,10 @@ export function registerCoreApiRoutes(app: WorkerBlogApp): void {
   // Each route is tested and migrated one-by-one
   app.route('/api', apiRoutes)
   app.route('/api/media', apiMediaRoutes)
-  app.route('/api/system', apiSystemRoutes)
   app.route('/api/admin/collections', adminApiCollectionsRoutes)
   app.route('/api/admin/profile', adminApiProfileRoutes)
   app.route('/api/admin', adminApiRoutes)
-  app.route('/api/admin/database-tools', createDatabaseToolsAdminRoutes())
-  app.route('/api/admin/seed-data', createSeedDataAdminRoutes())
   app.route('/api/admin/content', adminApiContentRoutes)
-  app.route('/api/admin/media', adminApiMediaRoutes)
 }
 
 export function registerFeatureRoutes(app: WorkerBlogApp): void {
@@ -103,9 +93,6 @@ export function registerAssetsAndFallbackRoutes(
 ): void {
   app.route('/', createAdminSpaRoutes())
   app.route('/api/auth', authRoutes)
-
-  // Test cleanup routes (only for development/test environments)
-  app.route('/', testCleanupRoutes)
 
   // Serve favicon
   app.get('/favicon.svg', (c) => {
@@ -177,7 +164,4 @@ export function registerAssetsAndFallbackRoutes(
       timestamp: new Date().toISOString(),
     })
   })
-
-  // Store app instance for route introspection (API reference auto-discovery)
-  setAppInstance(app)
 }

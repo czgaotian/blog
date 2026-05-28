@@ -266,36 +266,6 @@ apiRoutes.get('/', (c) => {
               }
             }
           }
-        },
-        post: {
-          summary: 'Create Content',
-          description: 'Creates a new content item',
-          operationId: 'createContent',
-          tags: ['Content'],
-          security: [{ bearerAuth: [] }],
-          requestBody: {
-            required: true,
-            content: {
-              'application/json': {
-                schema: {
-                  type: 'object',
-                  required: ['collection_id', 'title'],
-                  properties: {
-                    collection_id: { type: 'string' },
-                    title: { type: 'string' },
-                    slug: { type: 'string' },
-                    status: { type: 'string', enum: ['draft', 'published', 'archived'] },
-                    data: { type: 'object' }
-                  }
-                }
-              }
-            }
-          },
-          responses: {
-            '201': { description: 'Content created successfully' },
-            '400': { description: 'Invalid request body' },
-            '401': { description: 'Unauthorized' }
-          }
         }
       },
       '/api/content/{id}': {
@@ -315,48 +285,6 @@ apiRoutes.get('/', (c) => {
           ],
           responses: {
             '200': { description: 'Content item' },
-            '404': { description: 'Content not found' }
-          }
-        },
-        put: {
-          summary: 'Update Content',
-          description: 'Updates an existing content item',
-          operationId: 'updateContent',
-          tags: ['Content'],
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              required: true,
-              schema: { type: 'string' },
-              description: 'Content item ID'
-            }
-          ],
-          responses: {
-            '200': { description: 'Content updated successfully' },
-            '401': { description: 'Unauthorized' },
-            '404': { description: 'Content not found' }
-          }
-        },
-        delete: {
-          summary: 'Delete Content',
-          description: 'Deletes a content item',
-          operationId: 'deleteContent',
-          tags: ['Content'],
-          security: [{ bearerAuth: [] }],
-          parameters: [
-            {
-              name: 'id',
-              in: 'path',
-              required: true,
-              schema: { type: 'string' },
-              description: 'Content item ID'
-            }
-          ],
-          responses: {
-            '200': { description: 'Content deleted successfully' },
-            '401': { description: 'Unauthorized' },
             '404': { description: 'Content not found' }
           }
         }

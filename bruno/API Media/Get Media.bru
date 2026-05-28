@@ -1,11 +1,11 @@
 meta {
-  name: Clear
+  name: Get Media
   type: http
-  seq: 3
+  seq: 2
 }
 
-post {
-  url: {{baseUrl}}/api/admin/seed-data/clear
+get {
+  url: {{baseUrl}}/api/media/{{mediaId}}
   body: none
   auth: none
 }

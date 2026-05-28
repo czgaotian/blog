@@ -3,16 +3,11 @@ import { AdminLayout } from './layouts/admin-layout'
 import { AuthLayout } from './layouts/auth-layout'
 import { LoginPage } from './pages/auth/login'
 import { RegisterPage } from './pages/auth/register'
-import { AcceptInvitationPage } from './pages/auth/accept-invitation'
-import { ResetPasswordPage } from './pages/auth/reset-password'
 import { DashboardPage } from './pages/dashboard'
 import { LogsListPage } from './pages/logs-list'
 import { LogDetailsPage } from './pages/log-details'
 import { LogConfigPage } from './pages/log-config'
-import { ApiReferencePage } from './pages/api-reference'
 import { SettingsPage } from './pages/settings'
-import { UsersListPage } from './pages/users-list'
-import { UserEditPage } from './pages/user-edit'
 import { SpaTestPage } from './pages/spa-test'
 import { NotFoundPage } from './pages/not-found'
 import { ContentListPage } from './pages/content-list'
@@ -20,7 +15,6 @@ import { MediaLibraryPage } from './pages/media-library'
 import { CollectionsListPage } from './pages/collections-list'
 import { CollectionEditPage } from './pages/collection-edit'
 import { ProfilePage } from './pages/profile'
-import { ActivityLogsPage } from './pages/activity-logs'
 import { SecurityAuditPage } from './pages/security-audit'
 import { AnalyticsPage } from './pages/analytics'
 
@@ -32,8 +26,6 @@ export const router = createBrowserRouter(
       children: [
         { path: 'login', element: <LoginPage /> },
         { path: 'register', element: <RegisterPage /> },
-        { path: 'accept-invitation', element: <AcceptInvitationPage /> },
-        { path: 'reset-password', element: <ResetPasswordPage /> },
       ],
     },
     {
@@ -44,17 +36,13 @@ export const router = createBrowserRouter(
         { path: 'logs', element: <LogsListPage /> },
         { path: 'logs/config', element: <LogConfigPage /> },
         { path: 'logs/:id', element: <LogDetailsPage /> },
-        { path: 'api-reference', element: <ApiReferencePage /> },
         { path: 'settings', element: <SettingsPage /> },
-        { path: 'users', element: <UsersListPage /> },
-        { path: 'users/:id/edit', element: <UserEditPage /> },
         { path: 'content', element: <ContentListPage /> },
         { path: 'media', element: <MediaLibraryPage /> },
         { path: 'collections', element: <CollectionsListPage /> },
         { path: 'collections/new', element: <CollectionEditPage /> },
         { path: 'collections/:id/edit', element: <CollectionEditPage /> },
         { path: 'profile', element: <ProfilePage /> },
-        { path: 'activity-logs', element: <ActivityLogsPage /> },
         { path: 'security-audit', element: <SecurityAuditPage /> },
         { path: 'analytics', element: <AnalyticsPage /> },
         { path: 'spa-test', element: <SpaTestPage /> },

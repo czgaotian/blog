@@ -4,7 +4,6 @@ import type {
   MutateProfileResponse,
   UpdateProfileRequest,
   ChangePasswordRequest,
-  ActivityLogsListResponse,
 } from '@worker-blog/shared/admin-api'
 import { adminFetch } from './client'
 
@@ -54,41 +53,4 @@ export function useUploadAvatar() {
       qc.invalidateQueries({ queryKey: ['admin', 'profile'] })
     },
   })
-}
-
-export interface ActivityLogsFilters {
-  page?: number
-  limit?: number
-  action?: string
-  resourceType?: string
-  dateFrom?: string
-  dateTo?: string
-  userId?: string
-}
-
-export function useActivityLogs(filters: ActivityLogsFilters = {}) {
-  const params = new URLSearchParams()
-  if (filters.page) params.set('page', String(filters.page))
-  if (filters.limit) params.set('limit', String(filters.limit))
-  if (filters.action) params.set('action', filters.action)
-  if (filters.resourceType) params.set('resource_type', filters.resourceType)
-  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
-  if (filters.dateTo) params.set('date_to', filters.dateTo)
-  if (filters.userId) params.set('user_id', filters.userId)
-  const qs = params.toString()
-  return useQuery<ActivityLogsListResponse>({
-    queryKey: ['admin', 'activity-logs', filters],
-    queryFn: () => adminFetch<ActivityLogsListResponse>(`/api/admin/users/activity-logs${qs ? `?${qs}` : ''}`),
-  })
-}
-
-export function activityLogsExportUrl(filters: ActivityLogsFilters = {}) {
-  const params = new URLSearchParams()
-  if (filters.action) params.set('action', filters.action)
-  if (filters.resourceType) params.set('resource_type', filters.resourceType)
-  if (filters.dateFrom) params.set('date_from', filters.dateFrom)
-  if (filters.dateTo) params.set('date_to', filters.dateTo)
-  if (filters.userId) params.set('user_id', filters.userId)
-  const qs = params.toString()
-  return `/api/admin/users/activity-logs/export${qs ? `?${qs}` : ''}`
 }

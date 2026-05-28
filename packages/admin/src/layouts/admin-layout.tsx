@@ -3,7 +3,6 @@ import { useQuery } from '@tanstack/react-query'
 import { useEffect, useState } from 'react'
 import {
   Activity,
-  BookOpen,
   Database,
   FileText,
   Gauge,
@@ -16,7 +15,6 @@ import {
   Settings,
   Sun,
   User,
-  Users,
 } from 'lucide-react'
 import { adminApi } from '../api/query'
 import { Alert } from '../components/ui/alert'
@@ -31,14 +29,11 @@ const navItems = [
   { label: 'Content', href: '/admin/content', icon: FileText },
   { label: 'Media', href: '/admin/media', icon: Image },
   { label: 'Collections', href: '/admin/collections', icon: Database },
-  { label: 'Users', href: '/admin/users', icon: Users },
-  { label: 'API Reference', href: '/admin/api-reference', icon: BookOpen },
   { label: 'Security Audit', href: '/admin/security-audit', icon: ShieldCheck },
   { label: 'Analytics', href: '/admin/analytics', icon: BarChart3 },
   { label: 'SPA Test', href: '/admin/spa-test', icon: Activity },
   { label: 'Settings', href: '/admin/settings', icon: Settings },
   { label: 'Profile', href: '/admin/profile', icon: User },
-  { label: 'Activity Logs', href: '/admin/activity-logs', icon: Activity },
 ]
 
 export function AdminLayout() {

@@ -27,14 +27,14 @@ export function useMediaList(filters: MediaFilters = {}) {
 
   return useQuery<MediaListResponse>({
     queryKey: ['admin', 'media', filters],
-    queryFn: () => adminFetch<MediaListResponse>(`/api/admin/media${qs ? `?${qs}` : ''}`),
+    queryFn: () => adminFetch<MediaListResponse>(`/api/media${qs ? `?${qs}` : ''}`),
   })
 }
 
 export function useMediaDetail(id: string) {
   return useQuery<MediaDetailResponse>({
     queryKey: ['admin', 'media', id],
-    queryFn: () => adminFetch<MediaDetailResponse>(`/api/admin/media/${id}`),
+    queryFn: () => adminFetch<MediaDetailResponse>(`/api/media/${id}`),
     enabled: Boolean(id),
   })
 }
@@ -43,7 +43,7 @@ export function useUploadMedia() {
   const qc = useQueryClient()
   return useMutation<UploadMediaResponse, Error, FormData>({
     mutationFn: async (formData) => {
-      const res = await fetch('/api/admin/media/upload', {
+      const res = await fetch('/api/media/upload-multiple', {
         method: 'POST',
         body: formData,
         credentials: 'include',
@@ -64,8 +64,8 @@ export function useUpdateMedia(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateMediaResponse, Error, UpdateMediaRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateMediaResponse>(`/api/admin/media/${id}`, {
-        method: 'PUT',
+      adminFetch<MutateMediaResponse>(`/api/media/${id}`, {
+        method: 'PATCH',
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
@@ -78,7 +78,7 @@ export function useDeleteMedia(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateMediaResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateMediaResponse>(`/api/admin/media/${id}`, { method: 'DELETE' }),
+      adminFetch<MutateMediaResponse>(`/api/media/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] })
     },

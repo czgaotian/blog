@@ -33,7 +33,7 @@ export function SpaTestPage() {
 
       {meQuery.isError ? (
         <Alert title="Session check failed" tone="danger">
-          The shell loaded, but `/api/admin/me` did not return session data.
+          The shell loaded, but `/api/auth/me` did not return session data.
         </Alert>
       ) : null}
 

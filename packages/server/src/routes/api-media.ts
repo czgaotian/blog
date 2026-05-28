@@ -2,6 +2,7 @@ import { Hono } from 'hono'
 import { z } from 'zod'
 import { requireAuth } from '../middleware'
 import type { Bindings, Variables } from '../app'
+import type { MediaItem, MediaListResponse, MediaDetailResponse, UploadMediaResponse } from '@worker-blog/shared/admin-api'
 
 // Helper function to generate short IDs (replacement for nanoid)
 function generateId(): string {
@@ -41,6 +42,141 @@ export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variable
 
 // Apply auth middleware to all routes
 apiMediaRoutes.use('*', requireAuth())
+
+function mapMediaRow(row: any): MediaItem {
+  const publicUrl = row.public_url || `/files/${row.r2_key}`
+  return {
+    id: row.id,
+    filename: row.filename,
+    originalName: row.original_name,
+    mimeType: row.mime_type,
+    size: row.size,
+    width: row.width ?? null,
+    height: row.height ?? null,
+    folder: row.folder,
+    publicUrl,
+    thumbnailUrl: row.thumbnail_url || (row.mime_type?.startsWith('image/') ? publicUrl : null),
+    alt: row.alt ?? null,
+    caption: row.caption ?? null,
+    tags: row.tags ? JSON.parse(row.tags) : [],
+    uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : '',
+    isImage: Boolean(row.mime_type?.startsWith('image/')),
+    isVideo: Boolean(row.mime_type?.startsWith('video/')),
+    isDocument: !row.mime_type?.startsWith('image/') && !row.mime_type?.startsWith('video/'),
+  }
+}
+
+function toMediaItem(record: {
+  id: string
+  filename: string
+  original_name: string
+  mime_type: string
+  size: number
+  width: number | null
+  height: number | null
+  folder: string
+  public_url: string
+  thumbnail_url: string | null
+  uploaded_at: number
+}): MediaItem {
+  return {
+    id: record.id,
+    filename: record.filename,
+    originalName: record.original_name,
+    mimeType: record.mime_type,
+    size: record.size,
+    width: record.width,
+    height: record.height,
+    folder: record.folder,
+    publicUrl: record.public_url,
+    thumbnailUrl: record.thumbnail_url,
+    alt: null,
+    caption: null,
+    tags: [],
+    uploadedAt: new Date(record.uploaded_at * 1000).toISOString(),
+    isImage: record.mime_type.startsWith('image/'),
+    isVideo: record.mime_type.startsWith('video/'),
+    isDocument: !record.mime_type.startsWith('image/') && !record.mime_type.startsWith('video/'),
+  }
+}
+
+apiMediaRoutes.get('/', async (c) => {
+  const db = c.env.DB
+  const page = Math.max(1, Number(c.req.query('page') || '1'))
+  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '24')))
+  const offset = (page - 1) * limit
+  const folder = c.req.query('folder') || ''
+  const type = c.req.query('type') || ''
+  const search = c.req.query('search') || ''
+
+  const conditions: string[] = ['deleted_at IS NULL']
+  const params: unknown[] = []
+
+  if (folder) { conditions.push('folder = ?'); params.push(folder) }
+  if (type === 'images') { conditions.push('mime_type LIKE ?'); params.push('image/%') }
+  else if (type === 'videos') { conditions.push('mime_type LIKE ?'); params.push('video/%') }
+  else if (type === 'documents') {
+    conditions.push('(mime_type = ? OR mime_type = ? OR mime_type LIKE ?)')
+    params.push('application/pdf', 'text/plain', 'application/%document%')
+  }
+  if (search) { conditions.push('(filename LIKE ? OR original_name LIKE ?)'); params.push(`%${search}%`, `%${search}%`) }
+
+  const where = `WHERE ${conditions.join(' AND ')}`
+
+  try {
+    const countRes = await db
+      .prepare(`SELECT COUNT(*) as count FROM media ${where}`)
+      .bind(...params)
+      .first() as any
+    const total = countRes?.count || 0
+
+    const { results } = await db
+      .prepare(`SELECT * FROM media ${where} ORDER BY uploaded_at DESC LIMIT ? OFFSET ?`)
+      .bind(...params, limit, offset)
+      .all()
+
+    const { results: folderResults } = await db
+      .prepare('SELECT folder, COUNT(*) as count, COALESCE(SUM(size),0) as totalSize FROM media WHERE deleted_at IS NULL GROUP BY folder ORDER BY folder')
+      .all()
+
+    const { results: typeResults } = await db
+      .prepare(`SELECT CASE WHEN mime_type LIKE 'image/%' THEN 'images' WHEN mime_type LIKE 'video/%' THEN 'videos' ELSE 'documents' END as type, COUNT(*) as count FROM media WHERE deleted_at IS NULL GROUP BY type`)
+      .all()
+
+    const response: MediaListResponse = {
+      items: (results || []).map(mapMediaRow),
+      total,
+      page,
+      limit,
+      folders: (folderResults || []).map((r: any) => ({ folder: r.folder, count: r.count, totalSize: r.totalSize })),
+      types: (typeResults || []).map((r: any) => ({ type: r.type, count: r.count })),
+    }
+    return c.json(response)
+  } catch (error) {
+    console.error('[api-media] Error fetching media:', error)
+    return c.json({ error: 'Failed to fetch media' }, 500)
+  }
+})
+
+apiMediaRoutes.get('/:id', async (c) => {
+  const id = c.req.param('id')
+  const db = c.env.DB
+
+  try {
+    const row = await db
+      .prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+      .bind(id)
+      .first() as any
+
+    if (!row) return c.json({ error: 'Media item not found' }, 404)
+
+    const response: MediaDetailResponse = { item: mapMediaRow(row) }
+    return c.json(response)
+  } catch (error) {
+    console.error('[api-media] Error fetching media item:', error)
+    return c.json({ error: 'Failed to fetch media item' }, 500)
+  }
+})
 
 // Upload single file
 apiMediaRoutes.post('/upload', async (c) => {
@@ -162,22 +298,14 @@ apiMediaRoutes.post('/upload', async (c) => {
     // Emit media upload event
     await emitEvent('media.upload', { id: mediaRecord.id, filename: mediaRecord.filename })
 
-    return c.json({
+    const item = toMediaItem(mediaRecord)
+    const response: UploadMediaResponse & { success: true; file: MediaItem } = {
       success: true,
-      file: {
-        id: mediaRecord.id,
-        filename: mediaRecord.filename,
-        originalName: mediaRecord.original_name,
-        mimeType: mediaRecord.mime_type,
-        size: mediaRecord.size,
-        width: mediaRecord.width,
-        height: mediaRecord.height,
-        r2_key: mediaRecord.r2_key,
-        publicUrl: mediaRecord.public_url,
-        thumbnailUrl: mediaRecord.thumbnail_url,
-        uploadedAt: new Date(mediaRecord.uploaded_at * 1000).toISOString()
-      }
-    })
+      file: item,
+      uploaded: [item],
+      errors: [],
+    }
+    return c.json(response)
   } catch (error) {
     console.error('Upload error:', error)
     return c.json({ error: 'Upload failed' }, 500)
@@ -317,19 +445,7 @@ apiMediaRoutes.post('/upload-multiple', async (c) => {
           mediaRecord.uploaded_at
         ).run()
 
-        uploadResults.push({
-          id: mediaRecord.id,
-          filename: mediaRecord.filename,
-          originalName: mediaRecord.original_name,
-          mimeType: mediaRecord.mime_type,
-          size: mediaRecord.size,
-          width: mediaRecord.width,
-          height: mediaRecord.height,
-          r2_key: mediaRecord.r2_key,
-          publicUrl: mediaRecord.public_url,
-          thumbnailUrl: mediaRecord.thumbnail_url,
-          uploadedAt: new Date(mediaRecord.uploaded_at * 1000).toISOString()
-        })
+        uploadResults.push(toMediaItem(mediaRecord))
       } catch (error) {
         errors.push({
           filename: file.name,

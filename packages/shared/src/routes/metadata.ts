@@ -73,27 +73,25 @@ export const CATEGORY_INFO: Record<string, CategoryInfo> = {
 
 export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/auth/login': { description: 'Authenticate user with email and password', category: 'Auth', authentication: false },
-  'POST /api/auth/register': { description: 'Register a new user account', category: 'Auth', authentication: false },
+  'POST /api/auth/register': { description: 'Create the first admin account', category: 'Auth', authentication: false },
   'POST /api/auth/logout': { description: 'Log out the current user', category: 'Auth', authentication: true },
   'GET /api/auth/me': { description: 'Get current authenticated user information', category: 'Auth', authentication: true },
   'POST /api/auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
-  'POST /api/auth/seed-admin': { description: 'Create or reset the admin user account', category: 'Auth', authentication: false },
 
   'GET /api/collections': { description: 'List public collections', category: 'Content', authentication: false },
   'GET /api/collections/:collection/content': { description: 'List public content in a collection', category: 'Content', authentication: false },
   'GET /api/content/:id': { description: 'Get a content item by ID', category: 'Content', authentication: false },
-  'POST /api/content': { description: 'Create a content item', category: 'Content', authentication: true },
-  'PUT /api/content/:id': { description: 'Update a content item', category: 'Content', authentication: true },
-  'DELETE /api/content/:id': { description: 'Delete a content item', category: 'Content', authentication: true },
-  'GET /api/content/:id/versions': { description: 'Get content version history', category: 'Content', authentication: true },
-  'POST /api/content/:id/restore/:versionId': { description: 'Restore a content version', category: 'Content', authentication: true },
 
-  'GET /api/media': { description: 'List media files', category: 'Media', authentication: false },
-  'GET /api/media/:id': { description: 'Get a media file by ID', category: 'Media', authentication: false },
+  'GET /api/media': { description: 'List media files', category: 'Media', authentication: true },
+  'GET /api/media/:id': { description: 'Get a media file by ID', category: 'Media', authentication: true },
   'POST /api/media/upload': { description: 'Upload a media file', category: 'Media', authentication: true },
+  'POST /api/media/upload-multiple': { description: 'Upload media files', category: 'Media', authentication: true },
+  'PATCH /api/media/:id': { description: 'Update media metadata', category: 'Media', authentication: true },
   'DELETE /api/media/:id': { description: 'Delete a media file', category: 'Media', authentication: true },
+  'POST /api/media/bulk-delete': { description: 'Delete multiple media files', category: 'Media', authentication: true },
+  'POST /api/media/create-folder': { description: 'Create a media folder', category: 'Media', authentication: true },
+  'POST /api/media/bulk-move': { description: 'Move multiple media files', category: 'Media', authentication: true },
 
-  'GET /api/admin/me': { description: 'Get admin session data', category: 'Admin', authentication: true },
   'GET /api/admin/dashboard': { description: 'Get admin dashboard data', category: 'Admin', authentication: true },
   'GET /api/admin/collections': { description: 'List collections for admin management', category: 'Admin', authentication: true },
   'POST /api/admin/collections': { description: 'Create a collection', category: 'Admin', authentication: true },
@@ -104,12 +102,6 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/admin/content': { description: 'Create content via admin API', category: 'Admin', authentication: true },
   'PUT /api/admin/content/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
   'DELETE /api/admin/content/:id': { description: 'Delete content via admin API', category: 'Admin', authentication: true },
-  'GET /api/admin/media': { description: 'List media for admin management', category: 'Admin', authentication: true },
-  'POST /api/admin/media/upload': { description: 'Upload media via admin API', category: 'Admin', authentication: true },
-  'GET /api/admin/users': { description: 'List users', category: 'Admin', authentication: true },
-  'POST /api/admin/users': { description: 'Create a user', category: 'Admin', authentication: true },
-  'PUT /api/admin/users/:id': { description: 'Update a user', category: 'Admin', authentication: true },
-  'DELETE /api/admin/users/:id': { description: 'Delete a user', category: 'Admin', authentication: true },
   'GET /api/admin/settings': { description: 'Get application settings', category: 'Admin', authentication: true },
   'PUT /api/admin/settings': { description: 'Update application settings', category: 'Admin', authentication: true },
 
@@ -123,8 +115,6 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
 
   'GET /api/health': { description: 'Health check endpoint', category: 'System', authentication: false },
   'GET /api': { description: 'API root', category: 'System', authentication: false },
-  'GET /api/system/info': { description: 'Get system information and version', category: 'System', authentication: false },
-  'GET /api/system/schema': { description: 'Get database schema information', category: 'System', authentication: false },
   'GET /files/*': { description: 'Serve files from R2 storage', category: 'Files', authentication: false },
 }
 
@@ -148,7 +138,7 @@ export function isIncludedRoute(method: string, path: string): boolean {
 export function inferCategory(path: string): string {
   if (path.startsWith('/api/auth/')) return 'Auth'
   if (path.startsWith('/api/media')) return 'Media'
-  if (path.startsWith('/api/system')) return 'System'
+  if (path === '/api' || path === '/api/health') return 'System'
   if (path.startsWith('/api/content') || path.startsWith('/api/collections')) return 'Content'
   if (path.startsWith('/api/admin/logs')) return 'Logs'
   if (path.startsWith('/api/admin/security-audit') || path.startsWith('/api/security-audit')) return 'Security'
@@ -161,7 +151,7 @@ export function inferCategory(path: string): string {
 
 export function inferAuth(path: string): boolean | 'unknown' {
   if (path === '/api/health') return false
-  if (path === '/api/system/info' || path === '/api/system/schema') return false
+  if (path === '/api' || path === '/api/health') return false
   if (path.startsWith('/files/')) return false
   if (path === '/api/events') return false
   if (path.startsWith('/api/admin')) return true

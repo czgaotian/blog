@@ -5,10 +5,9 @@ import { getCookie, setCookie } from 'hono/cookie'
 import { AuthManager, requireAuth, generateCsrfToken, rateLimit } from '../middleware'
 import { getJwtExpirySecondsFromDb, getJwtRefreshGraceSecondsFromDb } from '../middleware/auth'
 import { getCacheService, CACHE_CONFIGS } from '../services'
-import { authValidationService, isRegistrationEnabled, isFirstUserRegistration } from '../services/auth-validation'
-import type { RegistrationData } from '../services/auth-validation'
+import { setAdminExists } from '../services/auth-validation'
 import type { Bindings, Variables } from '../app'
-import { getUserProfileConfig, getRegistrationFields, getProfileFieldDefaults, sanitizeCustomData, saveCustomData, getCustomData } from '../features/user-profiles'
+import { getCustomData } from '../features/user-profiles'
 
 const JWT_SECRET_FALLBACK = 'your-super-secret-jwt-key-change-in-production'
 
@@ -46,70 +45,48 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
-// Register new user
+const firstAdminRegisterSchema = z.object({
+  email: z.string().email('Valid email is required'),
+  password: z.string().min(8, 'Password must be at least 8 characters'),
+  username: z.string().min(1).max(100).optional(),
+  firstName: z.string().min(1).max(100).optional(),
+  lastName: z.string().min(1).max(100).optional(),
+})
+
+// Register the first admin user only.
 authRoutes.post('/register',
   rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: 'register' }),
   async (c) => {
     try {
       const db = c.env.DB
 
-      // Check if this is the first user - always allow
-      const isFirstUser = await isFirstUserRegistration(db)
-
-      // If not first user, check if registration is enabled
-      if (!isFirstUser) {
-        const registrationEnabled = await isRegistrationEnabled(db)
-        if (!registrationEnabled) {
-          return c.json({ error: 'Registration is currently disabled' }, 403)
-        }
+      const userCount = await db.prepare('SELECT COUNT(*) as count FROM users').first() as any
+      if (Number(userCount?.count || 0) > 0) {
+        return c.json({ error: 'Registration is only available before the first admin account is created' }, 403)
       }
 
-      // Parse JSON with error handling
-      let requestData
+      let requestData: unknown
       try {
         requestData = await c.req.json()
-      } catch (parseError) {
+      } catch {
         return c.json({ error: 'Invalid JSON in request body' }, 400)
       }
 
-      // Build and validate using dynamic schema
-      const validationSchema = await authValidationService.buildRegistrationSchema(db)
-
-      let validatedData: RegistrationData
-      try {
-        validatedData = await validationSchema.parseAsync(requestData)
-      } catch (validationError: any) {
-        return c.json({
-          error: 'Validation failed',
-          details: validationError.issues?.map((e: any) => e.message) || [validationError.message || 'Invalid request data']
-        }, 400)
+      const validation = firstAdminRegisterSchema.safeParse(requestData)
+      if (!validation.success) {
+        return c.json({ error: 'Validation failed', details: validation.error.issues }, 400)
       }
 
-      // Extract fields with defaults for optional ones
+      const validatedData = validation.data
       const email = validatedData.email
       const password = validatedData.password
-      const username = validatedData.username || authValidationService.generateDefaultValue('username', validatedData)
-      const firstName = validatedData.firstName || authValidationService.generateDefaultValue('firstName', validatedData)
-      const lastName = validatedData.lastName || authValidationService.generateDefaultValue('lastName', validatedData)
-
-      // Normalize email to lowercase
       const normalizedEmail = email.toLowerCase()
-      
-      // Check if user already exists
-      const existingUser = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?')
-        .bind(normalizedEmail, username)
-        .first()
-      
-      if (existingUser) {
-        return c.json({ error: 'User with this email or username already exists' }, 400)
-      }
-      
-      // Hash password
+      const username = validatedData.username || normalizedEmail.split('@')[0] || 'admin'
+      const firstName = validatedData.firstName || 'Admin'
+      const lastName = validatedData.lastName || 'User'
       const passwordHash = await AuthManager.hashPassword(password)
-      
-      // Create user
       const userId = crypto.randomUUID()
-      const now = new Date()
+      const now = Date.now()
       
       await db.prepare(`
         INSERT INTO users (id, email, username, first_name, last_name, password_hash, role, is_active, created_at, updated_at)
@@ -121,33 +98,16 @@ authRoutes.post('/register',
         firstName,
         lastName,
         passwordHash,
-        'viewer', // Default role
-        1, // is_active
-        now.getTime(),
-        now.getTime()
+        'admin',
+        1,
+        now,
+        now
       ).run()
-      
-      // Save custom profile fields if configured
-      const profileConfig = getUserProfileConfig()
-      if (profileConfig) {
-        const regFields = getRegistrationFields()
-        if (regFields.length > 0) {
-          const customData: Record<string, any> = { ...getProfileFieldDefaults() }
-          for (const field of regFields) {
-            if (requestData[field.name] !== undefined) {
-              customData[field.name] = requestData[field.name]
-            }
-          }
-          const sanitized = sanitizeCustomData(customData, profileConfig)
-          await saveCustomData(db, userId, sanitized)
-        }
-      }
+      setAdminExists()
 
-      // Generate JWT token
       const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env)
-      const token = await AuthManager.generateToken(userId, normalizedEmail, 'viewer', c.env.JWT_SECRET, tokenTtl)
+      const token = await AuthManager.generateToken(userId, normalizedEmail, 'admin', c.env.JWT_SECRET, tokenTtl)
 
-      // Set HTTP-only cookie
       setCookie(c, 'auth_token', token, {
         httpOnly: true,
         secure: true,
@@ -165,16 +125,12 @@ authRoutes.post('/register',
           username,
           firstName,
           lastName,
-          role: 'viewer'
+          role: 'admin'
         },
         token
       }, 201)
     } catch (error) {
       console.error('Registration error:', error)
-      // Return validation errors as 400, other errors as 500
-      if (error instanceof Error && error.message.includes('validation')) {
-        return c.json({ error: error.message }, 400)
-      }
       return c.json({
         error: 'Registration failed',
         details: error instanceof Error ? error.message : String(error)
@@ -393,363 +349,6 @@ authRoutes.post('/refresh',
   } catch (error) {
     console.error('Token refresh error:', error)
     return c.json({ error: 'Token refresh failed' }, 500)
-  }
-})
-
-// Test seeding endpoint (only for development/testing)
-authRoutes.post('/seed-admin',
-  rateLimit({ max: 10, windowMs: 60 * 1000, keyPrefix: 'seed-admin' }),
-  async (c) => {
-  try {
-    const db = c.env.DB
-    
-    // First ensure the users table exists
-    await db.prepare(`
-      CREATE TABLE IF NOT EXISTS users (
-        id TEXT PRIMARY KEY,
-        email TEXT NOT NULL UNIQUE,
-        username TEXT NOT NULL UNIQUE,
-        first_name TEXT NOT NULL,
-        last_name TEXT NOT NULL,
-        password_hash TEXT,
-        role TEXT NOT NULL DEFAULT 'viewer',
-        avatar TEXT,
-        is_active INTEGER NOT NULL DEFAULT 1,
-        last_login_at INTEGER,
-        created_at INTEGER NOT NULL,
-        updated_at INTEGER NOT NULL
-      )
-    `).run()
-    
-    // Check if admin user already exists
-    const existingAdmin = await db.prepare('SELECT id FROM users WHERE email = ? OR username = ?')
-      .bind('admin@worker-blog.com', 'admin')
-      .first()
-
-    if (existingAdmin) {
-      // Update the password to ensure it's correct for testing
-      const passwordHash = await AuthManager.hashPassword('worker-blog!')
-      await db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
-        .bind(passwordHash, Date.now(), existingAdmin.id)
-        .run()
-
-      return c.json({
-        message: 'Admin user already exists (password updated)',
-        user: {
-          id: existingAdmin.id,
-          email: 'admin@worker-blog.com',
-          username: 'admin',
-          role: 'admin'
-        }
-      })
-    }
-
-    // Hash password
-    const passwordHash = await AuthManager.hashPassword('worker-blog!')
-    
-    // Create admin user
-    const userId = 'admin-user-id'
-    const now = Date.now()
-    const adminEmail = 'admin@worker-blog.com'.toLowerCase()
-    
-    await db.prepare(`
-      INSERT INTO users (id, email, username, first_name, last_name, password_hash, role, is_active, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `).bind(
-      userId,
-      adminEmail,
-      'admin',
-      'Admin',
-      'User',
-      passwordHash,
-      'admin',
-      1, // is_active
-      now,
-      now
-    ).run()
-    
-    return c.json({ 
-      message: 'Admin user created successfully',
-      user: {
-        id: userId,
-        email: adminEmail,
-        username: 'admin',
-        role: 'admin'
-      },
-      passwordHash: passwordHash // For debugging
-    })
-  } catch (error) {
-    console.error('Seed admin error:', error)
-    return c.json({ error: 'Failed to create admin user', details: error instanceof Error ? error.message : String(error) }, 500)
-  }
-})
-
-
-// Process invitation acceptance
-authRoutes.post('/accept-invitation', async (c) => {
-  try {
-    const body = await c.req.json() as {
-      token?: string
-      username?: string
-      password?: string
-      confirmPassword?: string
-    }
-    const token = body.token
-    const username = body.username?.trim()
-    const password = body.password
-    const confirmPassword = body.confirmPassword || body.password
-
-    if (!token || !password || !confirmPassword) {
-      return c.json({ error: 'All fields are required' }, 400)
-    }
-
-    if (password !== confirmPassword) {
-      return c.json({ error: 'Passwords do not match' }, 400)
-    }
-
-    if (password.length < 8) {
-      return c.json({ error: 'Password must be at least 8 characters long' }, 400)
-    }
-
-    const db = c.env.DB
-
-    // Check if invitation token is valid
-    const userStmt = db.prepare(`
-      SELECT id, email, first_name, last_name, role, invited_at
-      FROM users 
-      WHERE invitation_token = ? AND is_active = 0
-    `)
-    const invitedUser = await userStmt.bind(token).first() as any
-
-    if (!invitedUser) {
-      return c.json({ error: 'Invalid or expired invitation' }, 400)
-    }
-
-    // Check if invitation is expired (7 days)
-    const invitationAge = Date.now() - invitedUser.invited_at
-    const maxAge = 7 * 24 * 60 * 60 * 1000 // 7 days
-    
-    if (invitationAge > maxAge) {
-      return c.json({ error: 'Invitation has expired' }, 400)
-    }
-
-    // Check if username is available
-    const existingUsernameStmt = db.prepare(`
-      SELECT id FROM users WHERE username = ? AND id != ?
-    `)
-    const existingUsername = await existingUsernameStmt.bind(username, invitedUser.id).first()
-
-    if (existingUsername) {
-      return c.json({ error: 'Username is already taken' }, 400)
-    }
-
-    // Hash password
-    const passwordHash = await AuthManager.hashPassword(password)
-
-    // Activate user account
-    const updateStmt = db.prepare(`
-      UPDATE users SET 
-        username = COALESCE(?, username),
-        password_hash = ?,
-        is_active = 1,
-        email_verified = 1,
-        invitation_token = NULL,
-        accepted_invitation_at = ?,
-        updated_at = ?
-      WHERE id = ?
-    `)
-
-    await updateStmt.bind(
-      username || null,
-      passwordHash,
-      Date.now(),
-      Date.now(),
-      invitedUser.id
-    ).run()
-
-    // Generate JWT token for auto-login
-    const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env)
-    const authToken = await AuthManager.generateToken(invitedUser.id, invitedUser.email, invitedUser.role, c.env.JWT_SECRET, tokenTtl)
-
-    // Set HTTP-only cookie
-    setCookie(c, 'auth_token', authToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Strict',
-      maxAge: tokenTtl
-    })
-
-    // Set CSRF cookie for browser sessions
-    await setCsrfCookie(c)
-
-    // Log the activity (TODO: implement activity logging)
-    // Activity logging is deferred until utils/log-activity is implemented
-
-    return c.json({ message: 'Invitation accepted successfully' })
-
-  } catch (error) {
-    console.error('Accept invitation error:', error)
-    return c.json({ error: 'Failed to accept invitation' }, 500)
-  }
-})
-
-// Request password reset
-authRoutes.post('/request-password-reset',
-  rateLimit({ max: 3, windowMs: 15 * 60 * 1000, keyPrefix: 'password-reset' }),
-  async (c) => {
-  try {
-    const body = await c.req.json() as { email?: string }
-    const email = body.email?.trim()?.toLowerCase()
-
-    if (!email) {
-      return c.json({ error: 'Email is required' }, 400)
-    }
-
-    // Validate email format
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
-    if (!emailRegex.test(email)) {
-      return c.json({ error: 'Please enter a valid email address' }, 400)
-    }
-
-    const db = c.env.DB
-
-    // Check if user exists and is active
-    const userStmt = db.prepare(`
-      SELECT id, email, first_name, last_name FROM users 
-      WHERE email = ? AND is_active = 1
-    `)
-    const user = await userStmt.bind(email).first() as any
-
-    // Always return success to prevent email enumeration
-    if (!user) {
-      return c.json({
-        success: true,
-        message: 'If an account with this email exists, a password reset link has been sent.'
-      })
-    }
-
-    // Generate password reset token (expires in 1 hour)
-    const resetToken = crypto.randomUUID()
-    const resetExpires = Date.now() + (60 * 60 * 1000) // 1 hour
-
-    // Update user with reset token
-    const updateStmt = db.prepare(`
-      UPDATE users SET 
-        password_reset_token = ?,
-        password_reset_expires = ?,
-        updated_at = ?
-      WHERE id = ?
-    `)
-
-    await updateStmt.bind(
-      resetToken,
-      resetExpires,
-      Date.now(),
-      user.id
-    ).run()
-
-    // Log the activity (TODO: implement activity logging)
-    // Activity logging is deferred until utils/log-activity is implemented
-
-    // In a real implementation, you would send an email here
-    // For now, we'll return the reset link for development
-    const resetLink = `${c.req.header('origin') || 'http://localhost:8787'}/admin/auth/reset-password?token=${resetToken}`
-
-    return c.json({
-      success: true,
-      message: 'If an account with this email exists, a password reset link has been sent.',
-      reset_link: resetLink // In production, this would be sent via email
-    })
-
-  } catch (error) {
-    console.error('Password reset request error:', error)
-    return c.json({ error: 'Failed to process password reset request' }, 500)
-  }
-})
-
-// Process password reset
-authRoutes.post('/reset-password', async (c) => {
-  try {
-    const body = await c.req.json() as { token?: string; password?: string; confirmPassword?: string }
-    const token = body.token
-    const password = body.password
-    const confirmPassword = body.confirmPassword
-
-    if (!token || !password || !confirmPassword) {
-      return c.json({ error: 'All fields are required' }, 400)
-    }
-
-    if (password !== confirmPassword) {
-      return c.json({ error: 'Passwords do not match' }, 400)
-    }
-
-    if (password.length < 8) {
-      return c.json({ error: 'Password must be at least 8 characters long' }, 400)
-    }
-
-    const db = c.env.DB
-
-    // Check if reset token is valid and not expired
-    const userStmt = db.prepare(`
-      SELECT id, email, password_hash, password_reset_expires
-      FROM users
-      WHERE password_reset_token = ? AND is_active = 1
-    `)
-    const user = await userStmt.bind(token).first() as any
-
-    if (!user) {
-      return c.json({ error: 'Invalid or expired reset token' }, 400)
-    }
-
-    // Check if token is expired
-    if (Date.now() > user.password_reset_expires) {
-      return c.json({ error: 'Reset token has expired' }, 400)
-    }
-
-    // Hash new password
-    const newPasswordHash = await AuthManager.hashPassword(password)
-
-    // Store old password in history (skip if table doesn't exist)
-    try {
-      const historyStmt = db.prepare(`
-        INSERT INTO password_history (id, user_id, password_hash, created_at)
-        VALUES (?, ?, ?, ?)
-      `)
-      await historyStmt.bind(
-        crypto.randomUUID(),
-        user.id,
-        user.password_hash,
-        Date.now()
-      ).run()
-    } catch (historyError) {
-      // Password history table may not exist yet
-      console.warn('Could not store password history:', historyError)
-    }
-
-    // Update user password and clear reset token
-    const updateStmt = db.prepare(`
-      UPDATE users SET
-        password_hash = ?,
-        password_reset_token = NULL,
-        password_reset_expires = NULL,
-        updated_at = ?
-      WHERE id = ?
-    `)
-
-    await updateStmt.bind(
-      newPasswordHash,
-      Date.now(),
-      user.id
-    ).run()
-
-    // Log the activity (TODO: implement activity logging)
-    // Activity logging is deferred until utils/log-activity is implemented
-
-    return c.json({ message: 'Password reset successfully' })
-
-  } catch (error) {
-    console.error('Password reset error:', error)
-    return c.json({ error: 'Failed to reset password' }, 500)
   }
 })
 
