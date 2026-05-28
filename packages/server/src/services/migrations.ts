@@ -54,7 +54,8 @@ export class MigrationService {
       appliedResult.results?.map((row: any) => [row.id, row]) || []
     )
 
-    // Auto-detect applied migrations by checking if their tables exist
+    // Auto-detect the baseline migration for databases created before the
+    // migration tracking table existed.
     await this.autoDetectAppliedMigrations(appliedMigrations)
 
     // Use bundled migrations as the source of truth
@@ -94,112 +95,6 @@ export class MigrationService {
       }
     }
 
-    // Check if stage 5 enhancement tables exist (migration 003)
-    // Migration 003 creates content_fields.
-    if (!appliedMigrations.has('003')) {
-      const hasStage5Tables = await this.checkTablesExist(['content_fields'])
-      if (hasStage5Tables) {
-        appliedMigrations.set('003', {
-          id: '003',
-          applied_at: new Date().toISOString(),
-          name: 'Stage 5 Enhancements',
-          filename: '003_stage5_enhancements.sql'
-        })
-        await this.markMigrationApplied('003', 'Stage 5 Enhancements', '003_stage5_enhancements.sql')
-      }
-    }
-
-    // Check if user management tables exist (migration 004)
-    if (!appliedMigrations.has('004')) {
-      const hasUserTables = await this.checkTablesExist(['activity_logs', 'password_history'])
-      if (hasUserTables) {
-        appliedMigrations.set('004', {
-          id: '004',
-          applied_at: new Date().toISOString(),
-          name: 'User Management',
-          filename: '004_stage6_user_management.sql'
-        })
-        await this.markMigrationApplied('004', 'User Management', '004_stage6_user_management.sql')
-      }
-    }
-
-    // Check if system_logs table exists (migration 009)
-    if (!appliedMigrations.has('009')) {
-      const hasLoggingTables = await this.checkTablesExist(['system_logs', 'log_config'])
-      if (hasLoggingTables) {
-        appliedMigrations.set('009', {
-          id: '009',
-          applied_at: new Date().toISOString(),
-          name: 'System Logging',
-          filename: '009_system_logging.sql'
-        })
-        await this.markMigrationApplied('009', 'System Logging', '009_system_logging.sql')
-      }
-    }
-
-    // Check if settings table exists (migration 018)
-    if (!appliedMigrations.has('018')) {
-      const hasSettingsTable = await this.checkTablesExist(['settings'])
-      if (hasSettingsTable) {
-        appliedMigrations.set('018', {
-          id: '018',
-          applied_at: new Date().toISOString(),
-          name: 'Settings Table',
-          filename: '018_settings_table.sql'
-        })
-        await this.markMigrationApplied('018', 'Settings Table', '018_settings_table.sql')
-      }
-    }
-
-    // Check if user_profiles table exists (migration 032)
-    // Table may already exist from app-level migration (worker-blog-cms/migrations/018_user_profiles.sql)
-    if (!appliedMigrations.has('032')) {
-      const hasUserProfilesTable = await this.checkTablesExist(['user_profiles'])
-      if (hasUserProfilesTable) {
-        appliedMigrations.set('032', {
-          id: '032',
-          applied_at: new Date().toISOString(),
-          name: 'User Profiles',
-          filename: '032_user_profiles.sql'
-        })
-        await this.markMigrationApplied('032', 'User Profiles', '032_user_profiles.sql')
-      }
-    }
-
-    // Ensure user_profiles.data column exists (migration 035 is now a no-op).
-    // Databases that ran the old 032 (without data column) need the column added.
-    // Migration 035 was converted to a no-op to fix #771 (duplicate column error
-    // on fresh installs), so we add the column here if it's missing.
-    const hasUserProfilesTable = await this.checkTablesExist(['user_profiles'])
-    if (hasUserProfilesTable) {
-      const hasDataColumn = await this.checkColumnExists('user_profiles', 'data')
-      if (!hasDataColumn) {
-        try {
-          await this.db.prepare(`ALTER TABLE user_profiles ADD COLUMN data TEXT DEFAULT '{}'`).run()
-          console.log('[Migration] Added missing data column to user_profiles')
-        } catch (error) {
-          // Column may have been added concurrently; ignore duplicate column errors
-          const msg = error instanceof Error ? error.message : String(error)
-          if (!msg.includes('duplicate column name')) {
-            console.error('[Migration] Failed to add data column to user_profiles:', msg)
-          }
-        }
-      }
-    }
-
-    // Mark migration 035 as applied since it's now a no-op (column handled above)
-    if (!appliedMigrations.has('035')) {
-      const hasDataCol = hasUserProfilesTable && await this.checkColumnExists('user_profiles', 'data')
-      if (hasDataCol) {
-        appliedMigrations.set('035', {
-          id: '035',
-          applied_at: new Date().toISOString(),
-          name: 'User Profiles Data Column',
-          filename: '035_user_profiles_data_column.sql'
-        })
-        await this.markMigrationApplied('035', 'User Profiles Data Column', '035_user_profiles_data_column.sql')
-      }
-    }
   }
 
   /**
@@ -217,21 +112,6 @@ export class MigrationService {
         }
       }
       return true
-    } catch (error) {
-      return false
-    }
-  }
-
-  /**
-   * Check if a specific column exists in a table
-   */
-  private async checkColumnExists(tableName: string, columnName: string): Promise<boolean> {
-    try {
-      const result = await this.db.prepare(
-        `SELECT * FROM pragma_table_info(?) WHERE name = ?`
-      ).bind(tableName, columnName).first()
-
-      return !!result
     } catch (error) {
       return false
     }
@@ -466,7 +346,20 @@ export class MigrationService {
 
     // Basic table existence checks
     const requiredTables = [
-      'users', 'content', 'collections', 'media'
+      'users',
+      'collections',
+      'content',
+      'content_versions',
+      'content_fields',
+      'media',
+      'settings',
+      'activity_logs',
+      'password_history',
+      'user_profiles',
+      'system_logs',
+      'log_config',
+      'security_events',
+      'analytics_events',
     ]
 
     for (const table of requiredTables) {

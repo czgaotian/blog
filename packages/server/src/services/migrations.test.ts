@@ -109,7 +109,7 @@ function createMockDb(options: {
 
 describe('MigrationService', () => {
   describe('autoDetectAppliedMigrations', () => {
-    it('marks core collection fields as applied when content_fields exists', async () => {
+    it('marks baseline schema as applied when core tables exist', async () => {
       const db = createMockDb({
         existingTables: ['users', 'content', 'collections', 'media', 'content_fields'],
       })
@@ -118,7 +118,6 @@ describe('MigrationService', () => {
       const migrations = await service.getAvailableMigrations()
 
       expect(migrations.find(m => m.id === '001')?.applied).toBe(true)
-      expect(migrations.find(m => m.id === '003')?.applied).toBe(true)
     })
   })
 

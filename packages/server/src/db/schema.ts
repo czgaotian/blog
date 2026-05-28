@@ -11,6 +11,23 @@ export const users = sqliteTable('users', {
   passwordHash: text('password_hash'), // Hashed password, nullable for OAuth users
   role: text('role').notNull().default('viewer'), // 'admin', 'editor', 'author', 'viewer'
   avatar: text('avatar'),
+  avatarUrl: text('avatar_url'),
+  phone: text('phone'),
+  bio: text('bio'),
+  timezone: text('timezone').default('UTC'),
+  language: text('language').default('en'),
+  emailNotifications: integer('email_notifications', { mode: 'boolean' }).default(true),
+  theme: text('theme').default('dark'),
+  twoFactorEnabled: integer('two_factor_enabled', { mode: 'boolean' }).default(false),
+  twoFactorSecret: text('two_factor_secret'),
+  passwordResetToken: text('password_reset_token'),
+  passwordResetExpires: integer('password_reset_expires'),
+  emailVerified: integer('email_verified', { mode: 'boolean' }).default(false),
+  emailVerificationToken: text('email_verification_token'),
+  invitationToken: text('invitation_token'),
+  invitedBy: text('invited_by'),
+  invitedAt: integer('invited_at'),
+  acceptedInvitationAt: integer('accepted_invitation_at'),
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   lastLoginAt: integer('last_login_at'),
   createdAt: integer('created_at').notNull(),
@@ -41,6 +58,7 @@ export const content = sqliteTable('content', {
   authorId: text('author_id').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 });
 
 // Content versions for versioning system
