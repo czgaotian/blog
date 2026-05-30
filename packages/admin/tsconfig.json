@@ -1,7 +1,10 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022", "DOM"],
+    "lib": [
+      "ES2022",
+      "DOM"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "jsx": "react-jsx",
@@ -14,17 +17,24 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "typeRoots": [
       "../../node_modules/.pnpm/node_modules/@types",
       "../../node_modules/.pnpm/node_modules/@cloudflare"
     ],
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@worker-blog/shared": ["../shared/src/index.ts"],
-      "@worker-blog/shared/*": ["../shared/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@worker-blog/shared": [
+        "../shared/src/index.ts"
+      ],
+      "@worker-blog/shared/*": [
+        "../shared/src/*"
+      ]
     }
   },
   "include": [

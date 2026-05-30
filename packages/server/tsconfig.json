@@ -1,7 +1,9 @@
 {
   "compilerOptions": {
     "target": "ES2022",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2022"
+    ],
     "module": "ESNext",
     "moduleResolution": "bundler",
     "noEmit": true,
@@ -16,19 +18,30 @@
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
     "forceConsistentCasingInFileNames": true,
-    "types": ["node"],
+    "types": [
+      "node"
+    ],
     "typeRoots": [
       "../../node_modules/.pnpm/node_modules/@types",
       "../../node_modules/.pnpm/node_modules/@cloudflare"
     ],
     "skipLibCheck": true,
-    "baseUrl": ".",
     "paths": {
-      "@/*": ["./src/*"],
-      "@worker-blog/admin": ["../admin/src/index.ts"],
-      "@worker-blog/admin/*": ["../admin/src/*"],
-      "@worker-blog/shared": ["../shared/src/index.ts"],
-      "@worker-blog/shared/*": ["../shared/src/*"]
+      "@/*": [
+        "./src/*"
+      ],
+      "@worker-blog/admin": [
+        "../admin/src/index.ts"
+      ],
+      "@worker-blog/admin/*": [
+        "../admin/src/*"
+      ],
+      "@worker-blog/shared": [
+        "../shared/src/index.ts"
+      ],
+      "@worker-blog/shared/*": [
+        "../shared/src/*"
+      ]
     }
   },
   "include": [
