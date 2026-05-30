@@ -1,56 +1,56 @@
-import { createBrowserRouter } from 'react-router'
-import { AdminLayout } from './layouts/admin-layout'
-import { AuthLayout } from './layouts/auth-layout'
-import { LoginPage } from './pages/auth/login'
-import { RegisterPage } from './pages/auth/register'
-import { DashboardPage } from './pages/dashboard'
-import { LogsListPage } from './pages/logs-list'
-import { LogDetailsPage } from './pages/log-details'
-import { LogConfigPage } from './pages/log-config'
-import { SettingsPage } from './pages/settings'
-import { SpaTestPage } from './pages/spa-test'
-import { NotFoundPage } from './pages/not-found'
-import { ContentListPage } from './pages/content-list'
-import { MediaLibraryPage } from './pages/media-library'
-import { CollectionsListPage } from './pages/collections-list'
-import { CollectionEditPage } from './pages/collection-edit'
-import { ProfilePage } from './pages/profile'
-import { SecurityAuditPage } from './pages/security-audit'
-import { AnalyticsPage } from './pages/analytics'
+import { createBrowserRouter } from "react-router";
+import { BaseLayout } from "./layouts/base-layout";
+import { AuthLayout } from "./layouts/auth-layout";
+import { LoginPage } from "./pages/auth/login";
+import { RegisterPage } from "./pages/auth/register";
+import { DashboardPage } from "./pages/dashboard";
+import { LogsListPage } from "./pages/logs-list";
+import { LogDetailsPage } from "./pages/log-details";
+import { LogConfigPage } from "./pages/log-config";
+import { SettingsPage } from "./pages/settings";
+import { SpaTestPage } from "./pages/spa-test";
+import { NotFoundPage } from "./pages/not-found";
+import { ContentListPage } from "./pages/content-list";
+import { MediaLibraryPage } from "./pages/media-library";
+import { CollectionsListPage } from "./pages/collections-list";
+import { CollectionEditPage } from "./pages/collection-edit";
+import { ProfilePage } from "./pages/profile";
+import { SecurityAuditPage } from "./pages/security-audit";
+import { AnalyticsPage } from "./pages/analytics";
 
 export const router = createBrowserRouter(
   [
     {
-      path: '/admin/auth',
+      path: "/auth",
       element: <AuthLayout />,
       children: [
-        { path: 'login', element: <LoginPage /> },
-        { path: 'register', element: <RegisterPage /> },
+        { path: "login", element: <LoginPage /> },
+        { path: "register", element: <RegisterPage /> },
       ],
     },
     {
-      path: '/admin',
-      element: <AdminLayout />,
+      path: "/",
+      element: <BaseLayout />,
       children: [
-        { path: 'dashboard', element: <DashboardPage /> },
-        { path: 'logs', element: <LogsListPage /> },
-        { path: 'logs/config', element: <LogConfigPage /> },
-        { path: 'logs/:id', element: <LogDetailsPage /> },
-        { path: 'settings', element: <SettingsPage /> },
-        { path: 'content', element: <ContentListPage /> },
-        { path: 'media', element: <MediaLibraryPage /> },
-        { path: 'collections', element: <CollectionsListPage /> },
-        { path: 'collections/new', element: <CollectionEditPage /> },
-        { path: 'collections/:id/edit', element: <CollectionEditPage /> },
-        { path: 'profile', element: <ProfilePage /> },
-        { path: 'security-audit', element: <SecurityAuditPage /> },
-        { path: 'analytics', element: <AnalyticsPage /> },
-        { path: 'spa-test', element: <SpaTestPage /> },
-        { path: '*', element: <NotFoundPage /> },
+        { path: "dashboard", element: <DashboardPage /> },
+        { path: "logs", element: <LogsListPage /> },
+        { path: "logs/config", element: <LogConfigPage /> },
+        { path: "logs/:id", element: <LogDetailsPage /> },
+        { path: "settings", element: <SettingsPage /> },
+        { path: "content", element: <ContentListPage /> },
+        { path: "media", element: <MediaLibraryPage /> },
+        { path: "collections", element: <CollectionsListPage /> },
+        { path: "collections/new", element: <CollectionEditPage /> },
+        { path: "collections/:id/edit", element: <CollectionEditPage /> },
+        { path: "profile", element: <ProfilePage /> },
+        { path: "security-audit", element: <SecurityAuditPage /> },
+        { path: "analytics", element: <AnalyticsPage /> },
+        { path: "spa-test", element: <SpaTestPage /> },
+        { path: "*", element: <NotFoundPage /> },
       ],
     },
   ],
   {
-    basename: '/',
+    basename: "/",
   },
-)
+);

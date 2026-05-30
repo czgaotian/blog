@@ -380,7 +380,7 @@ export const requireAuth = () => {
         // Check if this is a browser request (HTML accept header)
         const acceptHeader = c.req.header('Accept') || ''
         if (acceptHeader.includes('text/html')) {
-          return c.redirect('/admin/auth/login?error=Please login to access the admin area')
+          return c.redirect('/auth/login?error=Please login to access the admin area')
         }
         return c.json({ error: 'Authentication required' }, 401)
       }
@@ -413,7 +413,7 @@ export const requireAuth = () => {
         // Check if this is a browser request (HTML accept header)
         const acceptHeader = c.req.header('Accept') || ''
         if (acceptHeader.includes('text/html')) {
-          return c.redirect('/admin/auth/login?error=Your session has expired, please login again')
+          return c.redirect('/auth/login?error=Your session has expired, please login again')
         }
         return c.json({ error: 'Invalid or expired token' }, 401)
       }
@@ -427,7 +427,7 @@ export const requireAuth = () => {
       // Check if this is a browser request (HTML accept header)
       const acceptHeader = c.req.header('Accept') || ''
       if (acceptHeader.includes('text/html')) {
-        return c.redirect('/admin/auth/login?error=Authentication failed, please login again')
+        return c.redirect('/auth/login?error=Authentication failed, please login again')
       }
       return c.json({ error: 'Authentication failed' }, 401)
     }
@@ -443,7 +443,7 @@ export const requireRole = (requiredRole: string | string[]) => {
       // Check if this is a browser request (HTML accept header)
       const acceptHeader = c.req.header('Accept') || ''
       if (acceptHeader.includes('text/html')) {
-        return c.redirect('/admin/auth/login?error=Please login to access the admin area')
+        return c.redirect('/auth/login?error=Please login to access the admin area')
       }
       return c.json({ error: 'Authentication required' }, 401)
     }
@@ -454,7 +454,7 @@ export const requireRole = (requiredRole: string | string[]) => {
       // Check if this is a browser request (HTML accept header)
       const acceptHeader = c.req.header('Accept') || ''
       if (acceptHeader.includes('text/html')) {
-        return c.redirect('/admin/auth/login?error=You do not have permission to access this area')
+        return c.redirect('/auth/login?error=You do not have permission to access this area')
       }
       return c.json({ error: 'Insufficient permissions' }, 403)
     }

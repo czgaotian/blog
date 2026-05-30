@@ -14,8 +14,8 @@ export { default as adminApiRoutes } from './admin-api'
 // Auth routes
 export { default as authRoutes } from './auth'
 
-// Admin UI routes
-export { createAdminSpaRoutes } from './admin-spa'
+// SPA fallback route
+export { createSpaFallbackRoutes } from './spa-fallback'
 export { adminApiContentRoutes } from './admin-api-content'
 export { adminApiCollectionsRoutes } from './admin-api-collections'
 export { adminApiProfileRoutes } from './admin-api-profile'
@@ -28,7 +28,7 @@ export const ROUTES_INFO = {
     'apiMediaRoutes',
     'adminApiRoutes',
     'authRoutes',
-    'createAdminSpaRoutes'
+    'createSpaFallbackRoutes'
   ],
   status: 'Core package routes ready',
   reference: 'https://github.com/worker-blog/worker-blog'

@@ -41,10 +41,9 @@ export function adminSetupMiddleware() {
     const adminExists = await checkAdminUserExists(db)
 
     if (!adminExists) {
-      // Only redirect admin routes when no admin exists
-      // Let other routes proceed normally (including 404s)
-      if (path.startsWith('/admin')) {
-        return c.redirect('/admin/auth/register?setup=true')
+      // The SPA is mounted at the root, so setup redirects any page route.
+      if (!path.startsWith('/auth/')) {
+        return c.redirect('/auth/register?setup=true')
       }
     }
 

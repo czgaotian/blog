@@ -2,7 +2,6 @@
  * Default Worker Blog server application entrypoint.
  */
 
-import { createWorkerBlogApp } from './app'
-import { appConfig } from './config/app'
+import { createWorkerBlogApp } from "./app";
 
-export default createWorkerBlogApp(appConfig)
+export default createWorkerBlogApp();

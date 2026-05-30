@@ -258,7 +258,7 @@ authRoutes.get('/logout', (c) => {
   })
   clearCsrfCookie(c)
 
-  return c.redirect('/admin/auth/login?message=You have been logged out successfully')
+  return c.redirect('/auth/login?message=You have been logged out successfully')
 })
 
 // Get current user

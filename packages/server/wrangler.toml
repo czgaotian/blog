@@ -7,10 +7,9 @@ compatibility_flags = ["nodejs_compat"]
 workers_dev = true
 
 [assets]
-directory = "../admin/dist/client"
+directory = "../admin/dist"
 binding = "ASSETS"
-not_found_handling = "single-page-application"
-run_worker_first = ["/", "/admin", "/admin/*", "/api/*", "/favicon.svg", "/files/*"]
+run_worker_first = ["/api/*", "/files/*"]
 
 # D1 Database
 [[d1_databases]]
