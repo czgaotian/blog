@@ -7,6 +7,12 @@
       "skillPath": "skills/planning-with-files/SKILL.md",
       "computedHash": "2a013f2cff21dbe6939a2336fcc6a98dab0cf1b3e97c88320258b98a76eeb850"
     },
+    "shadcn": {
+      "source": "shadcn/ui",
+      "sourceType": "github",
+      "skillPath": "skills/shadcn/SKILL.md",
+      "computedHash": "80a6226e78f6d1fe464214ae0ef449d49d8ffaa3e7704f011e9b418c678ad4d1"
+    },
     "vercel-composition-patterns": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

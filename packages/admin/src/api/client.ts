@@ -1,3 +1,5 @@
+import { SETUP_REQUIRED_CODE } from '@worker-blog/shared/admin-api'
+
 export class AdminApiError extends Error {
   constructor(
     message: string,
@@ -45,6 +47,17 @@ export async function adminFetch<T>(path: string, init: RequestInit = {}): Promi
   const payload = contentType.includes('application/json') ? await response.json() : await response.text()
 
   if (!response.ok) {
+    if (
+      response.status === 428 &&
+      typeof payload === 'object' &&
+      payload &&
+      'code' in payload &&
+      (payload as { code: unknown }).code === SETUP_REQUIRED_CODE &&
+      window.location.pathname !== '/auth/register'
+    ) {
+      window.location.href = '/auth/register?setup=true'
+    }
+
     const message = typeof payload === 'object' && payload && 'error' in payload
       ? String((payload as { error: unknown }).error)
       : response.statusText

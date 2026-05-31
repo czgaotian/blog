@@ -1,9 +1,19 @@
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { SETUP_REQUIRED_CODE } from "@worker-blog/shared/admin-api";
 import { createWorkerBlogApp } from "./app";
+import { resetAdminExistsCache } from "./services/auth-validation";
 
-function createTestEnv(overrides: Record<string, unknown> = {}) {
+function createDb(adminExists = true) {
+  const first = vi.fn().mockResolvedValue(adminExists ? { id: "admin-1" } : null);
+  const bind = vi.fn(() => ({ first }));
+  const prepare = vi.fn(() => ({ bind }));
+
+  return { prepare };
+}
+
+function createTestEnv(overrides: Record<string, unknown> = {}, adminExists = true) {
   return {
-    DB: {},
+    DB: createDb(adminExists),
     CACHE_KV: {},
     MEDIA_BUCKET: {
       get: vi.fn().mockResolvedValue(null),
@@ -21,6 +31,10 @@ function createTestEnv(overrides: Record<string, unknown> = {}) {
 }
 
 describe("createWorkerBlogApp route smoke tests", () => {
+  beforeEach(() => {
+    resetAdminExistsCache();
+  });
+
   it("mounts public API discovery and health routes", async () => {
     const app = createWorkerBlogApp({ name: "Smoke App", version: "1.2.3" });
     const env = createTestEnv();
@@ -34,6 +48,22 @@ describe("createWorkerBlogApp route smoke tests", () => {
     expect(healthJson).toMatchObject({
       status: "healthy",
     });
+  });
+
+  it("returns setup required for API routes when no admin exists", async () => {
+    const app = createWorkerBlogApp();
+    const env = createTestEnv({}, false);
+
+    const apiRes = await app.request("/api", {}, env);
+    const healthRes = await app.request("/api/health", {}, env);
+    const apiJson = (await apiRes.json()) as { error: string; code: string };
+
+    expect(apiRes.status).toBe(428);
+    expect(apiJson).toEqual({
+      error: "Initial admin account is required",
+      code: SETUP_REQUIRED_CODE,
+    });
+    expect(healthRes.status).toBe(200);
   });
 
   it("mounts admin API routes behind the admin auth guard", async () => {

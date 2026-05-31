@@ -15,6 +15,7 @@ import { requestLoggingMiddleware } from "./middleware/request-logging";
 import { csrfProtection } from "./middleware/csrf";
 import { securityHeadersMiddleware } from "./middleware/security-headers";
 import { requireAuth, requireRole } from "./middleware/auth";
+import { setupGuardMiddleware } from "./middleware/setup-guard";
 import { getServerEnvConfig } from "./config/env";
 import { securityAuditMiddleware } from "./features/security-audit";
 import { securityAuditApiRoutes } from "./features/security-audit/routes/api";
@@ -29,6 +30,10 @@ export function registerCoreMiddleware(
 ): void {
   // Metrics middleware - track all requests for real-time analytics
   app.use("*", metricsMiddleware());
+
+  // Initial setup guard - blocks API traffic until the first admin exists
+  app.use("/api", setupGuardMiddleware());
+  app.use("/api/*", setupGuardMiddleware());
 
   // Custom middleware - before auth
   if (config.middleware?.beforeAuth) {
