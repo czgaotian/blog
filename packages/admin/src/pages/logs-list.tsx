@@ -84,7 +84,7 @@ export function LogsListPage() {
                       <Badge className="bg-muted text-muted-foreground">{log.category}</Badge>
                     </TableCell>
                     <TableCell className="max-w-xs truncate">
-                      <Link className="hover:underline" to={`/admin/logs/${log.id}`}>
+                      <Link className="hover:underline" to={`/logs/${log.id}`}>
                         {log.message}
                       </Link>
                     </TableCell>

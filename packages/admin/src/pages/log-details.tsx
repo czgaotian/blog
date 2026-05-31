@@ -22,7 +22,7 @@ export function LogDetailsPage() {
   return (
     <section className="space-y-6">
       <div className="flex items-center gap-3">
-        <Link className="text-sm text-muted-foreground hover:underline" to="/admin/logs">
+        <Link className="text-sm text-muted-foreground hover:underline" to="/logs">
           ← Back to logs
         </Link>
       </div>

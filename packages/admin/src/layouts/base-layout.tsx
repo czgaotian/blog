@@ -24,16 +24,16 @@ import { getInitialTheme, setStoredTheme, type Theme } from "../lib/theme";
 import { cn } from "../lib/utils";
 
 const navItems = [
-  { label: "Dashboard", href: "/admin/dashboard", icon: Gauge },
-  { label: "Logs", href: "/admin/logs", icon: Activity },
-  { label: "Content", href: "/admin/content", icon: FileText },
-  { label: "Media", href: "/admin/media", icon: Image },
-  { label: "Collections", href: "/admin/collections", icon: Database },
-  { label: "Security Audit", href: "/admin/security-audit", icon: ShieldCheck },
-  { label: "Analytics", href: "/admin/analytics", icon: BarChart3 },
-  { label: "SPA Test", href: "/admin/spa-test", icon: Activity },
-  { label: "Settings", href: "/admin/settings", icon: Settings },
-  { label: "Profile", href: "/admin/profile", icon: User },
+  { label: "Dashboard", href: "/dashboard", icon: Gauge },
+  { label: "Logs", href: "/logs", icon: Activity },
+  { label: "Content", href: "/content", icon: FileText },
+  { label: "Media", href: "/media", icon: Image },
+  { label: "Collections", href: "/collections", icon: Database },
+  { label: "Security Audit", href: "/security-audit", icon: ShieldCheck },
+  { label: "Analytics", href: "/analytics", icon: BarChart3 },
+  { label: "SPA Test", href: "/spa-test", icon: Activity },
+  { label: "Settings", href: "/settings", icon: Settings },
+  { label: "Profile", href: "/profile", icon: User },
 ];
 
 export function BaseLayout() {
@@ -65,7 +65,7 @@ export function BaseLayout() {
     <div className="min-h-screen bg-background text-foreground">
       <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-card px-3 py-4 md:flex md:flex-col">
         <a
-          href="/admin/dashboard"
+          href="/dashboard"
           className="flex h-10 items-center justify-between px-2 text-sm font-semibold"
         >
           <span className="truncate">{appName}</span>
@@ -98,7 +98,7 @@ export function BaseLayout() {
           <div className="flex min-w-0 items-center gap-3">
             <ButtonLink
               className="md:hidden"
-              href="/admin/dashboard"
+              href="/dashboard"
               variant="ghost"
               size="sm"
               aria-label="Admin menu"

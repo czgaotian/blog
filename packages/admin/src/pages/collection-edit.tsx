@@ -105,7 +105,7 @@ export function CollectionEditPage() {
     setCollectionSaved(false)
     if (isNew) {
       const result = await createCollection.mutateAsync({ name, displayName, description: description || undefined })
-      navigate(`/admin/collections/${result.id}/edit`)
+      navigate(`/collections/${result.id}/edit`)
     } else {
       await updateCollection.mutateAsync({ displayName, description: description || undefined })
       setCollectionSaved(true)
@@ -114,7 +114,7 @@ export function CollectionEditPage() {
 
   async function handleDeleteCollection() {
     await deleteCollection.mutateAsync()
-    navigate('/admin/collections')
+    navigate('/collections')
   }
 
   function openAddField() {
@@ -183,7 +183,7 @@ export function CollectionEditPage() {
         description={isNew ? 'Create a new content type.' : 'Update collection settings and fields.'}
         actions={
           <Link
-            to="/admin/collections"
+            to="/collections"
             className="inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 border border-border bg-background hover:bg-muted h-8 px-2 text-xs"
           >
             Back to collections
@@ -251,7 +251,7 @@ export function CollectionEditPage() {
           <Button type="submit" disabled={createCollection.isPending || updateCollection.isPending}>
             {createCollection.isPending || updateCollection.isPending ? 'Saving…' : isNew ? 'Create collection' : 'Save'}
           </Button>
-          <Button type="button" variant="outline" onClick={() => navigate('/admin/collections')}>
+          <Button type="button" variant="outline" onClick={() => navigate('/collections')}>
             Cancel
           </Button>
         </div>

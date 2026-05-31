@@ -20,7 +20,7 @@ export function RegisterPage() {
     try {
       await register.mutateAsync({ email, password, firstName, lastName })
       setDone(true)
-      setTimeout(() => { window.location.href = '/admin/dashboard' }, 1500)
+      setTimeout(() => { window.location.href = '/dashboard' }, 1500)
     } catch {
       // shown via register.error
     }
@@ -72,7 +72,7 @@ export function RegisterPage() {
 
       <div className="text-center text-sm text-muted-foreground">
         Already have an account?{' '}
-        <Link to="/admin/auth/login" className="hover:text-foreground underline underline-offset-4">
+        <Link to="/auth/login" className="hover:text-foreground underline underline-offset-4">
           Sign in
         </Link>
       </div>

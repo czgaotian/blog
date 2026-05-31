@@ -19,7 +19,7 @@ export function CollectionsListPage() {
         description="Manage content type definitions and their fields."
         actions={
           <Link
-            to="/admin/collections/new"
+            to="/collections/new"
             className="inline-flex items-center justify-center gap-2 rounded-md font-medium outline-none transition-colors focus-visible:ring-2 focus-visible:ring-ring bg-primary text-primary-foreground hover:bg-primary/90 h-8 px-2 text-xs"
           >
             New collection
@@ -84,7 +84,7 @@ export function CollectionsListPage() {
                   </TableCell>
                   <TableCell className="text-right">
                     <Link
-                      to={`/admin/collections/${col.id}/edit`}
+                      to={`/collections/${col.id}/edit`}
                       className="text-xs font-medium text-primary hover:underline"
                     >
                       Edit
