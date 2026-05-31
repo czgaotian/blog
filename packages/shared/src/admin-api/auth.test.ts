@@ -1,5 +1,41 @@
 import { describe, expect, it } from 'vitest'
-import { registerSchema } from './auth'
+import { loginSchema, registerSchema } from './auth'
+
+describe('loginSchema', () => {
+  it('accepts a valid login payload and normalizes email', () => {
+    const result = loginSchema.safeParse({
+      email: ' ADMIN@Example.com ',
+      password: 'password123',
+    })
+
+    expect(result.success).toBe(true)
+    if (!result.success) {
+      return
+    }
+
+    expect(result.data).toEqual({
+      email: 'admin@example.com',
+      password: 'password123',
+    })
+  })
+
+  it('returns field-specific messages for invalid login payloads', () => {
+    const result = loginSchema.safeParse({
+      email: 'not-an-email',
+      password: '',
+    })
+
+    expect(result.success).toBe(false)
+    if (result.success) {
+      return
+    }
+
+    expect(result.error.issues).toEqual(expect.arrayContaining([
+      expect.objectContaining({ message: 'Enter a valid email address', path: ['email'] }),
+      expect.objectContaining({ message: 'Password is required', path: ['password'] }),
+    ]))
+  })
+})
 
 describe('registerSchema', () => {
   it('accepts a valid registration payload and normalizes string values', () => {
