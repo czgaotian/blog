@@ -1,6 +1,6 @@
 import { adminFetch } from './client'
 
-interface AuthMeResponse {
+interface SessionResponse {
   user: {
     id: string
     email: string
@@ -8,7 +8,7 @@ interface AuthMeResponse {
   }
 }
 
-interface AdminMeResponse {
+interface AdminSessionResponse {
   user: {
     id: string
     email: string
@@ -22,8 +22,8 @@ interface AdminMeResponse {
 }
 
 export const adminApi = {
-  me: async (): Promise<AdminMeResponse> => {
-    const res = await adminFetch<AuthMeResponse>('/api/auth/me')
+  session: async (): Promise<AdminSessionResponse> => {
+    const res = await adminFetch<SessionResponse>('/api/auth/session')
     return {
       user: {
         id: res.user.id,

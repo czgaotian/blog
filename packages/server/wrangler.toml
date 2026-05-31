@@ -14,8 +14,10 @@ run_worker_first = ["/api/*", "/files/*"]
 # D1 Database
 [[d1_databases]]
 binding = "DB"
-database_name = "worker-blog-db"
-database_id = "YOUR_DATABASE_ID" # Run: wrangler d1 create worker-blog-db
+# database_name = "worker-blog-db"
+# database_id = "YOUR_DATABASE_ID" # Run: wrangler d1 create worker-blog-db
+database_name = "worker-blog-worktree-main"
+database_id = "c77fafd9-ddba-4dba-8ce2-508a8b07df08"
 migrations_dir = "./migrations"
 
 # R2 Bucket for media storage

@@ -1,4 +1,4 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 // import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
 import { getCookie, setCookie } from 'hono/cookie'
@@ -38,6 +38,31 @@ function clearCsrfCookie(c: any): void {
 }
 
 const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+export async function getCurrentSession(c: Context<{ Bindings: Bindings; Variables: Variables }>) {
+  try {
+    const user = c.get('user')
+
+    if (!user) {
+      return c.json({ error: 'Not authenticated' }, 401)
+    }
+
+    const db = c.env.DB
+    const userData = await db.prepare('SELECT id, email, username, first_name, last_name, role, created_at FROM users WHERE id = ?')
+      .bind(user.userId)
+      .first() as Record<string, any> | null
+
+    if (!userData) {
+      return c.json({ error: 'User not found' }, 404)
+    }
+
+    const customData = await getCustomData(db, user.userId)
+    return c.json({ user: { ...userData, ...customData } })
+  } catch (error) {
+    console.error('Get session error:', error)
+    return c.json({ error: 'Failed to get session' }, 500)
+  }
+}
 
 // Login schema
 const loginSchema = z.object({
@@ -261,32 +286,11 @@ authRoutes.get('/logout', (c) => {
   return c.redirect('/auth/login?message=You have been logged out successfully')
 })
 
-// Get current user
-authRoutes.get('/me', requireAuth(), async (c) => {
-  try {
-    // This would need the auth middleware applied
-    const user = c.get('user')
-    
-    if (!user) {
-      return c.json({ error: 'Not authenticated' }, 401)
-    }
-    
-    const db = c.env.DB
-    const userData = await db.prepare('SELECT id, email, username, first_name, last_name, role, created_at FROM users WHERE id = ?')
-      .bind(user.userId)
-      .first() as Record<string, any> | null
+// Get current authenticated session.
+authRoutes.get('/session', requireAuth(), getCurrentSession)
 
-    if (!userData) {
-      return c.json({ error: 'User not found' }, 404)
-    }
-
-    const customData = await getCustomData(db, user.userId)
-    return c.json({ user: { ...userData, ...customData } })
-  } catch (error) {
-    console.error('Get user error:', error)
-    return c.json({ error: 'Failed to get user' }, 500)
-  }
-})
+// Legacy alias for the current session endpoint.
+authRoutes.get('/me', requireAuth(), getCurrentSession)
 
 // Refresh token (sliding session)
 //

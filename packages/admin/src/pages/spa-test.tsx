@@ -11,8 +11,8 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '.
 
 export function SpaTestPage() {
   const meQuery = useQuery({
-    queryKey: ['admin', 'me'],
-    queryFn: adminApi.me,
+    queryKey: ['session'],
+    queryFn: adminApi.session,
   })
 
   return (
@@ -33,7 +33,7 @@ export function SpaTestPage() {
 
       {meQuery.isError ? (
         <Alert title="Session check failed" tone="danger">
-          The shell loaded, but `/api/auth/me` did not return session data.
+          The shell loaded, but `/api/auth/session` did not return session data.
         </Alert>
       ) : null}
 

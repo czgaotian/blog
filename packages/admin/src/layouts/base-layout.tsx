@@ -38,8 +38,8 @@ const navItems = [
 
 export function BaseLayout() {
   const meQuery = useQuery({
-    queryKey: ["admin", "me"],
-    queryFn: adminApi.me,
+    queryKey: ["session"],
+    queryFn: adminApi.session,
   });
   const [theme, setTheme] = useState<Theme>(() => {
     if (typeof window === "undefined") {

@@ -75,8 +75,8 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/auth/login': { description: 'Authenticate user with email and password', category: 'Auth', authentication: false },
   'POST /api/auth/register': { description: 'Create the first admin account', category: 'Auth', authentication: false },
   'POST /api/auth/logout': { description: 'Log out the current user', category: 'Auth', authentication: true },
-  'GET /api/auth/me': { description: 'Get current authenticated user information', category: 'Auth', authentication: true },
   'POST /api/auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
+  'GET /api/auth/session': { description: 'Get current authenticated session information', category: 'Auth', authentication: true },
 
   'GET /api/collections': { description: 'List public collections', category: 'Content', authentication: false },
   'GET /api/collections/:collection/content': { description: 'List public content in a collection', category: 'Content', authentication: false },
@@ -155,6 +155,6 @@ export function inferAuth(path: string): boolean | 'unknown' {
   if (path.startsWith('/files/')) return false
   if (path === '/api/events') return false
   if (path.startsWith('/api/admin')) return true
-  if (path.startsWith('/api/auth/me') || path.startsWith('/api/auth/logout')) return true
+  if (path.startsWith('/api/auth/session') || path.startsWith('/api/auth/me') || path.startsWith('/api/auth/logout')) return true
   return 'unknown'
 }
