@@ -1,4 +1,4 @@
-import { createBrowserRouter } from "react-router";
+import { createBrowserRouter, Navigate } from "react-router";
 import { BaseLayout } from "./layouts/base-layout";
 import { AuthLayout } from "./layouts/auth-layout";
 import { LoginPage } from "./pages/auth/login";
@@ -32,6 +32,7 @@ export const router = createBrowserRouter(
       path: "/",
       element: <BaseLayout />,
       children: [
+        { index: true, element: <Navigate to="/dashboard" replace /> },
         { path: "dashboard", element: <DashboardPage /> },
         { path: "logs", element: <LogsListPage /> },
         { path: "logs/config", element: <LogConfigPage /> },
