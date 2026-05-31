@@ -19,7 +19,7 @@ import {
 import { adminApi } from "../api/query";
 import { Alert } from "../components/ui/alert";
 import { Badge } from "../components/ui/badge";
-import { ButtonLink } from "../components/ui/button";
+import { Button } from "../components/ui/button";
 import { getInitialTheme, setStoredTheme, type Theme } from "../lib/theme";
 import { cn } from "../lib/utils";
 
@@ -96,15 +96,17 @@ export function BaseLayout() {
       <div className="md:pl-64">
         <header className="sticky top-0 z-10 flex h-14 items-center justify-between border-b border-border bg-background px-4">
           <div className="flex min-w-0 items-center gap-3">
-            <ButtonLink
+            <Button
+              asChild
               className="md:hidden"
-              href="/dashboard"
               variant="ghost"
               size="sm"
               aria-label="Admin menu"
             >
-              <Menu className="h-4 w-4" />
-            </ButtonLink>
+              <a href="/dashboard">
+                <Menu />
+              </a>
+            </Button>
             <div className="min-w-0">
               <p className="truncate text-sm font-medium">Admin</p>
               <p className="truncate text-xs text-muted-foreground">
@@ -127,10 +129,12 @@ export function BaseLayout() {
                 <Moon className="h-4 w-4" />
               )}
             </button>
-            <ButtonLink href="/api/auth/logout" variant="ghost">
-              <LogOut className="h-4 w-4" />
-              Sign out
-            </ButtonLink>
+            <Button asChild variant="ghost">
+              <a href="/api/auth/logout">
+                <LogOut />
+                Sign out
+              </a>
+            </Button>
           </div>
         </header>
         <main className="mx-auto max-w-6xl px-4 py-6">

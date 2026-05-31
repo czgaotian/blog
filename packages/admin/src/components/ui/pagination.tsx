@@ -1,5 +1,5 @@
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { ButtonLink } from './button'
+import { Button } from './button'
 
 interface PaginationProps {
   page: number
@@ -15,24 +15,28 @@ export function Pagination({ page, pageCount, previousHref, nextHref }: Paginati
         Page {page} of {pageCount}
       </p>
       <div className="flex items-center gap-2">
-        <ButtonLink
+        <Button
+          asChild
           aria-disabled={!previousHref}
           className={!previousHref ? 'pointer-events-none opacity-50' : undefined}
-          href={previousHref || '#'}
           variant="outline"
         >
-          <ChevronLeft className="h-4 w-4" />
-          Previous
-        </ButtonLink>
-        <ButtonLink
+          <a href={previousHref || '#'}>
+            <ChevronLeft />
+            Previous
+          </a>
+        </Button>
+        <Button
+          asChild
           aria-disabled={!nextHref}
           className={!nextHref ? 'pointer-events-none opacity-50' : undefined}
-          href={nextHref || '#'}
           variant="outline"
         >
-          Next
-          <ChevronRight className="h-4 w-4" />
-        </ButtonLink>
+          <a href={nextHref || '#'}>
+            Next
+            <ChevronRight />
+          </a>
+        </Button>
       </div>
     </nav>
   )

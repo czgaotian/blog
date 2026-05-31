@@ -1,6 +1,7 @@
 import { Hono, type Context } from 'hono'
 // import { zValidator } from '@hono/zod-validator'
 import { z } from 'zod'
+import { registerSchema } from '@worker-blog/shared/admin-api'
 import { getCookie, setCookie } from 'hono/cookie'
 import { AuthManager, requireAuth, generateCsrfToken, rateLimit } from '../middleware'
 import { getJwtExpirySecondsFromDb, getJwtRefreshGraceSecondsFromDb } from '../middleware/auth'
@@ -70,14 +71,6 @@ const loginSchema = z.object({
   password: z.string().min(1, 'Password is required')
 })
 
-const firstAdminRegisterSchema = z.object({
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(8, 'Password must be at least 8 characters'),
-  username: z.string().min(1).max(100).optional(),
-  firstName: z.string().min(1).max(100).optional(),
-  lastName: z.string().min(1).max(100).optional(),
-})
-
 // Register the first admin user only.
 authRoutes.post('/register',
   rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: 'register' }),
@@ -97,7 +90,7 @@ authRoutes.post('/register',
         return c.json({ error: 'Invalid JSON in request body' }, 400)
       }
 
-      const validation = firstAdminRegisterSchema.safeParse(requestData)
+      const validation = registerSchema.safeParse(requestData)
       if (!validation.success) {
         return c.json({ error: 'Validation failed', details: validation.error.issues }, 400)
       }
@@ -106,9 +99,9 @@ authRoutes.post('/register',
       const email = validatedData.email
       const password = validatedData.password
       const normalizedEmail = email.toLowerCase()
-      const username = validatedData.username || normalizedEmail.split('@')[0] || 'admin'
-      const firstName = validatedData.firstName || 'Admin'
-      const lastName = validatedData.lastName || 'User'
+      const username = validatedData.username
+      const firstName = validatedData.firstName
+      const lastName = validatedData.lastName
       const passwordHash = await AuthManager.hashPassword(password)
       const userId = crypto.randomUUID()
       const now = Date.now()
