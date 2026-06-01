@@ -9,6 +9,7 @@ export default defineConfig(({ mode }) => {
     plugins.push(
       cloudflare({
         configPath: "../server/wrangler.toml",
+        persistState: { path: "../server/.wrangler/state" },
       }),
     );
   }
