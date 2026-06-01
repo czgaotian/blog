@@ -5,6 +5,7 @@
   "description": "Default Worker Blog server application",
   "type": "module",
   "bin": {
+    "worker-blog-auth-unlock": "./bin/auth-unlock.js",
     "worker-blog-db-reset": "./bin/db-reset.js"
   },
   "scripts": {
@@ -13,6 +14,7 @@
     "check": "pnpm --filter @worker-blog/admin check",
     "preview": "pnpm --filter @worker-blog/admin preview",
     "deploy": "pnpm --filter @worker-blog/admin deploy",
+    "auth:unlock": "node ./bin/auth-unlock.js",
     "db:migrate": "wrangler d1 migrations apply DB",
     "db:migrate:local": "wrangler d1 migrations apply DB --local",
     "db:reset": "worker-blog-db-reset",
