@@ -123,20 +123,8 @@ authRoutes.post('/register',
       ).run()
       setAdminExists()
 
-      const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env)
-      const token = await AuthManager.generateToken(userId, normalizedEmail, 'admin', c.env.JWT_SECRET, tokenTtl)
-
-      setCookie(c, 'auth_token', token, {
-        httpOnly: true,
-        secure: true,
-        sameSite: 'Strict',
-        maxAge: tokenTtl
-      })
-
-      // Set CSRF cookie for browser sessions
-      await setCsrfCookie(c)
-
       return c.json({
+        message: 'Account created. Please sign in.',
         user: {
           id: userId,
           email: normalizedEmail,
@@ -144,8 +132,7 @@ authRoutes.post('/register',
           firstName,
           lastName,
           role: 'admin'
-        },
-        token
+        }
       }, 201)
     } catch (error) {
       console.error('Registration error:', error)

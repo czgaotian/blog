@@ -185,9 +185,10 @@ describe('first admin registration', () => {
       JWT_EXPIRES_IN: '1h',
       ENVIRONMENT: 'development',
     })
-    const json = await res.json() as { user: { email: string; username: string; firstName: string; lastName: string; role: string }; token: string }
+    const json = await res.json() as { message: string; user: { email: string; username: string; firstName: string; lastName: string; role: string }; token?: string }
 
     expect(res.status).toBe(201)
+    expect(json.message).toBe('Account created. Please sign in.')
     expect(json.user).toMatchObject({
       email: 'admin@example.com',
       username: 'admin_user',
@@ -195,7 +196,8 @@ describe('first admin registration', () => {
       lastName: 'User',
       role: 'admin',
     })
-    expect(json.token).toBeTruthy()
+    expect(json.token).toBeUndefined()
+    expect(res.headers.get('set-cookie') ?? '').not.toContain('auth_token')
     expect(insertRun).toHaveBeenCalled()
     expect(insertBind).toHaveBeenCalledWith(
       expect.any(String),

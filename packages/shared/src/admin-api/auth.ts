@@ -50,6 +50,7 @@ export const registerSchema = z.object({
 export type RegisterRequest = z.infer<typeof registerSchema>
 
 export interface RegisterResponse {
+  message: string
   user: {
     id: string
     email: string
@@ -58,5 +59,4 @@ export interface RegisterResponse {
     lastName: string
     role: string
   }
-  token: string
 }

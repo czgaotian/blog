@@ -68,9 +68,6 @@ export function RegisterPage() {
     try {
       await registerMutation.mutateAsync(registerValues);
       setDone(true);
-      setTimeout(() => {
-        window.location.href = "/dashboard";
-      }, 1500);
     } catch {
       // shown via registerMutation.error
     }
@@ -94,9 +91,14 @@ export function RegisterPage() {
       </div>
 
       {done ? (
-        <Alert title="Account created" tone="success">
-          Redirecting to dashboard…
-        </Alert>
+        <div className="flex flex-col gap-4">
+          <Alert title="Account created" tone="success">
+            Sign in to continue.
+          </Alert>
+          <Button asChild className="w-full">
+            <Link to="/auth/login">Go to sign in</Link>
+          </Button>
+        </div>
       ) : (
         <form onSubmit={form.handleSubmit(handleSubmit)}>
           <FieldGroup>
