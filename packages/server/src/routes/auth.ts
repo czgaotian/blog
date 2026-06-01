@@ -186,18 +186,6 @@ authRoutes.post('/login',
         return c.json({ error: 'Invalid email or password' }, 401)
       }
 
-      // Transparent password hash migration: re-hash legacy SHA-256 to PBKDF2
-      if (AuthManager.isLegacyHash(user.password_hash)) {
-        try {
-          const newHash = await AuthManager.hashPassword(password)
-          await db.prepare('UPDATE users SET password_hash = ?, updated_at = ? WHERE id = ?')
-            .bind(newHash, Date.now(), user.id)
-            .run()
-        } catch (rehashError) {
-          console.error('Password rehash failed (non-fatal):', rehashError)
-        }
-      }
-
       // Generate JWT token
       const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env)
       const token = await AuthManager.generateToken(user.id, user.email, user.role, c.env.JWT_SECRET, tokenTtl)
