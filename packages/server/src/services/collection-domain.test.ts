@@ -4,7 +4,6 @@ import {
   deleteCollection,
   deleteCollectionField,
   invalidateCollectionCache,
-  reorderCollectionFields,
   updateCollection,
   addCollectionField,
   updateCollectionField,
@@ -367,45 +366,6 @@ describe('collection domain field update', () => {
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
   })
 
-  it('updates a legacy content_fields row and invalidates cache', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT * FROM collections')) return { name: 'posts', schema: null }
-              return { id: 'field1' }
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
-
-    const result = await updateCollectionField({
-      db: db as any,
-      collectionId: 'col1',
-      fieldId: 'field1',
-      input: {
-        fieldLabel: 'Body',
-        fieldType: 'richtext',
-        isRequired: true,
-        isSearchable: false,
-        fieldOptions: { toolbar: 'full' },
-      },
-      cacheKv: cacheKv as any,
-      now: 222,
-    })
-
-    expect(result.updated).toBe(true)
-    expect(calls.some((call) => call.sql.includes('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?'))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('UPDATE content_fields SET field_label = ?, field_type = ?, is_required = ?, is_searchable = ?, field_options = ?, updated_at = ? WHERE id = ?'))).toBe(true)
-    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
-  })
-
   it('returns field_not_found for a missing schema field', async () => {
     const db = {
       prepare: vi.fn((_sql: string) => ({
@@ -420,6 +380,26 @@ describe('collection domain field update', () => {
       db: db as any,
       collectionId: 'col1',
       fieldId: 'schema-missing',
+      input: { fieldLabel: 'Missing' },
+    })
+
+    expect(result).toEqual({ updated: false, reason: 'field_not_found' })
+  })
+
+  it('returns field_not_found for non-schema field ids', async () => {
+    const db = {
+      prepare: vi.fn((_sql: string) => ({
+        bind: () => ({
+          first: async () => ({ name: 'posts', schema: JSON.stringify({ type: 'object', properties: {}, required: [] }) }),
+          run: async () => ({ success: true }),
+        }),
+      })),
+    }
+
+    const result = await updateCollectionField({
+      db: db as any,
+      collectionId: 'col1',
+      fieldId: 'field1',
       input: { fieldLabel: 'Missing' },
     })
 
@@ -472,97 +452,14 @@ describe('collection domain field delete', () => {
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
   })
 
-  it('deletes a legacy content_fields row and invalidates cache when collection exists', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT name FROM collections')) return { name: 'posts' }
-              return { id: 'field1' }
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
-
+  it('returns field_not_found for non-schema field ids', async () => {
     const result = await deleteCollectionField({
-      db: db as any,
-      collectionId: 'col1',
-      fieldId: 'field1',
-      cacheKv: cacheKv as any,
-    })
-
-    expect(result.deleted).toBe(true)
-    expect(calls.some((call) => call.sql.includes('DELETE FROM content_fields WHERE id = ?'))).toBe(true)
-    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
-  })
-
-  it('returns field_not_found for a missing legacy field', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => null,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-
-    const result = await deleteCollectionField({
-      db: db as any,
+      db: {} as any,
       collectionId: 'col1',
       fieldId: 'field1',
     })
 
     expect(result).toEqual({ deleted: false, reason: 'field_not_found' })
-    expect(calls).toHaveLength(1)
-  })
-})
-
-describe('collection domain field reorder', () => {
-  it('reorders only valid legacy field ids and invalidates cache', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            all: async () => ({ results: [{ id: 'field2' }, { id: 'field1' }] }),
-            first: async () => ({ name: 'posts' }),
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-    const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
-
-    const result = await reorderCollectionFields({
-      db: db as any,
-      collectionId: 'col1',
-      fieldIds: ['field1', 'missing', 'field2'],
-      cacheKv: cacheKv as any,
-      now: 444,
-    })
-
-    expect(result).toEqual({
-      reordered: true,
-      collectionId: 'col1',
-      collectionName: 'posts',
-      reorderedCount: 2,
-    })
-    const updateCalls = calls.filter((call) => call.sql.includes('UPDATE content_fields SET field_order = ?'))
-    expect(updateCalls).toHaveLength(2)
-    expect(updateCalls[0]?.args).toEqual([1, 444, 'field1'])
-    expect(updateCalls[1]?.args).toEqual([2, 444, 'field2'])
-    expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')
   })
 })
 
@@ -592,7 +489,7 @@ function createMockDb(options: { collection?: any; contentCount?: number } = {})
 }
 
 describe('collection domain deletion', () => {
-  it('deletes collection fields and collection when empty', async () => {
+  it('deletes collection when empty', async () => {
     const { db, runCalls } = createMockDb()
     const cacheKv = { delete: vi.fn().mockResolvedValue(undefined) }
 
@@ -603,7 +500,6 @@ describe('collection domain deletion', () => {
     })
 
     expect(result).toEqual({ deleted: true, id: 'col1', name: 'posts' })
-    expect(runCalls.some((sql) => sql.includes('DELETE FROM content_fields'))).toBe(true)
     expect(runCalls.some((sql) => sql.includes('DELETE FROM collections'))).toBe(true)
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collections:all')
     expect(cacheKv.delete).toHaveBeenCalledWith('cache:collection:posts')

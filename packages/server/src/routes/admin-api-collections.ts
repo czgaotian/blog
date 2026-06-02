@@ -1,5 +1,4 @@
 import { Hono } from 'hono'
-import { z } from 'zod'
 import { requireAuth, requireRole } from '../middleware'
 import {
   createCollectionSchema,
@@ -18,12 +17,9 @@ import {
   deleteCollection,
   deleteCollectionField,
   invalidateCollectionCache,
-  reorderCollectionFields,
   updateCollection,
   updateCollectionField,
 } from '../services/collection-domain'
-
-const reorderSchema = z.object({ fieldIds: z.array(z.string()) })
 
 export const adminApiCollectionsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
@@ -33,19 +29,6 @@ adminApiCollectionsRoutes.post('*', requireRole(['admin']))
 adminApiCollectionsRoutes.put('*', requireRole(['admin']))
 adminApiCollectionsRoutes.delete('*', requireRole(['admin']))
 adminApiCollectionsRoutes.patch('*', requireRole(['admin']))
-
-function mapField(row: any): CollectionField {
-  return {
-    id: row.id,
-    fieldName: row.field_name,
-    fieldLabel: row.field_label,
-    fieldType: row.field_type,
-    fieldOptions: row.field_options ? JSON.parse(row.field_options) : {},
-    fieldOrder: row.field_order,
-    isRequired: Boolean(row.is_required),
-    isSearchable: Boolean(row.is_searchable),
-  }
-}
 
 function schemaToFields(schema: any): CollectionField[] {
   if (!schema?.properties) return []
@@ -62,15 +45,20 @@ function schemaToFields(schema: any): CollectionField[] {
   }))
 }
 
-async function getFields(db: any, collectionId: string, schema: any): Promise<CollectionField[]> {
-  if (schema?.properties && Object.keys(schema.properties).length > 0) {
-    return schemaToFields(schema)
+function parseSchema(rawSchema: unknown): any {
+  if (!rawSchema) return { type: 'object', properties: {}, required: [] }
+  if (typeof rawSchema === 'object') return rawSchema
+
+  try {
+    return JSON.parse(String(rawSchema))
+  } catch {
+    return { type: 'object', properties: {}, required: [] }
   }
-  const { results } = await db
-    .prepare('SELECT * FROM content_fields WHERE collection_id = ? ORDER BY field_order ASC')
-    .bind(collectionId)
-    .all()
-  return (results || []).map(mapField)
+}
+
+function countSchemaFields(rawSchema: unknown): number {
+  const schema = parseSchema(rawSchema)
+  return schema?.properties ? Object.keys(schema.properties).length : 0
 }
 
 // GET /
@@ -89,14 +77,9 @@ adminApiCollectionsRoutes.get('/', async (c) => {
     const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
     const { results } = await db
-      .prepare(`SELECT id, name, display_name, description, is_active, created_at, updated_at FROM collections ${where} ORDER BY created_at DESC`)
+      .prepare(`SELECT id, name, display_name, description, schema, is_active, created_at, updated_at FROM collections ${where} ORDER BY created_at DESC`)
       .bind(...params)
       .all()
-
-    const { results: fieldCountResults } = await db
-      .prepare('SELECT collection_id, COUNT(*) as count FROM content_fields GROUP BY collection_id')
-      .all()
-    const fieldCounts = new Map((fieldCountResults || []).map((r: any) => [String(r.collection_id), Number(r.count)]))
 
     const collections = (results || []).map((row: any) => ({
       id: row.id,
@@ -104,7 +87,7 @@ adminApiCollectionsRoutes.get('/', async (c) => {
       displayName: row.display_name,
       description: row.description ?? null,
       isActive: Boolean(row.is_active),
-      fieldCount: fieldCounts.get(String(row.id)) || 0,
+      fieldCount: countSchemaFields(row.schema),
       createdAt: new Date(Number(row.created_at)).toISOString(),
       updatedAt: new Date(Number(row.updated_at)).toISOString(),
     }))
@@ -127,8 +110,8 @@ adminApiCollectionsRoutes.get('/:id', async (c) => {
     const row = await db.prepare('SELECT * FROM collections WHERE id = ?').bind(id).first() as any
     if (!row) return c.json({ error: 'Collection not found' }, 404)
 
-    const schema = row.schema ? (typeof row.schema === 'string' ? JSON.parse(row.schema) : row.schema) : null
-    const fields = await getFields(db, id, schema)
+    const schema = parseSchema(row.schema)
+    const fields = schemaToFields(schema)
 
     const response: CollectionDetailResponse = {
       id: row.id,
@@ -325,31 +308,5 @@ adminApiCollectionsRoutes.delete('/:id/fields/:fieldId', async (c) => {
   } catch (error) {
     console.error('[admin-api-collections] Error deleting field:', error)
     return c.json({ error: 'Failed to delete field' }, 500)
-  }
-})
-
-// POST /:id/fields/reorder
-adminApiCollectionsRoutes.post('/:id/fields/reorder', async (c) => {
-  if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
-  const collectionId = c.req.param('id')
-
-  let body: unknown
-  try { body = await c.req.json() } catch { return c.json({ error: 'Invalid JSON' }, 400) }
-
-  const parsed = reorderSchema.safeParse(body)
-  if (!parsed.success) return c.json({ error: 'fieldIds array required' }, 400)
-
-  const db = c.env.DB
-  try {
-    await reorderCollectionFields({
-      db,
-      collectionId,
-      fieldIds: parsed.data.fieldIds,
-      cacheKv: c.env.CACHE_KV,
-    })
-    return c.json({ message: 'Fields reordered successfully' })
-  } catch (error) {
-    console.error('[admin-api-collections] Error reordering fields:', error)
-    return c.json({ error: 'Failed to reorder fields' }, 500)
   }
 })

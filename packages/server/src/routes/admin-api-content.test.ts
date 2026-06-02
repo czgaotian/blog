@@ -20,12 +20,21 @@ const mockDb: any = {
       first: async () => {
         if (sql.includes('COUNT(*)')) return { count: 1 }
         if (sql.includes('content_versions') && sql.includes('MAX(version)')) return { max_version: 1 }
-        if (sql.includes('content_fields')) return null
-        if (sql.includes('SELECT schema FROM collections')) return { schema: null }
+        if (sql.includes('SELECT schema FROM collections')) {
+          return {
+            schema: JSON.stringify({
+              type: 'object',
+              properties: {
+                body: { type: 'string', title: 'Body', format: 'markdown', searchable: true },
+              },
+              required: ['body'],
+            }),
+          }
+        }
         return mockContent
       },
       all: async () => {
-        if (sql.includes('content_fields') || sql.includes('content_versions cv')) return { results: [] }
+        if (sql.includes('content_versions cv')) return { results: [] }
         return { results: [mockContent] }
       },
       run: async () => ({}),
@@ -77,6 +86,13 @@ describe('GET /api/admin/content/:id', () => {
     const json = await res.json() as any
     expect(json).toHaveProperty('id', 'c1')
     expect(json).toHaveProperty('fields')
+    expect(json.fields[0]).toMatchObject({
+      id: 'schema-body',
+      fieldName: 'body',
+      fieldLabel: 'Body',
+      fieldType: 'markdown',
+      isRequired: true,
+    })
     expect(json).toHaveProperty('data')
   })
 })

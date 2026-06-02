@@ -12,38 +12,27 @@ const mockCollection = {
   display_name: 'Blog Posts',
   description: 'A collection of blog posts',
   is_active: 1,
-  schema: JSON.stringify({ type: 'object', properties: { title: { type: 'string', title: 'Title' } }, required: ['title'] }),
+  schema: JSON.stringify({
+    type: 'object',
+    properties: {
+      title: { type: 'string', title: 'Title' },
+      body: { type: 'string', title: 'Body', format: 'markdown', searchable: true },
+    },
+    required: ['title'],
+  }),
   created_at: 1700000000000,
   updated_at: 1700000000000,
 }
 
-const mockField = {
-  id: 'field1',
-  field_name: 'title',
-  field_label: 'Title',
-  field_type: 'text',
-  field_options: null,
-  field_order: 1,
-  is_required: 1,
-  is_searchable: 0,
-  collection_id: 'col1',
-}
-
 function makeMockDb(overrides: Partial<{
   collectionFirst: any
-  fieldFirst: any
   contentCount: number
-  fieldCount: number
   collectionResults: any[]
-  fieldResults: any[]
 }> = {}) {
   const {
     collectionFirst = mockCollection,
-    fieldFirst = mockField,
     contentCount = 0,
-    fieldCount = 1,
     collectionResults = [mockCollection],
-    fieldResults = [mockField],
   } = overrides
 
   const runCalls: string[] = []
@@ -64,24 +53,12 @@ function makeMockDb(overrides: Partial<{
           if (sql.includes('SELECT * FROM collections')) {
             return collectionFirst
           }
-          if (sql.includes('content_fields WHERE id = ?')) {
-            return fieldFirst
-          }
-          if (sql.includes('SELECT id FROM content_fields')) {
-            return fieldFirst
-          }
           if (sql.includes('SELECT name FROM collections WHERE id = ?')) {
             return collectionFirst
           }
           throw new Error(`Unexpected SQL in mock first(): ${sql}`)
         },
         all: async () => {
-          if (sql.includes('COUNT(*) as count') && sql.includes('content_fields GROUP BY')) {
-            return { results: [{ collection_id: 'col1', count: fieldCount }] }
-          }
-          if (sql.includes('content_fields WHERE collection_id = ?')) {
-            return { results: fieldResults }
-          }
           if (sql.includes('SELECT id, name') && sql.includes('collections')) {
             return { results: collectionResults }
           }
@@ -139,7 +116,7 @@ describe('GET /api/admin/collections', () => {
     expect(col).toHaveProperty('name', 'blog_posts')
     expect(col).toHaveProperty('displayName', 'Blog Posts')
     expect(col).toHaveProperty('isActive')
-    expect(col).toHaveProperty('fieldCount')
+    expect(col).toHaveProperty('fieldCount', 2)
     expect(col).toHaveProperty('createdAt')
     expect(col).toHaveProperty('updatedAt')
   })
@@ -419,16 +396,14 @@ describe('PUT /api/admin/collections/:id/fields/:fieldId', () => {
     expect(res.status).toBe(404)
   })
 
-  it('returns 400 when no fields to update (legacy field)', async () => {
-    // For legacy (non-schema-) fields with no matching fields in body
-    const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
+  it('returns 404 for non-schema field ids', async () => {
     const app = createApp()
     const res = await app.request('/api/admin/collections/col1/fields/field1', {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(400)
+      body: JSON.stringify({ fieldLabel: 'Title' }),
+    }, baseEnv)
+    expect(res.status).toBe(404)
   })
 })
 
@@ -454,61 +429,11 @@ describe('DELETE /api/admin/collections/:id/fields/:fieldId', () => {
     expect(res.status).toBe(404)
   })
 
-  it('deletes a legacy content_fields row', async () => {
-    const { db } = makeMockDb({ fieldFirst: { id: 'field1' } })
+  it('returns 404 for non-schema field ids', async () => {
     const app = createApp()
     const res = await app.request('/api/admin/collections/col1/fields/field1', {
       method: 'DELETE',
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(200)
-  })
-
-  it('returns 404 when legacy field not found', async () => {
-    const { db } = makeMockDb({ fieldFirst: null })
-    const app = createApp()
-    const res = await app.request('/api/admin/collections/col1/fields/field99', {
-      method: 'DELETE',
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(404)
-  })
-})
-
-// ──────────────────────────────────────────────
-// POST /:id/fields/reorder
-// ──────────────────────────────────────────────
-describe('POST /api/admin/collections/:id/fields/reorder', () => {
-  it('reorders content_fields and returns 200', async () => {
-    const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }, { id: 'field2' }] })
-    const app = createApp()
-    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fieldIds: ['field2', 'field1'] }),
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(200)
-    const json = await res.json() as any
-    expect(json).toHaveProperty('message')
-  })
-
-  it('returns 400 when fieldIds is missing', async () => {
-    const app = createApp()
-    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({}),
     }, baseEnv)
-    expect(res.status).toBe(400)
-  })
-
-  it('silently ignores fieldIds not belonging to collection', async () => {
-    // Only field1 belongs to collection; field99 is filtered out
-    const { db } = makeMockDb({ fieldResults: [{ id: 'field1' }] })
-    const app = createApp()
-    const res = await app.request('/api/admin/collections/col1/fields/reorder', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fieldIds: ['field99', 'field1'] }),
-    }, { DB: db, CACHE_KV: mockCacheKV })
-    expect(res.status).toBe(200)
+    expect(res.status).toBe(404)
   })
 })

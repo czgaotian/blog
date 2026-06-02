@@ -96,21 +96,6 @@ export type DeleteCollectionFieldResult =
   | { deleted: false; reason: 'collection_not_found' }
   | { deleted: false; reason: 'field_not_found' }
 
-export interface ReorderCollectionFieldsOptions {
-  db: D1Database
-  collectionId: string
-  fieldIds: string[]
-  cacheKv?: KVNamespace
-  now?: number
-}
-
-export interface ReorderCollectionFieldsResult {
-  reordered: true
-  collectionId: string
-  collectionName?: string
-  reorderedCount: number
-}
-
 export async function invalidateCollectionCache(
   cacheKv: KVNamespace | undefined,
   collectionName?: string,
@@ -217,65 +202,26 @@ export async function updateCollectionField(
     return { updated: false, reason: 'collection_not_found' }
   }
 
-  if (fieldId.startsWith('schema-')) {
-    const fieldName = fieldId.replace('schema-', '')
-    const schema = parseCollectionSchema(row.schema)
-    if (!schema.properties?.[fieldName]) {
-      return { updated: false, reason: 'field_not_found' }
-    }
-    if (!schema.required) schema.required = []
-
-    schema.properties[fieldName] = buildUpdatedFieldConfig(schema.properties[fieldName], input)
-
-    const idx = schema.required.indexOf(fieldName)
-    if (input.isRequired === true && idx === -1) schema.required.push(fieldName)
-    else if (input.isRequired === false && idx !== -1) schema.required.splice(idx, 1)
-
-    await db
-      .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
-      .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
-      .run()
-
-    await invalidateCollectionCache(cacheKv, row.name)
-
-    return {
-      updated: true,
-      fieldId,
-      collectionId,
-      collectionName: row.name,
-    }
-  }
-
-  const existing = await db
-    .prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?')
-    .bind(fieldId, collectionId)
-    .first()
-
-  if (!existing) {
+  if (!fieldId.startsWith('schema-')) {
     return { updated: false, reason: 'field_not_found' }
   }
 
-  const updates: string[] = []
-  const vals: unknown[] = []
-  if (input.fieldLabel !== undefined) { updates.push('field_label = ?'); vals.push(input.fieldLabel) }
-  if (input.fieldType !== undefined) { updates.push('field_type = ?'); vals.push(input.fieldType) }
-  if (input.isRequired !== undefined) { updates.push('is_required = ?'); vals.push(input.isRequired ? 1 : 0) }
-  if (input.isSearchable !== undefined) { updates.push('is_searchable = ?'); vals.push(input.isSearchable ? 1 : 0) }
-  if (input.fieldOptions !== undefined) { updates.push('field_options = ?'); vals.push(JSON.stringify(input.fieldOptions)) }
-
-  if (updates.length === 0) {
-    return {
-      updated: false,
-      reason: 'no_fields',
-      collectionName: row.name,
-    }
+  const fieldName = fieldId.replace('schema-', '')
+  const schema = parseCollectionSchema(row.schema)
+  if (!schema.properties?.[fieldName]) {
+    return { updated: false, reason: 'field_not_found' }
   }
+  if (!schema.required) schema.required = []
 
-  updates.push('updated_at = ?')
-  vals.push(options.now ?? Date.now(), fieldId)
+  schema.properties[fieldName] = buildUpdatedFieldConfig(schema.properties[fieldName], input)
+
+  const idx = schema.required.indexOf(fieldName)
+  if (input.isRequired === true && idx === -1) schema.required.push(fieldName)
+  else if (input.isRequired === false && idx !== -1) schema.required.splice(idx, 1)
+
   await db
-    .prepare(`UPDATE content_fields SET ${updates.join(', ')} WHERE id = ?`)
-    .bind(...vals)
+    .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
+    .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
     .run()
 
   await invalidateCollectionCache(cacheKv, row.name)
@@ -293,105 +239,43 @@ export async function deleteCollectionField(
 ): Promise<DeleteCollectionFieldResult> {
   const { db, collectionId, fieldId, cacheKv } = options
 
-  if (fieldId.startsWith('schema-')) {
-    const fieldName = fieldId.replace('schema-', '')
-    const row = await db
-      .prepare('SELECT * FROM collections WHERE id = ?')
-      .bind(collectionId)
-      .first() as any
-
-    if (!row) {
-      return { deleted: false, reason: 'collection_not_found' }
-    }
-
-    const schema = parseCollectionSchema(row.schema)
-    if (!schema.properties?.[fieldName]) {
-      return { deleted: false, reason: 'field_not_found' }
-    }
-
-    delete schema.properties[fieldName]
-    if (Array.isArray(schema.required)) {
-      const idx = schema.required.indexOf(fieldName)
-      if (idx !== -1) schema.required.splice(idx, 1)
-    }
-
-    await db
-      .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
-      .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
-      .run()
-
-    await invalidateCollectionCache(cacheKv, row.name)
-
-    return {
-      deleted: true,
-      fieldId,
-      collectionId,
-      collectionName: row.name,
-    }
-  }
-
-  const fieldRow = await db
-    .prepare('SELECT id FROM content_fields WHERE id = ? AND collection_id = ?')
-    .bind(fieldId, collectionId)
-    .first()
-
-  if (!fieldRow) {
+  if (!fieldId.startsWith('schema-')) {
     return { deleted: false, reason: 'field_not_found' }
   }
 
+  const fieldName = fieldId.replace('schema-', '')
+  const row = await db
+    .prepare('SELECT * FROM collections WHERE id = ?')
+    .bind(collectionId)
+    .first() as any
+
+  if (!row) {
+    return { deleted: false, reason: 'collection_not_found' }
+  }
+
+  const schema = parseCollectionSchema(row.schema)
+  if (!schema.properties?.[fieldName]) {
+    return { deleted: false, reason: 'field_not_found' }
+  }
+
+  delete schema.properties[fieldName]
+  if (Array.isArray(schema.required)) {
+    const idx = schema.required.indexOf(fieldName)
+    if (idx !== -1) schema.required.splice(idx, 1)
+  }
+
   await db
-    .prepare('DELETE FROM content_fields WHERE id = ?')
-    .bind(fieldId)
+    .prepare('UPDATE collections SET schema = ?, updated_at = ? WHERE id = ?')
+    .bind(JSON.stringify(schema), options.now ?? Date.now(), collectionId)
     .run()
 
-  const collRow = await db
-    .prepare('SELECT name FROM collections WHERE id = ?')
-    .bind(collectionId)
-    .first() as { name: string } | null
-  if (collRow) {
-    await invalidateCollectionCache(cacheKv, collRow.name)
-  }
+  await invalidateCollectionCache(cacheKv, row.name)
 
   return {
     deleted: true,
     fieldId,
     collectionId,
-    collectionName: collRow?.name,
-  }
-}
-
-export async function reorderCollectionFields(
-  options: ReorderCollectionFieldsOptions,
-): Promise<ReorderCollectionFieldsResult> {
-  const { db, collectionId, fieldIds, cacheKv } = options
-  const { results: validRows } = await db
-    .prepare('SELECT id FROM content_fields WHERE collection_id = ?')
-    .bind(collectionId)
-    .all()
-  const validIds = new Set((validRows || []).map((row: any) => String(row.id)))
-  const safeFieldIds = fieldIds.filter((id) => validIds.has(id))
-  const now = options.now ?? Date.now()
-
-  for (let i = 0; i < safeFieldIds.length; i++) {
-    await db
-      .prepare('UPDATE content_fields SET field_order = ?, updated_at = ? WHERE id = ?')
-      .bind(i + 1, now, safeFieldIds[i])
-      .run()
-  }
-
-  const collRow = await db
-    .prepare('SELECT name FROM collections WHERE id = ?')
-    .bind(collectionId)
-    .first() as { name: string } | null
-  if (collRow) {
-    await invalidateCollectionCache(cacheKv, collRow.name)
-  }
-
-  return {
-    reordered: true,
-    collectionId,
-    collectionName: collRow?.name,
-    reorderedCount: safeFieldIds.length,
+    collectionName: row.name,
   }
 }
 
@@ -540,7 +424,6 @@ export async function deleteCollection(options: DeleteCollectionOptions): Promis
     }
   }
 
-  await db.prepare('DELETE FROM content_fields WHERE collection_id = ?').bind(id).run()
   await db.prepare('DELETE FROM collections WHERE id = ?').bind(id).run()
   await invalidateCollectionCache(cacheKv, collection.name)
 

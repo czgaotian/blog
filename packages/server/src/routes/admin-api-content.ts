@@ -46,21 +46,7 @@ async function getCollectionFieldsSimple(db: D1Database, collectionId: string) {
     } catch { /* ignore */ }
   }
 
-  const { results } = await db
-    .prepare('SELECT * FROM content_fields WHERE collection_id = ? ORDER BY field_order ASC')
-    .bind(collectionId)
-    .all()
-
-  return (results || []).map((row: any) => ({
-    id: row.id,
-    fieldName: row.field_name,
-    fieldLabel: row.field_label,
-    fieldType: row.field_type,
-    fieldOptions: row.field_options ? JSON.parse(row.field_options) : {},
-    fieldOrder: row.field_order,
-    isRequired: row.is_required === 1,
-    isSearchable: row.is_searchable === 1,
-  }))
+  return []
 }
 
 adminApiContentRoutes.get('/', async (c) => {
