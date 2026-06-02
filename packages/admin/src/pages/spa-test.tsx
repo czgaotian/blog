@@ -21,7 +21,7 @@ export function SpaTestPage() {
 
       <div className="rounded-lg border border-border bg-card p-4 text-card-foreground">
         <div className="flex items-center gap-3">
-          <CheckCircle2 className="h-5 w-5 text-primary" />
+          <CheckCircle2 className="size-5 text-primary" />
           <div>
             <p className="text-sm font-medium">Admin shell loaded</p>
             <p className="text-sm text-muted-foreground">

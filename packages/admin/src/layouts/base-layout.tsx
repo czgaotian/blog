@@ -85,7 +85,7 @@ export function BaseLayout() {
                   cn(className, isActive && "bg-muted text-primary")
                 }
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="size-4" />
                 {item.label}
               </NavLink>
             );
@@ -119,14 +119,14 @@ export function BaseLayout() {
           <div className="flex items-center gap-1">
             <button
               aria-label={`Switch to ${nextTheme} mode`}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
+              className="inline-flex size-9 items-center justify-center rounded-md outline-none hover:bg-muted focus-visible:ring-2 focus-visible:ring-ring"
               type="button"
               onClick={() => setTheme(nextTheme)}
             >
               {theme === "dark" ? (
-                <Sun className="h-4 w-4" />
+                <Sun className="size-4" />
               ) : (
-                <Moon className="h-4 w-4" />
+                <Moon className="size-4" />
               )}
             </button>
             <Button asChild variant="ghost">

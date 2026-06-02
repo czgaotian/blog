@@ -3,28 +3,28 @@ import { cn } from '../../lib/utils'
 
 export function Table({ className, ...props }: TableHTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="w-full overflow-x-auto rounded-md border border-border">
-      <table className={cn('w-full border-collapse text-sm', className)} {...props} />
+    <div data-slot="table-container" className="w-full overflow-x-auto rounded-md border border-border">
+      <table data-slot="table" className={cn('w-full border-collapse text-sm', className)} {...props} />
     </div>
   )
 }
 
 export function TableHeader({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn('bg-muted/70 text-muted-foreground', className)} {...props} />
+  return <thead data-slot="table-header" className={cn('bg-muted/70 text-muted-foreground', className)} {...props} />
 }
 
 export function TableBody({ className, ...props }: HTMLAttributes<HTMLTableSectionElement>) {
-  return <tbody className={cn('divide-y divide-border', className)} {...props} />
+  return <tbody data-slot="table-body" className={cn('divide-y divide-border', className)} {...props} />
 }
 
 export function TableRow({ className, ...props }: HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn('border-border', className)} {...props} />
+  return <tr data-slot="table-row" className={cn('border-border', className)} {...props} />
 }
 
 export function TableHead({ className, ...props }: ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn('h-10 px-3 text-left align-middle font-medium', className)} {...props} />
+  return <th data-slot="table-head" className={cn('h-10 px-3 text-left align-middle font-medium', className)} {...props} />
 }
 
 export function TableCell({ className, ...props }: TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn('px-3 py-3 align-middle', className)} {...props} />
+  return <td data-slot="table-cell" className={cn('px-3 py-3 align-middle', className)} {...props} />
 }

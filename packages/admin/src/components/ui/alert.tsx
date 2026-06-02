@@ -13,6 +13,7 @@ export function Alert({ title, children, className, tone = 'info', ...props }: A
 
   return (
     <div
+      data-slot="alert"
       className={cn(
         'flex gap-3 rounded-md border border-border bg-card p-3 text-card-foreground',
         tone === 'danger' && 'border-destructive/30 text-destructive',
@@ -22,7 +23,7 @@ export function Alert({ title, children, className, tone = 'info', ...props }: A
       role={tone === 'danger' ? 'alert' : 'status'}
       {...props}
     >
-      <Icon className="mt-0.5 h-4 w-4 shrink-0" />
+      <Icon className="mt-0.5 size-4 shrink-0" />
       <div className="min-w-0 space-y-1">
         <p className="text-sm font-medium">{title}</p>
         {children ? <div className="text-sm text-muted-foreground">{children}</div> : null}

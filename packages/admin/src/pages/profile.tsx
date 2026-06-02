@@ -115,9 +115,9 @@ export function ProfilePage() {
       <PageHeader title="Profile" description="Manage your account settings." />
 
       <div className="flex items-center gap-6 max-w-lg">
-        <div className="h-20 w-20 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold text-muted-foreground shrink-0">
+        <div className="size-20 rounded-full bg-muted flex items-center justify-center text-2xl font-semibold text-muted-foreground shrink-0">
           {data?.avatarUrl ? (
-            <img src={data.avatarUrl} alt="Avatar" className="h-20 w-20 rounded-full object-cover" />
+            <img src={data.avatarUrl} alt="Avatar" className="size-20 rounded-full object-cover" />
           ) : (
             <span>{(data?.firstName?.[0] ?? '?').toUpperCase()}</span>
           )}

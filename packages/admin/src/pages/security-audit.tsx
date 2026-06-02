@@ -187,7 +187,7 @@ export function SecurityAuditPage() {
         description="Monitor authentication events, suspicious activity, and active lockouts."
         actions={(
           <Button type="button" variant="outline" disabled={purgeMutation.isPending} onClick={() => purgeMutation.mutate(undefined)}>
-            <Trash2 className="h-4 w-4" />
+            <Trash2 className="size-4" />
             {purgeMutation.isPending ? 'Purging...' : 'Purge old'}
           </Button>
         )}
@@ -225,7 +225,7 @@ export function SecurityAuditPage() {
 
           <div className="rounded-lg border border-border bg-card p-4">
             <h2 className="mb-3 flex items-center gap-2 text-sm font-medium">
-              <ShieldCheck className="h-4 w-4" />
+              <ShieldCheck className="size-4" />
               Last 24 hours
             </h2>
             <div className="flex h-24 items-end gap-1">

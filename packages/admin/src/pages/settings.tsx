@@ -74,7 +74,7 @@ function GeneralTab() {
           name="maintenanceMode"
           type="checkbox"
           defaultChecked={g.maintenanceMode}
-          className="h-4 w-4 rounded border-input"
+          className="size-4 rounded border-input"
         />
         <Label htmlFor="maintenanceMode">Maintenance mode</Label>
       </div>
