@@ -1,4 +1,5 @@
-import { sqliteTable, text, integer } from 'drizzle-orm/sqlite-core';
+import { sql } from 'drizzle-orm';
+import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
 import { createInsertSchema, createSelectSchema } from './drizzle-zod-compat';
 
 // Users table for authentication and user management
@@ -32,7 +33,14 @@ export const users = sqliteTable('users', {
   lastLoginAt: integer('last_login_at'),
   createdAt: integer('created_at').notNull(),
   updatedAt: integer('updated_at').notNull(),
-});
+}, (table) => [
+  index('idx_users_email').on(table.email),
+  index('idx_users_username').on(table.username),
+  index('idx_users_role').on(table.role),
+  index('idx_users_email_verification_token').on(table.emailVerificationToken),
+  index('idx_users_password_reset_token').on(table.passwordResetToken),
+  index('idx_users_invitation_token').on(table.invitationToken),
+]);
 
 // Content collections - dynamic schema definitions
 export const collections = sqliteTable('collections', {
@@ -44,7 +52,10 @@ export const collections = sqliteTable('collections', {
   isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
+}, (table) => [
+  index('idx_collections_name').on(table.name),
+  index('idx_collections_active').on(table.isActive),
+]);
 
 // Content items - actual content data
 export const content = sqliteTable('content', {
@@ -59,7 +70,14 @@ export const content = sqliteTable('content', {
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
-});
+}, (table) => [
+  index('idx_content_collection').on(table.collectionId),
+  index('idx_content_author').on(table.authorId),
+  index('idx_content_status').on(table.status),
+  index('idx_content_published').on(table.publishedAt),
+  index('idx_content_slug').on(table.slug),
+  index('idx_content_deleted').on(table.deletedAt),
+]);
 
 // Content versions for versioning system
 export const contentVersions = sqliteTable('content_versions', {
@@ -69,7 +87,10 @@ export const contentVersions = sqliteTable('content_versions', {
   data: text('data', { mode: 'json' }).notNull(),
   authorId: text('author_id').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
+}, (table) => [
+  index('idx_content_versions_content').on(table.contentId),
+  index('idx_content_versions_version').on(table.version),
+]);
 
 // Media/Files table
 export const media = sqliteTable('media', {
@@ -94,7 +115,68 @@ export const media = sqliteTable('media', {
   scheduledAt: integer('scheduled_at'),
   archivedAt: integer('archived_at'),
   deletedAt: integer('deleted_at'),
-});
+}, (table) => [
+  index('idx_media_folder').on(table.folder),
+  index('idx_media_type').on(table.mimeType),
+  index('idx_media_uploaded_by').on(table.uploadedBy),
+  index('idx_media_uploaded_at').on(table.uploadedAt),
+  index('idx_media_deleted').on(table.deletedAt),
+]);
+
+// Site settings stored as JSON-encoded values.
+export const settings = sqliteTable('settings', {
+  id: text('id').primaryKey(),
+  category: text('category').notNull(),
+  key: text('key').notNull(),
+  value: text('value').notNull(),
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+}, (table) => [
+  index('idx_settings_category').on(table.category),
+  uniqueIndex('idx_settings_category_key').on(table.category, table.key),
+]);
+
+export const activityLogs = sqliteTable('activity_logs', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').references(() => users.id),
+  action: text('action').notNull(),
+  resourceType: text('resource_type'),
+  resourceId: text('resource_id'),
+  details: text('details'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  createdAt: integer('created_at').notNull(),
+}, (table) => [
+  index('idx_activity_logs_user_id').on(table.userId),
+  index('idx_activity_logs_created_at').on(table.createdAt),
+  index('idx_activity_logs_resource').on(table.resourceType, table.resourceId),
+]);
+
+export const passwordHistory = sqliteTable('password_history', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().references(() => users.id, { onDelete: 'cascade' }),
+  passwordHash: text('password_hash').notNull(),
+  createdAt: integer('created_at').notNull(),
+}, (table) => [
+  index('idx_password_history_user_id').on(table.userId),
+]);
+
+export const userProfiles = sqliteTable('user_profiles', {
+  id: text('id').primaryKey(),
+  userId: text('user_id').notNull().unique().references(() => users.id, { onDelete: 'cascade' }),
+  displayName: text('display_name'),
+  bio: text('bio'),
+  company: text('company'),
+  jobTitle: text('job_title'),
+  website: text('website'),
+  location: text('location'),
+  dateOfBirth: integer('date_of_birth'),
+  data: text('data', { mode: 'json' }).default({}),
+  createdAt: integer('created_at').notNull().default(sql`(strftime('%s', 'now') * 1000)`),
+  updatedAt: integer('updated_at').notNull().default(sql`(strftime('%s', 'now') * 1000)`),
+}, (table) => [
+  index('idx_user_profiles_user_id').on(table.userId),
+]);
 
 // Zod schemas for validation
 export const insertUserSchema = createInsertSchema(users, {
@@ -154,7 +236,14 @@ export const systemLogs = sqliteTable('system_logs', {
   tags: text('tags', { mode: 'json' }), // Array of tags for categorization
   source: text('source'), // Source component/module that generated the log
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-});
+}, (table) => [
+  index('idx_system_logs_level').on(table.level),
+  index('idx_system_logs_category').on(table.category),
+  index('idx_system_logs_created_at').on(table.createdAt),
+  index('idx_system_logs_user_id').on(table.userId),
+  index('idx_system_logs_status_code').on(table.statusCode),
+  index('idx_system_logs_source').on(table.source),
+]);
 
 // Log configuration table
 export const logConfig = sqliteTable('log_config', {
@@ -217,7 +306,35 @@ export const securityEvents = sqliteTable('security_events', {
   fingerprint: text('fingerprint'),
   blocked: integer('blocked').notNull().default(0),
   createdAt: integer('created_at').notNull().$defaultFn(() => Date.now()),
-});
+}, (table) => [
+  index('idx_security_events_type').on(table.eventType),
+  index('idx_security_events_user').on(table.userId),
+  index('idx_security_events_email').on(table.email),
+  index('idx_security_events_ip').on(table.ipAddress),
+  index('idx_security_events_severity').on(table.severity),
+  index('idx_security_events_created').on(table.createdAt),
+  index('idx_security_events_fingerprint').on(table.fingerprint),
+]);
+
+export const analyticsEvents = sqliteTable('analytics_events', {
+  id: text('id').primaryKey(),
+  event: text('event').notNull(),
+  category: text('category').notNull().default('user-activity'),
+  properties: text('properties', { mode: 'json' }),
+  userId: text('user_id'),
+  sessionId: text('session_id'),
+  ipAddress: text('ip_address'),
+  userAgent: text('user_agent'),
+  path: text('path'),
+  createdAt: integer('created_at').notNull().default(sql`(unixepoch())`),
+}, (table) => [
+  index('idx_analytics_events_event').on(table.event),
+  index('idx_analytics_events_category').on(table.category),
+  index('idx_analytics_events_user_id').on(table.userId),
+  index('idx_analytics_events_session_id').on(table.sessionId),
+  index('idx_analytics_events_created_at').on(table.createdAt),
+  index('idx_analytics_events_path').on(table.path),
+]);
 
 export const insertSecurityEventSchema = createInsertSchema(securityEvents, {
   eventType: (schema: any) => schema.min(1),
@@ -228,3 +345,5 @@ export const selectSecurityEventSchema = createSelectSchema(securityEvents);
 
 export type SecurityEventRecord = typeof securityEvents.$inferSelect;
 export type NewSecurityEventRecord = typeof securityEvents.$inferInsert;
+export type AnalyticsEventRecord = typeof analyticsEvents.$inferSelect;
+export type NewAnalyticsEventRecord = typeof analyticsEvents.$inferInsert;
