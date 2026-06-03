@@ -20,7 +20,7 @@ adminApiDashboardRoutes.get('/', async (c) => {
   // Stats
   let contentItems = 0, mediaFiles = 0, mediaSize = 0, users = 0, databaseSize = 0
   try {
-    const r = await db.prepare('SELECT COUNT(*) as count FROM content WHERE deleted_at IS NULL').first()
+    const r = await db.prepare('SELECT COUNT(*) as count FROM contents WHERE deleted_at IS NULL').first()
     contentItems = (r as any)?.count || 0
   } catch (e) {
     console.error('Error fetching content items count:', e)

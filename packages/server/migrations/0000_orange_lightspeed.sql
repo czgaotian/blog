@@ -33,24 +33,32 @@ CREATE INDEX `idx_analytics_events_user_id` ON `analytics_events` (`user_id`);--
 CREATE INDEX `idx_analytics_events_session_id` ON `analytics_events` (`session_id`);--> statement-breakpoint
 CREATE INDEX `idx_analytics_events_created_at` ON `analytics_events` (`created_at`);--> statement-breakpoint
 CREATE INDEX `idx_analytics_events_path` ON `analytics_events` (`path`);--> statement-breakpoint
-CREATE TABLE `content` (
+CREATE TABLE `categories` (
 	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
 	`slug` text NOT NULL,
-	`title` text NOT NULL,
-	`status` text DEFAULT 'draft' NOT NULL,
-	`published_at` integer,
-	`author_id` text NOT NULL,
+	`description` text,
+	`parent_id` text,
+	`sort_order` integer DEFAULT 0 NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
-	`deleted_at` integer,
-	FOREIGN KEY (`author_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+	FOREIGN KEY (`parent_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE INDEX `idx_content_author` ON `content` (`author_id`);--> statement-breakpoint
-CREATE INDEX `idx_content_status` ON `content` (`status`);--> statement-breakpoint
-CREATE INDEX `idx_content_published` ON `content` (`published_at`);--> statement-breakpoint
-CREATE INDEX `idx_content_slug` ON `content` (`slug`);--> statement-breakpoint
-CREATE INDEX `idx_content_deleted` ON `content` (`deleted_at`);--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_categories_slug` ON `categories` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_categories_parent` ON `categories` (`parent_id`);--> statement-breakpoint
+CREATE INDEX `idx_categories_sort_order` ON `categories` (`sort_order`);--> statement-breakpoint
+CREATE TABLE `content_tags` (
+	`content_id` text NOT NULL,
+	`tag_id` text NOT NULL,
+	`created_at` integer NOT NULL,
+	FOREIGN KEY (`content_id`) REFERENCES `contents`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`tag_id`) REFERENCES `tags`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_content_tags_content_tag` ON `content_tags` (`content_id`,`tag_id`);--> statement-breakpoint
+CREATE INDEX `idx_content_tags_content` ON `content_tags` (`content_id`);--> statement-breakpoint
+CREATE INDEX `idx_content_tags_tag` ON `content_tags` (`tag_id`);--> statement-breakpoint
 CREATE TABLE `content_versions` (
 	`id` text PRIMARY KEY NOT NULL,
 	`content_id` text NOT NULL,
@@ -58,12 +66,39 @@ CREATE TABLE `content_versions` (
 	`data` text NOT NULL,
 	`author_id` text NOT NULL,
 	`created_at` integer NOT NULL,
-	FOREIGN KEY (`content_id`) REFERENCES `content`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`content_id`) REFERENCES `contents`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`author_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
 CREATE INDEX `idx_content_versions_content` ON `content_versions` (`content_id`);--> statement-breakpoint
 CREATE INDEX `idx_content_versions_version` ON `content_versions` (`version`);--> statement-breakpoint
+CREATE TABLE `contents` (
+	`id` text PRIMARY KEY NOT NULL,
+	`type` text DEFAULT 'post' NOT NULL,
+	`slug` text NOT NULL,
+	`title` text NOT NULL,
+	`excerpt` text,
+	`body` text DEFAULT '' NOT NULL,
+	`status` text DEFAULT 'draft' NOT NULL,
+	`category_id` text,
+	`published_at` integer,
+	`metadata` text DEFAULT '{}' NOT NULL,
+	`author_id` text NOT NULL,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL,
+	`deleted_at` integer,
+	FOREIGN KEY (`category_id`) REFERENCES `categories`(`id`) ON UPDATE no action ON DELETE no action,
+	FOREIGN KEY (`author_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_contents_type_slug` ON `contents` (`type`,`slug`);--> statement-breakpoint
+CREATE INDEX `idx_contents_type_status_published` ON `contents` (`type`,`status`,`published_at`);--> statement-breakpoint
+CREATE INDEX `idx_contents_category` ON `contents` (`category_id`);--> statement-breakpoint
+CREATE INDEX `idx_content_author` ON `contents` (`author_id`);--> statement-breakpoint
+CREATE INDEX `idx_content_status` ON `contents` (`status`);--> statement-breakpoint
+CREATE INDEX `idx_content_published` ON `contents` (`published_at`);--> statement-breakpoint
+CREATE INDEX `idx_content_slug` ON `contents` (`slug`);--> statement-breakpoint
+CREATE INDEX `idx_content_deleted` ON `contents` (`deleted_at`);--> statement-breakpoint
 CREATE TABLE `log_config` (
 	`id` text PRIMARY KEY NOT NULL,
 	`category` text NOT NULL,
@@ -178,6 +213,16 @@ CREATE INDEX `idx_system_logs_created_at` ON `system_logs` (`created_at`);--> st
 CREATE INDEX `idx_system_logs_user_id` ON `system_logs` (`user_id`);--> statement-breakpoint
 CREATE INDEX `idx_system_logs_status_code` ON `system_logs` (`status_code`);--> statement-breakpoint
 CREATE INDEX `idx_system_logs_source` ON `system_logs` (`source`);--> statement-breakpoint
+CREATE TABLE `tags` (
+	`id` text PRIMARY KEY NOT NULL,
+	`name` text NOT NULL,
+	`slug` text NOT NULL,
+	`description` text,
+	`created_at` integer NOT NULL,
+	`updated_at` integer NOT NULL
+);
+--> statement-breakpoint
+CREATE UNIQUE INDEX `idx_tags_slug` ON `tags` (`slug`);--> statement-breakpoint
 CREATE TABLE `user_profiles` (
 	`id` text PRIMARY KEY NOT NULL,
 	`user_id` text NOT NULL,

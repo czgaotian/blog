@@ -338,10 +338,10 @@ describe('CACHE_CONFIGS', () => {
     })
   })
 
-  it('should have content config with correct values', () => {
-    expect(CACHE_CONFIGS.content).toEqual({
+  it('should have contents config with correct values', () => {
+    expect(CACHE_CONFIGS.contents).toEqual({
       ttl: 300,
-      keyPrefix: 'content'
+      keyPrefix: 'contents'
     })
   })
 })

@@ -16,7 +16,7 @@ export interface ContentFilters {
   status?: string
 }
 
-export function useContentList(filters: ContentFilters = {}) {
+export function useContentsList(filters: ContentFilters = {}) {
   const params = new URLSearchParams()
   if (filters.page) params.set('page', String(filters.page))
   if (filters.limit) params.set('limit', String(filters.limit))
@@ -25,75 +25,75 @@ export function useContentList(filters: ContentFilters = {}) {
   const qs = params.toString()
 
   return useQuery<ContentListResponse>({
-    queryKey: ['admin', 'content', filters],
-    queryFn: () => adminFetch<ContentListResponse>(`/api/admin/content${qs ? `?${qs}` : ''}`),
+    queryKey: ['admin', 'contents', filters],
+    queryFn: () => adminFetch<ContentListResponse>(`/api/admin/contents${qs ? `?${qs}` : ''}`),
   })
 }
 
-export function useContentDetail(id: string) {
+export function useContentsDetail(id: string) {
   return useQuery<ContentDetailResponse>({
-    queryKey: ['admin', 'content', id],
-    queryFn: () => adminFetch<ContentDetailResponse>(`/api/admin/content/${id}`),
+    queryKey: ['admin', 'contents', id],
+    queryFn: () => adminFetch<ContentDetailResponse>(`/api/admin/contents/${id}`),
     enabled: Boolean(id),
   })
 }
 
-export function useContentVersions(id: string) {
+export function useContentsVersions(id: string) {
   return useQuery<ContentVersionsResponse>({
-    queryKey: ['admin', 'content', id, 'versions'],
-    queryFn: () => adminFetch<ContentVersionsResponse>(`/api/admin/content/${id}/versions`),
+    queryKey: ['admin', 'contents', id, 'versions'],
+    queryFn: () => adminFetch<ContentVersionsResponse>(`/api/admin/contents/${id}/versions`),
     enabled: Boolean(id),
   })
 }
 
-export function useCreateContent() {
+export function useCreateContents() {
   const qc = useQueryClient()
   return useMutation<MutateContentResponse, Error, CreateContentRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateContentResponse>('/api/admin/content', {
+      adminFetch<MutateContentResponse>('/api/admin/contents', {
         method: 'POST',
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'content'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents'] })
     },
   })
 }
 
-export function useUpdateContent(id: string) {
+export function useUpdateContents(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateContentResponse, Error, UpdateContentRequest>({
     mutationFn: (data) =>
-      adminFetch<MutateContentResponse>(`/api/admin/content/${id}`, {
+      adminFetch<MutateContentResponse>(`/api/admin/contents/${id}`, {
         method: 'PUT',
         body: JSON.stringify(data),
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'content'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents'] })
     },
   })
 }
 
-export function useDeleteContent(id: string) {
+export function useDeleteContents(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateContentResponse, Error, void>({
     mutationFn: () =>
-      adminFetch<MutateContentResponse>(`/api/admin/content/${id}`, { method: 'DELETE' }),
+      adminFetch<MutateContentResponse>(`/api/admin/contents/${id}`, { method: 'DELETE' }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'content'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents'] })
     },
   })
 }
 
-export function useRestoreContentVersion(id: string) {
+export function useRestoreContentsVersion(id: string) {
   const qc = useQueryClient()
   return useMutation<MutateContentResponse, Error, number>({
     mutationFn: (version) =>
-      adminFetch<MutateContentResponse>(`/api/admin/content/${id}/restore/${version}`, {
+      adminFetch<MutateContentResponse>(`/api/admin/contents/${id}/restore/${version}`, {
         method: 'POST',
       }),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'content', id] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents', id] })
     },
   })
 }

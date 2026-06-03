@@ -1,14 +1,15 @@
 import { Hono } from 'hono'
 import type { Bindings, Variables } from '../app'
 
-const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const apiContentsCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// GET /api/content/check-slug - Check if slug is globally available
-// Query params: slug, excludeId (optional - when editing)
+// GET /api/contents/check-slug - Check if slug is available for a content type.
+// Query params: type, slug, excludeId (optional - when editing)
 // NOTE: This MUST come before /:id route to avoid route conflict
-apiContentCrudRoutes.get('/check-slug', async (c) => {
+apiContentsCrudRoutes.get('/check-slug', async (c) => {
   try {
     const db = c.env.DB
+    const type = c.req.query('type') || 'post'
     const slug = c.req.query('slug')
     const excludeId = c.req.query('excludeId') // When editing, exclude current item
     
@@ -16,8 +17,12 @@ apiContentCrudRoutes.get('/check-slug', async (c) => {
       return c.json({ error: 'slug is required' }, 400)
     }
     
-    let query = 'SELECT id FROM content WHERE slug = ? AND deleted_at IS NULL'
-    const params: string[] = [slug]
+    if (!['post', 'page', 'note'].includes(type)) {
+      return c.json({ error: 'type must be post, page, or note' }, 400)
+    }
+
+    let query = 'SELECT id FROM contents WHERE type = ? AND slug = ? AND deleted_at IS NULL'
+    const params: string[] = [type, slug]
     
     if (excludeId) {
       query += ' AND id != ?'
@@ -43,14 +48,14 @@ apiContentCrudRoutes.get('/check-slug', async (c) => {
   }
 })
 
-// GET /api/content/:id - Get single content item by ID
-apiContentCrudRoutes.get('/:id', async (c) => {
+// GET /api/contents/:id - Get single content item by ID
+apiContentsCrudRoutes.get('/:id', async (c) => {
   try {
     const id = c.req.param('id')
     if (!id) return c.json({ error: 'Content id is required' }, 400)
     const db = c.env.DB
 
-    const stmt = db.prepare('SELECT * FROM content WHERE id = ?')
+    const stmt = db.prepare('SELECT * FROM contents WHERE id = ?')
     const content = await stmt.bind(id).first()
 
     if (!content) {
@@ -59,9 +64,13 @@ apiContentCrudRoutes.get('/:id', async (c) => {
 
     const transformedContent = {
       id: (content as any).id,
+      type: (content as any).type,
       title: (content as any).title,
       slug: (content as any).slug,
+      excerpt: (content as any).excerpt ?? null,
+      body: (content as any).body ?? '',
       status: (content as any).status,
+      metadata: parseJsonObject((content as any).metadata),
       published_at: (content as any).published_at,
       created_at: (content as any).created_at,
       updated_at: (content as any).updated_at
@@ -77,4 +86,15 @@ apiContentCrudRoutes.get('/:id', async (c) => {
   }
 })
 
-export default apiContentCrudRoutes
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object') return value as Record<string, unknown>
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
+
+export default apiContentsCrudRoutes

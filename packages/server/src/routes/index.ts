@@ -7,7 +7,7 @@
 
 // API routes
 export { default as apiRoutes } from './api'
-export { default as apiContentCrudRoutes } from './api-content-crud'
+export { default as apiContentsCrudRoutes } from './api-contents-crud'
 export { default as apiMediaRoutes } from './api-media'
 export { default as adminApiRoutes } from './admin-api'
 
@@ -16,14 +16,16 @@ export { default as authRoutes } from './auth'
 
 // SPA fallback route
 export { createSpaFallbackRoutes } from './spa-fallback'
-export { adminApiContentRoutes } from './admin-api-content'
+export { adminApiCategoriesRoutes } from './admin-api-categories'
+export { adminApiContentsRoutes } from './admin-api-contents'
 export { adminApiProfileRoutes } from './admin-api-profile'
+export { adminApiTagsRoutes } from './admin-api-tags'
 
 export const ROUTES_INFO = {
   message: 'Core routes available',
   available: [
     'apiRoutes',
-    'apiContentCrudRoutes',
+    'apiContentsCrudRoutes',
     'apiMediaRoutes',
     'adminApiRoutes',
     'authRoutes',

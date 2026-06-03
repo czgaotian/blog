@@ -5,8 +5,10 @@ import {
   adminApiRoutes,
   authRoutes,
   createSpaFallbackRoutes,
-  adminApiContentRoutes,
+  adminApiCategoriesRoutes,
+  adminApiContentsRoutes,
   adminApiProfileRoutes,
+  adminApiTagsRoutes,
 } from "./routes";
 import { metricsMiddleware } from "./middleware/metrics";
 import { requestContextMiddleware } from "./middleware/request-context";
@@ -79,7 +81,9 @@ export function registerCoreApiRoutes(app: WorkerBlogApp): void {
   app.route("/api/media", apiMediaRoutes);
   app.route("/api/admin/profile", adminApiProfileRoutes);
   app.route("/api/admin", adminApiRoutes);
-  app.route("/api/admin/content", adminApiContentRoutes);
+  app.route("/api/admin/categories", adminApiCategoriesRoutes);
+  app.route("/api/admin/contents", adminApiContentsRoutes);
+  app.route("/api/admin/tags", adminApiTagsRoutes);
 }
 
 export function registerFeatureRoutes(app: WorkerBlogApp): void {

@@ -10,7 +10,7 @@ import { LogConfigPage } from "./pages/log-config";
 import { SettingsPage } from "./pages/settings";
 import { SpaTestPage } from "./pages/spa-test";
 import { NotFoundPage } from "./pages/not-found";
-import { ContentListPage } from "./pages/content-list";
+import { ContentsListPage } from "./pages/contents-list";
 import { MediaLibraryPage } from "./pages/media-library";
 import { ProfilePage } from "./pages/profile";
 import { SecurityAuditPage } from "./pages/security-audit";
@@ -36,7 +36,7 @@ export const router = createBrowserRouter(
         { path: "logs/config", element: <LogConfigPage /> },
         { path: "logs/:id", element: <LogDetailsPage /> },
         { path: "settings", element: <SettingsPage /> },
-        { path: "content", element: <ContentListPage /> },
+        { path: "contents", element: <ContentsListPage /> },
         { path: "media", element: <MediaLibraryPage /> },
         { path: "profile", element: <ProfilePage /> },
         { path: "security-audit", element: <SecurityAuditPage /> },

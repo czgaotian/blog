@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useContentList } from '../api/content'
+import { useContentsList } from '../api/contents'
 import type { ContentStatus } from '@worker-blog/shared/admin-api'
 import { PageHeader } from '../components/page-header'
 import { Alert } from '../components/ui/alert'
@@ -19,10 +19,10 @@ const STATUS_COLORS: Record<ContentStatus, string> = {
   deleted: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
 }
 
-export function ContentListPage() {
+export function ContentsListPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
-  const { data, isLoading, isError } = useContentList({ page, limit: 20, search })
+  const { data, isLoading, isError } = useContentsList({ page, limit: 20, search })
 
   const totalPages = data ? Math.max(1, Math.ceil(data.total / 20)) : 1
 

@@ -34,7 +34,7 @@ adminApiRoutes.get('/stats', async (c) => {
     // Get content count
     let contentCount = 0
     try {
-      const contentStmt = db.prepare('SELECT COUNT(*) as count FROM content WHERE deleted_at IS NULL')
+      const contentStmt = db.prepare('SELECT COUNT(*) as count FROM contents WHERE deleted_at IS NULL')
       const contentResult = await contentStmt.first()
       contentCount = (contentResult as any)?.count || 0
     } catch (error) {

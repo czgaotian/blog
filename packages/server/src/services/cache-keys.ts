@@ -1,4 +1,4 @@
-export const contentCacheKeys = {
-  item: (id: string): string => `api:content:${id}`,
-  filteredPattern: (): string => 'content-filtered:*',
+export const contentsCacheKeys = {
+  item: (id: string): string => `api:contents:${id}`,
+  filteredPattern: (): string => 'contents-filtered:*',
 }

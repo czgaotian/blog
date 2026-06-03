@@ -25,7 +25,7 @@ import { cn } from "../lib/utils";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
   { label: "Logs", href: "/logs", icon: Activity },
-  { label: "Content", href: "/content", icon: FileText },
+  { label: "Contents", href: "/contents", icon: FileText },
   { label: "Media", href: "/media", icon: Image },
   { label: "Security Audit", href: "/security-audit", icon: ShieldCheck },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },

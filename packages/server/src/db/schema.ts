@@ -42,18 +42,52 @@ export const users = sqliteTable('users', {
   index('idx_users_invitation_token').on(table.invitationToken),
 ]);
 
-// Content items - minimal blog content metadata
-export const content = sqliteTable('content', {
+export const categories = sqliteTable('categories', {
   id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  description: text('description'),
+  parentId: text('parent_id').references((): any => categories.id),
+  sortOrder: integer('sort_order').notNull().default(0),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex('idx_categories_slug').on(table.slug),
+  index('idx_categories_parent').on(table.parentId),
+  index('idx_categories_sort_order').on(table.sortOrder),
+]);
+
+export const tags = sqliteTable('tags', {
+  id: text('id').primaryKey(),
+  name: text('name').notNull(),
+  slug: text('slug').notNull(),
+  description: text('description'),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex('idx_tags_slug').on(table.slug),
+]);
+
+// Content items - typed personal blog content.
+export const contents = sqliteTable('contents', {
+  id: text('id').primaryKey(),
+  type: text('type').notNull().default('post'), // 'post', 'page', 'note'
   slug: text('slug').notNull(),
   title: text('title').notNull(),
+  excerpt: text('excerpt'),
+  body: text('body').notNull().default(''),
   status: text('status').notNull().default('draft'), // 'draft', 'published', 'archived'
+  categoryId: text('category_id').references(() => categories.id),
   publishedAt: integer('published_at', { mode: 'timestamp' }),
+  metadata: text('metadata', { mode: 'json' }).notNull().default({}),
   authorId: text('author_id').notNull().references(() => users.id),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => [
+  uniqueIndex('idx_contents_type_slug').on(table.type, table.slug),
+  index('idx_contents_type_status_published').on(table.type, table.status, table.publishedAt),
+  index('idx_contents_category').on(table.categoryId),
   index('idx_content_author').on(table.authorId),
   index('idx_content_status').on(table.status),
   index('idx_content_published').on(table.publishedAt),
@@ -61,10 +95,20 @@ export const content = sqliteTable('content', {
   index('idx_content_deleted').on(table.deletedAt),
 ]);
 
+export const contentTags = sqliteTable('content_tags', {
+  contentId: text('content_id').notNull().references(() => contents.id),
+  tagId: text('tag_id').notNull().references(() => tags.id),
+  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
+}, (table) => [
+  uniqueIndex('idx_content_tags_content_tag').on(table.contentId, table.tagId),
+  index('idx_content_tags_content').on(table.contentId),
+  index('idx_content_tags_tag').on(table.tagId),
+]);
+
 // Content versions for versioning system
 export const contentVersions = sqliteTable('content_versions', {
   id: text('id').primaryKey(),
-  contentId: text('content_id').notNull().references(() => content.id),
+  contentId: text('content_id').notNull().references(() => contents.id),
   version: integer('version').notNull(),
   data: text('data', { mode: 'json' }).notNull(),
   authorId: text('author_id').notNull().references(() => users.id),
@@ -170,13 +214,13 @@ export const insertUserSchema = createInsertSchema(users, {
 
 export const selectUserSchema = createSelectSchema(users);
 
-export const insertContentSchema = createInsertSchema(content, {
+export const insertContentSchema = createInsertSchema(contents, {
   slug: (schema: any) => schema.min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Slug must contain only letters, numbers, underscores, and hyphens'),
   title: (schema: any) => schema.min(1),
   status: (schema: any) => schema,
 });
 
-export const selectContentSchema = createSelectSchema(content);
+export const selectContentSchema = createSelectSchema(contents);
 
 export const insertMediaSchema = createInsertSchema(media, {
   filename: (schema: any) => schema.min(1),
@@ -251,8 +295,14 @@ export const selectLogConfigSchema = createSelectSchema(logConfig);
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Content = typeof content.$inferSelect;
-export type NewContent = typeof content.$inferInsert;
+export type Category = typeof categories.$inferSelect;
+export type NewCategory = typeof categories.$inferInsert;
+export type Tag = typeof tags.$inferSelect;
+export type NewTag = typeof tags.$inferInsert;
+export type Content = typeof contents.$inferSelect;
+export type NewContent = typeof contents.$inferInsert;
+export type ContentTag = typeof contentTags.$inferSelect;
+export type NewContentTag = typeof contentTags.$inferInsert;
 export type Media = typeof media.$inferSelect;
 export type NewMedia = typeof media.$inferInsert;
 export type SystemLog = typeof systemLogs.$inferSelect;

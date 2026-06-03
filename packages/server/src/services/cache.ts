@@ -133,9 +133,9 @@ export const CACHE_CONFIGS = {
     ttl: 600,
     keyPrefix: 'user',
   },
-  content: {
+  contents: {
     ttl: 300,
-    keyPrefix: 'content',
+    keyPrefix: 'contents',
   },
 }
 

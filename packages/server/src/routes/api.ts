@@ -5,7 +5,7 @@ import { getCacheService, CACHE_CONFIGS } from '../services'
 import { QueryFilterBuilder, QueryFilter } from '@worker-blog/shared/utils'
 import { optionalAuth } from '../middleware'
 import { normalizePublicContentFilter } from './api-content-access-policy'
-import apiContentCrudRoutes from './api-content-crud'
+import apiContentsCrudRoutes from './api-contents-crud'
 import type { Bindings, Variables as AppVariables } from '../app'
 
 // Extend Variables with API-specific fields
@@ -128,7 +128,7 @@ apiRoutes.get('/', (c) => {
           }
         }
       },
-      '/api/content': {
+      '/api/contents': {
         get: {
           summary: 'List Content',
           description: 'Returns content items with advanced filtering support. Anonymous, viewer, and author requests are restricted to published content; admin and editor requests may query other statuses.',
@@ -172,7 +172,7 @@ apiRoutes.get('/', (c) => {
           }
         }
       },
-      '/api/content/{id}': {
+      '/api/contents/{id}': {
         get: {
           summary: 'Get Content by ID',
           description: 'Returns a specific content item by ID',
@@ -288,6 +288,12 @@ apiRoutes.get('/health', (c) => {
   })
 })
 
+apiRoutes.get('/posts/:slug', async (c) => getPublicContentBySlug(c, 'post'))
+apiRoutes.get('/pages/:slug', async (c) => getPublicContentBySlug(c, 'page'))
+apiRoutes.get('/notes/:slug', async (c) => getPublicContentBySlug(c, 'note'))
+apiRoutes.get('/category/:slug', async (c) => getPostsByCategorySlug(c))
+apiRoutes.get('/tag/:slug', async (c) => getPostsByTagSlug(c))
+
 // Basic content endpoint with advanced filtering
 apiRoutes.get('/content', optionalAuth(), async (c) => {
   const executionStart = Date.now()
@@ -308,7 +314,7 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
 
     // Build SQL query from filter
     const builder = new QueryFilterBuilder()
-    const queryResult = builder.build('content', normalizedFilter)
+    const queryResult = builder.build('contents', normalizedFilter)
 
     // Check for query building errors
     if (queryResult.errors.length > 0) {
@@ -320,7 +326,7 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
 
     const cacheEnabled = c.get('cacheEnabled')
     const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    const cacheKey = cache.generateKey('content-filtered', JSON.stringify({ filter: normalizedFilter, query: queryResult.sql }))
+    const cacheKey = cache.generateKey('contents-filtered', JSON.stringify({ filter: normalizedFilter, query: queryResult.sql }))
 
     if (cacheEnabled) {
       const cacheResult = await cache.getWithSource<any>(cacheKey)
@@ -364,8 +370,10 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
     // Transform results to match API spec (camelCase)
     const transformedResults = results.map((row: any) => ({
       id: row.id,
+      type: row.type,
       title: row.title,
       slug: row.slug,
+      excerpt: row.excerpt ?? null,
       status: row.status,
       published_at: row.published_at,
       created_at: row.created_at,
@@ -400,7 +408,120 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
   }
 })
 
-// Mount CRUD routes for content
-apiRoutes.route('/content', apiContentCrudRoutes)
+// Mount CRUD routes for contents
+apiRoutes.route('/contents', apiContentsCrudRoutes)
+
+async function getPublicContentBySlug(c: any, type: 'post' | 'page' | 'note') {
+  const row = await c.env.DB
+    .prepare(`
+      SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
+      FROM contents c
+      LEFT JOIN categories cat ON c.category_id = cat.id
+      WHERE c.type = ? AND c.slug = ? AND c.status = 'published' AND c.deleted_at IS NULL
+    `)
+    .bind(type, c.req.param('slug'))
+    .first() as any
+
+  if (!row) return c.json({ error: 'Content not found' }, 404)
+
+  const tags = type === 'post' ? await getContentTags(c.env.DB, row.id) : []
+  return c.json({ data: mapPublicContent(row, tags) })
+}
+
+async function getPostsByCategorySlug(c: any) {
+  const category = await c.env.DB
+    .prepare('SELECT id, name, slug, description FROM categories WHERE slug = ?')
+    .bind(c.req.param('slug'))
+    .first() as any
+  if (!category) return c.json({ error: 'Category not found' }, 404)
+
+  const { results } = await c.env.DB
+    .prepare(`
+      SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
+      FROM contents c
+      JOIN categories cat ON c.category_id = cat.id
+      WHERE c.type = 'post' AND cat.id = ? AND c.status = 'published' AND c.deleted_at IS NULL
+      ORDER BY c.published_at DESC, c.created_at DESC
+    `)
+    .bind(category.id)
+    .all()
+
+  return c.json({
+    category,
+    data: (results || []).map((row: any) => mapPublicContent(row, [])),
+  })
+}
+
+async function getPostsByTagSlug(c: any) {
+  const tag = await c.env.DB
+    .prepare('SELECT id, name, slug, description FROM tags WHERE slug = ?')
+    .bind(c.req.param('slug'))
+    .first() as any
+  if (!tag) return c.json({ error: 'Tag not found' }, 404)
+
+  const { results } = await c.env.DB
+    .prepare(`
+      SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
+      FROM contents c
+      JOIN content_tags ct ON c.id = ct.content_id
+      LEFT JOIN categories cat ON c.category_id = cat.id
+      WHERE c.type = 'post' AND ct.tag_id = ? AND c.status = 'published' AND c.deleted_at IS NULL
+      ORDER BY c.published_at DESC, c.created_at DESC
+    `)
+    .bind(tag.id)
+    .all()
+
+  return c.json({
+    tag,
+    data: (results || []).map((row: any) => mapPublicContent(row, [])),
+  })
+}
+
+async function getContentTags(db: D1Database, contentId: string) {
+  const { results } = await db
+    .prepare(`
+      SELECT t.id, t.name, t.slug
+      FROM content_tags ct
+      JOIN tags t ON ct.tag_id = t.id
+      WHERE ct.content_id = ?
+      ORDER BY t.name ASC
+    `)
+    .bind(contentId)
+    .all()
+  return (results || []).map((row: any) => ({ id: row.id, name: row.name, slug: row.slug }))
+}
+
+function mapPublicContent(row: any, tags: Array<{ id: string; name: string; slug: string }>) {
+  return {
+    id: row.id,
+    type: row.type,
+    title: row.title,
+    slug: row.slug,
+    excerpt: row.excerpt ?? null,
+    body: row.body ?? '',
+    status: row.status,
+    category: row.category_id ? {
+      id: row.category_id,
+      name: row.category_name,
+      slug: row.category_slug,
+    } : null,
+    tags,
+    metadata: parseJsonObject(row.metadata),
+    published_at: row.published_at,
+    created_at: row.created_at,
+    updated_at: row.updated_at,
+  }
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object') return value as Record<string, unknown>
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}
 
 export default apiRoutes

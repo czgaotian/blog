@@ -3,8 +3,8 @@ import { requireAuth, requireRole } from '../middleware'
 import {
   createContentSchema,
   updateContentSchema,
-  type ContentListResponse,
   type ContentDetailResponse,
+  type ContentListResponse,
   type ContentVersionsResponse,
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
@@ -14,14 +14,14 @@ import {
   deleteContent,
   restoreContentVersion,
   updateContent,
-} from '../services/content-domain'
+} from '../services/contents-domain'
 
-export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const adminApiContentsRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-adminApiContentRoutes.use('*', requireAuth())
-adminApiContentRoutes.use('*', requireRole(['admin', 'editor', 'author']))
+adminApiContentsRoutes.use('*', requireAuth())
+adminApiContentsRoutes.use('*', requireRole(['admin', 'editor', 'author']))
 
-adminApiContentRoutes.get('/', async (c) => {
+adminApiContentsRoutes.get('/', async (c) => {
   if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
 
   const db = c.env.DB
@@ -29,6 +29,9 @@ adminApiContentRoutes.get('/', async (c) => {
   const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '20')))
   const offset = (page - 1) * limit
   const status = c.req.query('status') || ''
+  const type = c.req.query('type') || ''
+  const categoryId = c.req.query('categoryId') || ''
+  const tagId = c.req.query('tagId') || ''
   const search = c.req.query('search') || ''
 
   const conditions: string[] = []
@@ -41,25 +44,42 @@ adminApiContentRoutes.get('/', async (c) => {
     conditions.push("c.status != 'deleted'")
   }
 
+  if (type) {
+    conditions.push('c.type = ?')
+    params.push(type)
+  }
+
+  if (categoryId) {
+    conditions.push('c.category_id = ?')
+    params.push(categoryId)
+  }
+
+  if (tagId) {
+    conditions.push('EXISTS (SELECT 1 FROM content_tags ct WHERE ct.content_id = c.id AND ct.tag_id = ?)')
+    params.push(tagId)
+  }
+
   if (search) {
-    conditions.push('(c.title LIKE ? OR c.slug LIKE ?)')
-    params.push(`%${search}%`, `%${search}%`)
+    conditions.push('(c.title LIKE ? OR c.slug LIKE ? OR c.excerpt LIKE ?)')
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`)
   }
 
   const where = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : ''
 
   try {
     const countRes = await db
-      .prepare(`SELECT COUNT(*) as count FROM content c ${where}`)
+      .prepare(`SELECT COUNT(*) as count FROM contents c ${where}`)
       .bind(...params)
       .first() as any
     const total = countRes?.count || 0
 
     const { results } = await db
       .prepare(`
-        SELECT c.id, c.title, c.slug, c.status, c.created_at, c.updated_at,
+        SELECT c.id, c.type, c.title, c.slug, c.excerpt, c.status, c.created_at, c.updated_at,
+               cat.id AS category_id, cat.name AS category_name, cat.slug AS category_slug,
                u.first_name, u.last_name, u.email as author_email
-        FROM content c
+        FROM contents c
+        LEFT JOIN categories cat ON c.category_id = cat.id
         LEFT JOIN users u ON c.author_id = u.id
         ${where}
         ORDER BY c.updated_at DESC
@@ -68,11 +88,21 @@ adminApiContentRoutes.get('/', async (c) => {
       .bind(...params, limit, offset)
       .all()
 
+    const ids = (results || []).map((row: any) => row.id)
+    const tagsByContent = await getTagsByContentIds(db, ids)
     const items = (results || []).map((row: any) => ({
       id: row.id,
+      type: row.type,
       title: row.title,
       slug: row.slug,
+      excerpt: row.excerpt ?? null,
       status: row.status,
+      category: row.category_id ? {
+        id: row.category_id,
+        name: row.category_name,
+        slug: row.category_slug,
+      } : null,
+      tags: tagsByContent.get(row.id) ?? [],
       authorName: row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
         : row.author_email || 'Unknown',
@@ -83,12 +113,12 @@ adminApiContentRoutes.get('/', async (c) => {
     const response: ContentListResponse = { items, total, page, limit }
     return c.json(response)
   } catch (error) {
-    console.error('[admin-api-content] Error fetching content:', error)
+    console.error('[admin-api-contents] Error fetching content:', error)
     return c.json({ error: 'Failed to fetch content' }, 500)
   }
 })
 
-adminApiContentRoutes.get('/:id', async (c) => {
+adminApiContentsRoutes.get('/:id', async (c) => {
   if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
   const db = c.env.DB
@@ -96,8 +126,10 @@ adminApiContentRoutes.get('/:id', async (c) => {
   try {
     const row = await db
       .prepare(`
-        SELECT c.*, u.first_name, u.last_name, u.email as author_email
-        FROM content c
+        SELECT c.*, cat.name AS category_name, cat.slug AS category_slug,
+               u.first_name, u.last_name, u.email as author_email
+        FROM contents c
+        LEFT JOIN categories cat ON c.category_id = cat.id
         LEFT JOIN users u ON c.author_id = u.id
         WHERE c.id = ?
       `)
@@ -106,11 +138,24 @@ adminApiContentRoutes.get('/:id', async (c) => {
 
     if (!row) return c.json({ error: 'Content not found' }, 404)
 
+    const tags = await getContentTags(db, id)
     const response: ContentDetailResponse = {
       id: row.id,
+      type: row.type,
       title: row.title,
       slug: row.slug,
+      excerpt: row.excerpt ?? null,
+      body: row.body ?? '',
       status: row.status,
+      categoryId: row.category_id ?? null,
+      category: row.category_id ? {
+        id: row.category_id,
+        name: row.category_name,
+        slug: row.category_slug,
+      } : null,
+      tags,
+      tagIds: tags.map((tag) => tag.id),
+      metadata: parseJsonObject(row.metadata),
       publishedAt: row.published_at ? new Date(Number(row.published_at)).toISOString() : null,
       authorId: row.author_id,
       authorName: row.first_name && row.last_name
@@ -121,12 +166,12 @@ adminApiContentRoutes.get('/:id', async (c) => {
     }
     return c.json(response)
   } catch (error) {
-    console.error('[admin-api-content] Error fetching content item:', error)
+    console.error('[admin-api-contents] Error fetching content item:', error)
     return c.json({ error: 'Failed to fetch content' }, 500)
   }
 })
 
-adminApiContentRoutes.post('/', async (c) => {
+adminApiContentsRoutes.post('/', async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Authentication required' }, 401)
 
@@ -136,33 +181,28 @@ adminApiContentRoutes.post('/', async (c) => {
   const parsed = createContentSchema.safeParse(body)
   if (!parsed.success) return c.json({ error: 'Validation failed', issues: parsed.error.issues }, 422)
 
-  const { title, slug: rawSlug, status, publishedAt } = parsed.data
   const db = c.env.DB
 
   try {
     const result = await createContent({
       db,
       mode: 'admin-create',
-      input: {
-        title,
-        slug: rawSlug,
-        status,
-        publishedAt,
-      },
+      input: parsed.data,
       authorId: user.userId,
       cacheKv: c.env.CACHE_KV,
     })
-    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
+    if (result.validationError) return c.json({ error: result.validationError }, 422)
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists for this content type' }, 409)
 
     const response: MutateContentResponse = { message: 'Content created successfully', id: result.id! }
     return c.json(response, 201)
   } catch (error) {
-    console.error('[admin-api-content] Error creating content:', error)
+    console.error('[admin-api-contents] Error creating content:', error)
     return c.json({ error: 'Failed to create content' }, 500)
   }
 })
 
-adminApiContentRoutes.put('/:id', async (c) => {
+adminApiContentsRoutes.put('/:id', async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
@@ -185,16 +225,17 @@ adminApiContentRoutes.put('/:id', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (!result.found) return c.json({ error: 'Content not found' }, 404)
-    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
+    if (result.validationError) return c.json({ error: result.validationError }, 422)
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists for this content type' }, 409)
 
     return c.json({ message: 'Content updated successfully' })
   } catch (error) {
-    console.error('[admin-api-content] Error updating content:', error)
+    console.error('[admin-api-contents] Error updating content:', error)
     return c.json({ error: 'Failed to update content' }, 500)
   }
 })
 
-adminApiContentRoutes.delete('/:id', async (c) => {
+adminApiContentsRoutes.delete('/:id', async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
@@ -212,18 +253,18 @@ adminApiContentRoutes.delete('/:id', async (c) => {
 
     return c.json({ message: 'Content deleted successfully' })
   } catch (error) {
-    console.error('[admin-api-content] Error deleting content:', error)
+    console.error('[admin-api-contents] Error deleting content:', error)
     return c.json({ error: 'Failed to delete content' }, 500)
   }
 })
 
-adminApiContentRoutes.get('/:id/versions', async (c) => {
+adminApiContentsRoutes.get('/:id/versions', async (c) => {
   if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
   const db = c.env.DB
 
   try {
-    const existing = await db.prepare('SELECT id FROM content WHERE id = ?').bind(id).first()
+    const existing = await db.prepare('SELECT id FROM contents WHERE id = ?').bind(id).first()
     if (!existing) return c.json({ error: 'Content not found' }, 404)
 
     const { results } = await db
@@ -252,12 +293,12 @@ adminApiContentRoutes.get('/:id/versions', async (c) => {
     const response: ContentVersionsResponse = { versions }
     return c.json(response)
   } catch (error) {
-    console.error('[admin-api-content] Error fetching versions:', error)
+    console.error('[admin-api-contents] Error fetching versions:', error)
     return c.json({ error: 'Failed to fetch versions' }, 500)
   }
 })
 
-adminApiContentRoutes.post('/:id/restore/:version', async (c) => {
+adminApiContentsRoutes.post('/:id/restore/:version', async (c) => {
   const user = c.get('user')
   if (!user) return c.json({ error: 'Authentication required' }, 401)
   const id = c.req.param('id')
@@ -272,11 +313,67 @@ adminApiContentRoutes.post('/:id/restore/:version', async (c) => {
       authorId: user.userId,
       cacheKv: c.env.CACHE_KV,
     })
+    if (!result.restored && result.validationError) return c.json({ error: result.validationError }, 422)
     if (!result.restored) return c.json({ error: 'Version not found' }, 404)
 
     return c.json({ message: `Restored to version ${version}` })
   } catch (error) {
-    console.error('[admin-api-content] Error restoring version:', error)
+    console.error('[admin-api-contents] Error restoring version:', error)
     return c.json({ error: 'Failed to restore version' }, 500)
   }
 })
+
+async function getContentTags(db: D1Database, contentId: string) {
+  const { results } = await db
+    .prepare(`
+      SELECT t.id, t.name, t.slug
+      FROM content_tags ct
+      JOIN tags t ON ct.tag_id = t.id
+      WHERE ct.content_id = ?
+      ORDER BY t.name ASC
+    `)
+    .bind(contentId)
+    .all()
+
+  return (results || []).map((row: any) => ({
+    id: row.id,
+    name: row.name,
+    slug: row.slug,
+  }))
+}
+
+async function getTagsByContentIds(db: D1Database, contentIds: string[]) {
+  const tagsByContent = new Map<string, Array<{ id: string; name: string; slug: string }>>()
+  if (contentIds.length === 0) return tagsByContent
+
+  const placeholders = contentIds.map(() => '?').join(',')
+  const { results } = await db
+    .prepare(`
+      SELECT ct.content_id, t.id, t.name, t.slug
+      FROM content_tags ct
+      JOIN tags t ON ct.tag_id = t.id
+      WHERE ct.content_id IN (${placeholders})
+      ORDER BY t.name ASC
+    `)
+    .bind(...contentIds)
+    .all()
+
+  for (const row of results || []) {
+    const item = { id: (row as any).id, name: (row as any).name, slug: (row as any).slug }
+    const contentId = String((row as any).content_id)
+    tagsByContent.set(contentId, [...(tagsByContent.get(contentId) ?? []), item])
+  }
+
+  return tagsByContent
+}
+
+function parseJsonObject(value: unknown): Record<string, unknown> {
+  if (value && typeof value === 'object') return value as Record<string, unknown>
+  if (!value) return {}
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && !Array.isArray(parsed) ? parsed : {}
+  } catch {
+    return {}
+  }
+}

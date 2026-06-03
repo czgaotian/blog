@@ -78,8 +78,13 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
   'GET /api/auth/session': { description: 'Get current authenticated session information', category: 'Auth', authentication: true },
 
-  'GET /api/content': { description: 'List public content', category: 'Content', authentication: false },
-  'GET /api/content/:id': { description: 'Get a content item by ID', category: 'Content', authentication: false },
+  'GET /api/contents': { description: 'List public contents', category: 'Content', authentication: false },
+  'GET /api/contents/:id': { description: 'Get a content item by ID', category: 'Content', authentication: false },
+  'GET /api/posts/:slug': { description: 'Get a published post by slug', category: 'Content', authentication: false },
+  'GET /api/pages/:slug': { description: 'Get a published page by slug', category: 'Content', authentication: false },
+  'GET /api/notes/:slug': { description: 'Get a published note by slug', category: 'Content', authentication: false },
+  'GET /api/category/:slug': { description: 'List published posts in a category', category: 'Content', authentication: false },
+  'GET /api/tag/:slug': { description: 'List published posts with a tag', category: 'Content', authentication: false },
 
   'GET /api/media': { description: 'List media files', category: 'Media', authentication: true },
   'GET /api/media/:id': { description: 'Get a media file by ID', category: 'Media', authentication: true },
@@ -92,10 +97,18 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/media/bulk-move': { description: 'Move multiple media files', category: 'Media', authentication: true },
 
   'GET /api/admin/dashboard': { description: 'Get admin dashboard data', category: 'Admin', authentication: true },
-  'GET /api/admin/content': { description: 'List content for admin management', category: 'Admin', authentication: true },
-  'POST /api/admin/content': { description: 'Create content via admin API', category: 'Admin', authentication: true },
-  'PUT /api/admin/content/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
-  'DELETE /api/admin/content/:id': { description: 'Delete content via admin API', category: 'Admin', authentication: true },
+  'GET /api/admin/contents': { description: 'List content for admin management', category: 'Admin', authentication: true },
+  'POST /api/admin/contents': { description: 'Create content via admin API', category: 'Admin', authentication: true },
+  'PUT /api/admin/contents/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
+  'DELETE /api/admin/contents/:id': { description: 'Delete content via admin API', category: 'Admin', authentication: true },
+  'GET /api/admin/categories': { description: 'List categories for admin management', category: 'Admin', authentication: true },
+  'POST /api/admin/categories': { description: 'Create a category via admin API', category: 'Admin', authentication: true },
+  'PUT /api/admin/categories/:id': { description: 'Update a category via admin API', category: 'Admin', authentication: true },
+  'DELETE /api/admin/categories/:id': { description: 'Delete a category via admin API', category: 'Admin', authentication: true },
+  'GET /api/admin/tags': { description: 'List tags for admin management', category: 'Admin', authentication: true },
+  'POST /api/admin/tags': { description: 'Create a tag via admin API', category: 'Admin', authentication: true },
+  'PUT /api/admin/tags/:id': { description: 'Update a tag via admin API', category: 'Admin', authentication: true },
+  'DELETE /api/admin/tags/:id': { description: 'Delete a tag via admin API', category: 'Admin', authentication: true },
   'GET /api/admin/settings': { description: 'Get application settings', category: 'Admin', authentication: true },
   'PUT /api/admin/settings': { description: 'Update application settings', category: 'Admin', authentication: true },
 
@@ -133,7 +146,14 @@ export function inferCategory(path: string): string {
   if (path.startsWith('/api/auth/')) return 'Auth'
   if (path.startsWith('/api/media')) return 'Media'
   if (path === '/api' || path === '/api/health') return 'System'
-  if (path.startsWith('/api/content')) return 'Content'
+  if (
+    path.startsWith('/api/contents') ||
+    path.startsWith('/api/posts') ||
+    path.startsWith('/api/pages') ||
+    path.startsWith('/api/notes') ||
+    path.startsWith('/api/category') ||
+    path.startsWith('/api/tag')
+  ) return 'Content'
   if (path.startsWith('/api/admin/logs')) return 'Logs'
   if (path.startsWith('/api/admin/security-audit') || path.startsWith('/api/security-audit')) return 'Security'
   if (path.startsWith('/api/admin/analytics') || path.startsWith('/api/events')) return 'Analytics'

@@ -1,12 +1,29 @@
 import { z } from 'zod'
 
 export type ContentStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived' | 'deleted'
+export type ContentType = 'post' | 'page' | 'note'
+
+export interface ContentCategorySummary {
+  id: string
+  name: string
+  slug: string
+}
+
+export interface ContentTagSummary {
+  id: string
+  name: string
+  slug: string
+}
 
 export interface ContentListItem {
   id: string
+  type: ContentType
   title: string
   slug: string
+  excerpt: string | null
   status: ContentStatus
+  category: ContentCategorySummary | null
+  tags: ContentTagSummary[]
   authorName: string
   createdAt: string
   updatedAt: string
@@ -21,9 +38,17 @@ export interface ContentListResponse {
 
 export interface ContentDetailResponse {
   id: string
+  type: ContentType
   title: string
   slug: string
+  excerpt: string | null
+  body: string
   status: ContentStatus
+  categoryId: string | null
+  category: ContentCategorySummary | null
+  tags: ContentTagSummary[]
+  tagIds: string[]
+  metadata: Record<string, unknown>
   publishedAt: string | null
   authorId: string
   authorName: string
@@ -46,9 +71,15 @@ export interface ContentVersionsResponse {
 
 export interface ContentVersionSnapshot {
   id: string
+  type: ContentType
   title: string
   slug: string
+  excerpt: string | null
+  body: string
   status: ContentStatus
+  categoryId: string | null
+  tagIds: string[]
+  metadata: Record<string, unknown>
   publishedAt: string | null
   authorId: string
   createdAt: string
@@ -57,16 +88,28 @@ export interface ContentVersionSnapshot {
 }
 
 export const createContentSchema = z.object({
+  type: z.enum(['post', 'page', 'note']).optional().default('post'),
   title: z.string().min(1).max(500),
   slug: z.string().max(500).optional(),
+  excerpt: z.string().max(1000).nullable().optional(),
+  body: z.string().optional().default(''),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived']).optional().default('draft'),
+  categoryId: z.string().nullable().optional(),
+  tagIds: z.array(z.string()).optional().default([]),
+  metadata: z.record(z.string(), z.unknown()).optional().default({}),
   publishedAt: z.string().nullable().optional(),
 })
 
 export const updateContentSchema = z.object({
+  type: z.enum(['post', 'page', 'note']).optional(),
   title: z.string().min(1).max(500).optional(),
   slug: z.string().max(500).optional(),
+  excerpt: z.string().max(1000).nullable().optional(),
+  body: z.string().optional(),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived', 'deleted']).optional(),
+  categoryId: z.string().nullable().optional(),
+  tagIds: z.array(z.string()).optional(),
+  metadata: z.record(z.string(), z.unknown()).optional(),
   publishedAt: z.string().nullable().optional(),
 })
 

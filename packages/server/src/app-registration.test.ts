@@ -70,7 +70,7 @@ describe("createWorkerBlogApp route smoke tests", () => {
     const app = createWorkerBlogApp();
 
     const res = await app.request(
-      "/api/admin/content",
+      "/api/admin/contents",
       {},
       createTestEnv(),
     );
