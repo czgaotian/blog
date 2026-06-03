@@ -28,7 +28,7 @@ export function ContentListPage() {
 
   return (
     <section className="space-y-6">
-      <PageHeader title="Content" description="Manage content items across all collections." />
+      <PageHeader title="Content" description="Manage blog content." />
 
       <FilterBar
         searchLabel="Search by title or slug…"
@@ -54,7 +54,6 @@ export function ContentListPage() {
             <TableHeader>
               <TableRow>
                 <TableHead>Title</TableHead>
-                <TableHead>Collection</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Author</TableHead>
                 <TableHead>Updated</TableHead>
@@ -63,7 +62,7 @@ export function ContentListPage() {
             <TableBody>
               {data.items.length === 0 ? (
                 <TableRow>
-                  <TableCell className="text-center text-muted-foreground" colSpan={5}>
+                  <TableCell className="text-center text-muted-foreground" colSpan={4}>
                     No content found.
                   </TableCell>
                 </TableRow>
@@ -75,11 +74,6 @@ export function ContentListPage() {
                         <p className="font-medium truncate">{item.title}</p>
                         <p className="text-xs text-muted-foreground truncate">{item.slug}</p>
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge className="bg-muted text-muted-foreground">
-                        {item.collectionDisplayName}
-                      </Badge>
                     </TableCell>
                     <TableCell>
                       <Badge className={STATUS_COLORS[item.status]}>{item.status}</Badge>

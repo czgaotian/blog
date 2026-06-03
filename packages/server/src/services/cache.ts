@@ -137,10 +137,6 @@ export const CACHE_CONFIGS = {
     ttl: 300,
     keyPrefix: 'content',
   },
-  collection: {
-    ttl: 600,
-    keyPrefix: 'collection',
-  },
 }
 
 const coreCacheInstances = new Map<string, CacheService>()

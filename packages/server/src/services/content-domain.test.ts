@@ -6,14 +6,14 @@ import {
   updateContent,
 } from './content-domain'
 
-function createMockDb(existing: any = { id: 'content-1', collection_id: 'collection-1' }) {
+function createMockDb(firstBySql: (sql: string) => any = () => null) {
   const calls: Array<{ sql: string; args: any[] }> = []
   const db = {
     prepare: vi.fn((sql: string) => ({
       bind: (...args: any[]) => {
         calls.push({ sql, args })
         return {
-          first: async () => existing,
+          first: async () => firstBySql(sql),
           run: async () => ({ success: true }),
         }
       },
@@ -23,30 +23,29 @@ function createMockDb(existing: any = { id: 'content-1', collection_id: 'collect
   return { db, calls }
 }
 
+const existingContent = {
+  id: 'content-1',
+  title: 'Old Post',
+  slug: 'old-post',
+  status: 'draft',
+  published_at: null,
+  author_id: 'user-1',
+  created_at: 100,
+  updated_at: 100,
+  deleted_at: null,
+}
+
 describe('content domain creation', () => {
-  it('creates admin content with an initial version and invalidates cache', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => ({ id: 'collection-1' }),
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
+  it('creates admin content with an initial snapshot version', async () => {
+    const { db, calls } = createMockDb(() => null)
 
     const result = await createContent({
       db: db as any,
       mode: 'admin-create',
       input: {
-        collectionId: 'collection-1',
         title: 'New Post',
         slug: 'New Post!',
         status: 'draft',
-        data: { body: 'Hello' },
       },
       authorId: 'user-1',
       id: 'content-1',
@@ -55,140 +54,51 @@ describe('content domain creation', () => {
 
     expect(result).toEqual({
       created: true,
-      collectionFound: true,
       id: 'content-1',
-      collectionId: 'collection-1',
       mode: 'admin-create',
     })
-    expect(calls.some((call) => call.sql.includes('SELECT id, schema FROM collections'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM content WHERE slug = ?'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content ('))).toBe(true)
     expect(calls.some((call) => call.args.includes('new-post'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello' })))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
-  })
-
-  it('returns collection not found without creating admin content', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => null,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-
-    const result = await createContent({
-      db: db as any,
-      mode: 'admin-create',
-      input: {
-        collectionId: 'missing',
-        title: 'New Post',
-        status: 'draft',
-        data: {},
-      },
-      authorId: 'user-1',
-    })
-
-    expect(result).toEqual({
-      created: false,
-      collectionFound: false,
-      collectionId: 'missing',
-      mode: 'admin-create',
-    })
-    expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('SELECT id, schema FROM collections')
-  })
-
-  it('creates headless content without an initial version and checks duplicate slugs', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT id, schema FROM collections')) return { id: 'collection-1' }
-              return null
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-
-    const result = await createContent({
-      db: db as any,
-      mode: 'headless-create',
-      input: {
-        collectionId: 'collection-1',
-        title: 'New Post',
-        slug: ' New Post! ',
-        status: 'draft',
-        data: { body: 'Hello' },
-      },
-      authorId: 'user-1',
+    const versionCall = calls.find((call) => call.sql.includes('INSERT INTO content_versions'))
+    expect(JSON.parse(versionCall?.args[2] as string)).toMatchObject({
       id: 'content-1',
-      now: 123,
+      title: 'New Post',
+      slug: 'new-post',
+      status: 'draft',
+      authorId: 'user-1',
     })
-
-    expect(result.created).toBe(true)
-    expect(result.collectionFound).toBe(true)
-    expect(result.id).toBe('content-1')
-    expect(calls.some((call) => call.sql.includes('SELECT id, schema FROM collections'))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('SELECT id FROM content WHERE collection_id = ? AND slug = ?'))).toBe(true)
-    expect(calls.some((call) => call.args.includes('-new-post-'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'Hello' })))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
   })
 
-  it('returns duplicate slug for headless create without inserting content', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT id, schema FROM collections')) return { id: 'collection-1' }
-              return { id: 'existing-content' }
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
+  it('returns duplicate slug without inserting content', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT id FROM content WHERE slug = ?')) return { id: 'existing' }
+      return null
+    })
 
     const result = await createContent({
       db: db as any,
       mode: 'headless-create',
       input: {
-        collectionId: 'collection-1',
         title: 'New Post',
         status: 'draft',
-        data: {},
       },
       authorId: 'user-1',
     })
 
     expect(result).toEqual({
       created: false,
-      collectionFound: true,
       duplicateSlug: true,
-      collectionId: 'collection-1',
       mode: 'headless-create',
     })
-    expect(calls).toHaveLength(2)
-    expect(calls[1]?.sql).toContain('SELECT id FROM content')
+    expect(calls.some((call) => call.sql.includes('INSERT INTO content ('))).toBe(false)
   })
 })
 
 describe('content domain deletion', () => {
-  it('soft deletes admin content', async () => {
-    const { db, calls } = createMockDb()
+  it('soft deletes admin content and invalidates cache', async () => {
+    const { db, calls } = createMockDb(() => ({ id: 'content-1' }))
 
     const result = await deleteContent({
       db: db as any,
@@ -200,30 +110,13 @@ describe('content domain deletion', () => {
     expect(result).toEqual({
       found: true,
       id: 'content-1',
-      collectionId: 'collection-1',
       mode: 'admin-soft',
     })
     expect(calls.some((call) => call.sql.includes("UPDATE content SET status = 'deleted'"))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('DELETE FROM content'))).toBe(false)
-  })
-
-  it('hard deletes headless content', async () => {
-    const { db, calls } = createMockDb()
-
-    const result = await deleteContent({
-      db: db as any,
-      id: 'content-1',
-      mode: 'headless-hard',
-    })
-
-    expect(result.found).toBe(true)
-    expect(result.mode).toBe('headless-hard')
-    expect(calls.some((call) => call.sql.includes('DELETE FROM content WHERE id = ?'))).toBe(true)
-    expect(calls.some((call) => call.sql.includes("UPDATE content SET status = 'deleted'"))).toBe(false)
   })
 
   it('returns not found without mutating content', async () => {
-    const { db, calls } = createMockDb(null)
+    const { db, calls } = createMockDb(() => null)
 
     const result = await deleteContent({
       db: db as any,
@@ -237,47 +130,28 @@ describe('content domain deletion', () => {
       mode: 'admin-soft',
     })
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('SELECT id, collection_id FROM content')
+    expect(calls[0]?.sql).toContain('SELECT id FROM content')
   })
 })
 
 describe('content domain update', () => {
-  it('updates admin content, creates a version for data changes, and invalidates cache', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const existing = {
-      id: 'content-1',
-      collection_id: 'collection-1',
-      title: 'Old title',
-      slug: 'old-title',
-      status: 'draft',
-      data: JSON.stringify({ body: 'Old body' }),
-    }
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT MAX(version)')) return { max_version: 2 }
-              return existing
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
+  it('updates admin content and creates a snapshot version when fields change', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT * FROM content')) return existingContent
+      if (sql.includes('SELECT id FROM content WHERE slug = ?')) return null
+      if (sql.includes('SELECT MAX(version)')) return { max_version: 1 }
+      return null
+    })
 
     const result = await updateContent({
       db: db as any,
       id: 'content-1',
       mode: 'admin-update',
       patch: {
-        title: 'New title',
-        slug: 'New Title!',
-        status: 'published',
-        data: { body: 'New body' },
+        title: 'Updated Post',
+        slug: 'updated-post',
       },
-      authorId: 'user-1',
+      authorId: 'user-2',
       now: 456,
     })
 
@@ -285,192 +159,81 @@ describe('content domain update', () => {
       found: true,
       id: 'content-1',
       mode: 'admin-update',
-      collectionId: 'collection-1',
       versionCreated: true,
     })
     expect(calls.some((call) => call.sql.includes('UPDATE content SET title = ?'))).toBe(true)
-    expect(calls.some((call) => call.args.includes('new-title'))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('SELECT MAX(version) as max_version'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(3))).toBe(true)
   })
 
-  it('updates admin content without a version when only metadata changes', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const existing = {
-      id: 'content-1',
-      collection_id: 'collection-1',
-      title: 'Old title',
-      slug: 'old-title',
-      status: 'draft',
-      data: JSON.stringify({ body: 'Old body' }),
-    }
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => existing,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
+  it('returns duplicate slug without updating', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT * FROM content')) return existingContent
+      if (sql.includes('SELECT id FROM content WHERE slug = ?')) return { id: 'other' }
+      return null
+    })
 
     const result = await updateContent({
       db: db as any,
       id: 'content-1',
       mode: 'admin-update',
-      patch: { status: 'published' },
-      authorId: 'user-1',
-    })
-
-    expect(result.found).toBe(true)
-    expect(result.versionCreated).toBe(false)
-    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
-  })
-
-  it('updates headless content by replacing data without creating versions', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const existing = {
-      id: 'content-1',
-      collection_id: 'collection-1',
-      title: 'Old title',
-      slug: 'old-title',
-      status: 'draft',
-      data: JSON.stringify({ body: 'Old body', keep: false }),
-    }
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => existing,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-
-    const result = await updateContent({
-      db: db as any,
-      id: 'content-1',
-      mode: 'headless-update',
-      patch: {
-        title: 'New title',
-        slug: ' New Title! ',
-        status: 'published',
-        data: { body: 'New body' },
-      },
-      authorId: 'user-1',
-      now: 789,
+      patch: { slug: 'taken' },
+      authorId: 'user-2',
     })
 
     expect(result).toEqual({
       found: true,
       id: 'content-1',
-      mode: 'headless-update',
-      collectionId: 'collection-1',
-      versionCreated: false,
-    })
-    expect(calls.some((call) => call.args.includes('-new-title-'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(JSON.stringify({ body: 'New body' })))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(false)
-  })
-
-  it('returns not found without mutating admin content', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => null,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
-
-    const result = await updateContent({
-      db: db as any,
-      id: 'missing',
       mode: 'admin-update',
-      patch: { status: 'published' },
-      authorId: 'user-1',
+      duplicateSlug: true,
     })
-
-    expect(result).toEqual({
-      found: false,
-      id: 'missing',
-      mode: 'admin-update',
-    })
-    expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('FROM content c')
+    expect(calls.some((call) => call.sql.includes('UPDATE content SET'))).toBe(false)
   })
 })
 
 describe('content domain version restore', () => {
-  it('restores a version, writes a new version, and invalidates cache', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => {
-              if (sql.includes('SELECT MAX(version)')) return { max_version: 4 }
-              return {
-                data: JSON.stringify({ title: 'Restored title', body: 'Old body' }),
-                collection_id: 'collection-1',
-              }
-            },
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
+  it('restores a snapshot and writes a new version', async () => {
+    const snapshot = {
+      id: 'content-1',
+      title: 'Restored title',
+      slug: 'restored-title',
+      status: 'draft',
+      publishedAt: null,
+      authorId: 'user-1',
+      createdAt: new Date(100).toISOString(),
+      updatedAt: new Date(100).toISOString(),
+      deletedAt: null,
     }
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT data FROM content_versions')) return { data: JSON.stringify(snapshot) }
+      if (sql.includes('SELECT MAX(version)')) return { max_version: 2 }
+      return null
+    })
 
     const result = await restoreContentVersion({
       db: db as any,
       id: 'content-1',
       version: 2,
-      authorId: 'user-1',
-      now: 999,
+      authorId: 'user-2',
+      now: 456,
     })
 
     expect(result).toEqual({
       restored: true,
       id: 'content-1',
       version: 2,
-      collectionId: 'collection-1',
     })
-    expect(calls.some((call) => call.sql.includes('JOIN content c ON c.id = cv.content_id'))).toBe(true)
-    expect(calls.some((call) => call.sql.includes('UPDATE content SET data = ?, title = ?, updated_at = ?'))).toBe(true)
-    expect(calls.some((call) => call.args.includes('Restored title'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('UPDATE content SET title = ?'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
-    expect(calls.some((call) => call.args.includes(5))).toBe(true)
   })
 
   it('returns not restored for a missing version without mutation', async () => {
-    const calls: Array<{ sql: string; args: any[] }> = []
-    const db = {
-      prepare: vi.fn((sql: string) => ({
-        bind: (...args: any[]) => {
-          calls.push({ sql, args })
-          return {
-            first: async () => null,
-            run: async () => ({ success: true }),
-          }
-        },
-      })),
-    }
+    const { db, calls } = createMockDb(() => null)
 
     const result = await restoreContentVersion({
       db: db as any,
       id: 'content-1',
       version: 99,
-      authorId: 'user-1',
+      authorId: 'user-2',
     })
 
     expect(result).toEqual({
@@ -479,6 +242,6 @@ describe('content domain version restore', () => {
       version: 99,
     })
     expect(calls).toHaveLength(1)
-    expect(calls[0]?.sql).toContain('FROM content_versions cv')
+    expect(calls[0]?.sql).toContain('SELECT data FROM content_versions')
   })
 })

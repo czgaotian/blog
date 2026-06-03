@@ -1,4 +1,4 @@
-# Worker Blog API Bruno Collection
+# Worker Blog API Bruno Requests
 
 Use the `local` environment, then run `Auth/Login` first. On an empty database, run `Auth/Register` once to create the first admin account.
 
@@ -6,9 +6,8 @@ Use the `local` environment, then run `Auth/Login` first. On an empty database, 
 
 For create/update requests:
 
-- Set `collectionId` after creating or listing collections.
 - Set `contentId` after creating or listing content.
 - Set `mediaFile` to a local file path before using upload requests.
 - Mutating admin requests use `Authorization: Bearer {{authToken}}`, so they do not need a CSRF header.
 
-This collection mirrors the slim CMS API surface and intentionally excludes deleted demo, seed, database-tool, user-management, and admin-media endpoints.
+This request suite mirrors the slim CMS API surface and intentionally excludes deleted demo, seed, database-tool, user-management, and admin-media endpoints.

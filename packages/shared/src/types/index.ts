@@ -4,15 +4,6 @@
  * TypeScript type definitions for Worker Blog
  */
 
-// Collection Schema Types
-export type {
-  FieldType,
-  FieldConfig,
-  BlockDefinition,
-  BlockDefinitions,
-  CollectionSchema
-} from './collection-config'
-
 // Telemetry Types
 export type {
   TelemetryEvent,

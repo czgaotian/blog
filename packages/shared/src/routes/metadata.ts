@@ -31,7 +31,7 @@ export const CATEGORY_INFO: Record<string, CategoryInfo> = {
   },
   Content: {
     title: 'Content Management',
-    description: 'Content collections, entries, and versions',
+    description: 'Blog content entries and versions',
     icon: 'file-text',
   },
   Media: {
@@ -78,8 +78,7 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/auth/refresh': { description: 'Refresh authentication token', category: 'Auth', authentication: true },
   'GET /api/auth/session': { description: 'Get current authenticated session information', category: 'Auth', authentication: true },
 
-  'GET /api/collections': { description: 'List public collections', category: 'Content', authentication: false },
-  'GET /api/collections/:collection/content': { description: 'List public content in a collection', category: 'Content', authentication: false },
+  'GET /api/content': { description: 'List public content', category: 'Content', authentication: false },
   'GET /api/content/:id': { description: 'Get a content item by ID', category: 'Content', authentication: false },
 
   'GET /api/media': { description: 'List media files', category: 'Media', authentication: true },
@@ -93,11 +92,6 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'POST /api/media/bulk-move': { description: 'Move multiple media files', category: 'Media', authentication: true },
 
   'GET /api/admin/dashboard': { description: 'Get admin dashboard data', category: 'Admin', authentication: true },
-  'GET /api/admin/collections': { description: 'List collections for admin management', category: 'Admin', authentication: true },
-  'POST /api/admin/collections': { description: 'Create a collection', category: 'Admin', authentication: true },
-  'GET /api/admin/collections/:id': { description: 'Get a collection', category: 'Admin', authentication: true },
-  'PATCH /api/admin/collections/:id': { description: 'Update a collection', category: 'Admin', authentication: true },
-  'DELETE /api/admin/collections/:id': { description: 'Delete a collection', category: 'Admin', authentication: true },
   'GET /api/admin/content': { description: 'List content for admin management', category: 'Admin', authentication: true },
   'POST /api/admin/content': { description: 'Create content via admin API', category: 'Admin', authentication: true },
   'PUT /api/admin/content/:id': { description: 'Update content via admin API', category: 'Admin', authentication: true },
@@ -139,7 +133,7 @@ export function inferCategory(path: string): string {
   if (path.startsWith('/api/auth/')) return 'Auth'
   if (path.startsWith('/api/media')) return 'Media'
   if (path === '/api' || path === '/api/health') return 'System'
-  if (path.startsWith('/api/content') || path.startsWith('/api/collections')) return 'Content'
+  if (path.startsWith('/api/content')) return 'Content'
   if (path.startsWith('/api/admin/logs')) return 'Logs'
   if (path.startsWith('/api/admin/security-audit') || path.startsWith('/api/security-audit')) return 'Security'
   if (path.startsWith('/api/admin/analytics') || path.startsWith('/api/events')) return 'Analytics'

@@ -38,7 +38,6 @@ describe('GET /api/admin/dashboard', () => {
       prepare: (sql: string) => ({
         first: async () => {
           if (sql.includes('FROM content')) return { count: 7 }
-          if (sql.includes('FROM collections') || sql.includes('collections')) return { count: 3 }
           if (sql.includes('media')) return { count: 5, total_size: 1024 }
           if (sql.includes('users')) return { count: 2 }
           return null
@@ -58,7 +57,6 @@ describe('GET /api/admin/dashboard', () => {
     expect(json).toHaveProperty('stats')
     expect(json).toHaveProperty('recentActivity')
     expect(json).toHaveProperty('metrics')
-    expect(json.stats.collections).toBe(3)
     expect(json.stats.contentItems).toBe(7)
     expect(json.stats.mediaFiles).toBe(5)
     expect(json.stats.mediaSize).toBe(1024)

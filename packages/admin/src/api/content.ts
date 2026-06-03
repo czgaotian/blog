@@ -14,7 +14,6 @@ export interface ContentFilters {
   limit?: number
   search?: string
   status?: string
-  collectionId?: string
 }
 
 export function useContentList(filters: ContentFilters = {}) {
@@ -23,7 +22,6 @@ export function useContentList(filters: ContentFilters = {}) {
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.search) params.set('search', filters.search)
   if (filters.status) params.set('status', filters.status)
-  if (filters.collectionId) params.set('collectionId', filters.collectionId)
   const qs = params.toString()
 
   return useQuery<ContentListResponse>({

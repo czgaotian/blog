@@ -20,7 +20,6 @@ export type TelemetryEvent =
   | 'admin_login'
   | 'plugin_activated'
   | 'plugin_deactivated'
-  | 'collection_created'
   | 'content_created'
 
   // Admin UI Events
@@ -44,7 +43,6 @@ export interface TelemetryProperties {
   // Runtime Properties
   sessionDuration?: number  // in milliseconds
   pluginsCount?: number  // count only, no plugin names
-  collectionsCount?: number
   contentItemsCount?: number
 
   // Admin UI Properties

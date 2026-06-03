@@ -33,37 +33,19 @@ CREATE INDEX `idx_analytics_events_user_id` ON `analytics_events` (`user_id`);--
 CREATE INDEX `idx_analytics_events_session_id` ON `analytics_events` (`session_id`);--> statement-breakpoint
 CREATE INDEX `idx_analytics_events_created_at` ON `analytics_events` (`created_at`);--> statement-breakpoint
 CREATE INDEX `idx_analytics_events_path` ON `analytics_events` (`path`);--> statement-breakpoint
-CREATE TABLE `collections` (
-	`id` text PRIMARY KEY NOT NULL,
-	`name` text NOT NULL,
-	`display_name` text NOT NULL,
-	`description` text,
-	`schema` text NOT NULL,
-	`is_active` integer DEFAULT true NOT NULL,
-	`created_at` integer NOT NULL,
-	`updated_at` integer NOT NULL
-);
---> statement-breakpoint
-CREATE UNIQUE INDEX `collections_name_unique` ON `collections` (`name`);--> statement-breakpoint
-CREATE INDEX `idx_collections_name` ON `collections` (`name`);--> statement-breakpoint
-CREATE INDEX `idx_collections_active` ON `collections` (`is_active`);--> statement-breakpoint
 CREATE TABLE `content` (
 	`id` text PRIMARY KEY NOT NULL,
-	`collection_id` text NOT NULL,
 	`slug` text NOT NULL,
 	`title` text NOT NULL,
-	`data` text NOT NULL,
 	`status` text DEFAULT 'draft' NOT NULL,
 	`published_at` integer,
 	`author_id` text NOT NULL,
 	`created_at` integer NOT NULL,
 	`updated_at` integer NOT NULL,
 	`deleted_at` integer,
-	FOREIGN KEY (`collection_id`) REFERENCES `collections`(`id`) ON UPDATE no action ON DELETE no action,
 	FOREIGN KEY (`author_id`) REFERENCES `users`(`id`) ON UPDATE no action ON DELETE no action
 );
 --> statement-breakpoint
-CREATE INDEX `idx_content_collection` ON `content` (`collection_id`);--> statement-breakpoint
 CREATE INDEX `idx_content_author` ON `content` (`author_id`);--> statement-breakpoint
 CREATE INDEX `idx_content_status` ON `content` (`status`);--> statement-breakpoint
 CREATE INDEX `idx_content_published` ON `content` (`published_at`);--> statement-breakpoint

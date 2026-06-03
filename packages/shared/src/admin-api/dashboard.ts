@@ -1,5 +1,4 @@
 export interface DashboardStats {
-  collections: number
   contentItems: number
   mediaFiles: number
   users: number

@@ -2,7 +2,7 @@
  * Telemetry Service
  *
  * Privacy-first telemetry service using custom Worker Blog stats endpoint
- * - No PII collection
+ * - No PII gathering
  * - Opt-out by default
  * - Silent failures (never blocks app)
  */

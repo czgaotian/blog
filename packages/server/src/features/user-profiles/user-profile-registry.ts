@@ -5,12 +5,26 @@
  * Set once at app boot via defineUserProfile(), queried by routes and templates.
  */
 
-import type { FieldType } from '@worker-blog/shared/types/collection-config'
+export type ProfileFieldType =
+  | 'text'
+  | 'textarea'
+  | 'number'
+  | 'boolean'
+  | 'checkbox'
+  | 'date'
+  | 'datetime'
+  | 'select'
+  | 'multi-select'
+  | 'url'
+  | 'email'
+  | 'image'
+  | 'object'
+  | 'array'
 
 export interface ProfileFieldDefinition {
   name: string
   label: string
-  type: FieldType
+  type: ProfileFieldType
   options?: string[]
   default?: any
   required?: boolean

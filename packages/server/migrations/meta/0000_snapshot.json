@@ -1,8 +1,8 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "6c4d576d-4d84-4dbd-9d3e-9e8a56a8bd7a",
-  "prevId": "00000000-0000-0000-0000-000000000000",
+  "id": "01e70b44-c5bd-4c35-b25f-48377ea4c7fe",
+  "prevId": "6c4d576d-4d84-4dbd-9d3e-9e8a56a8bd7a",
   "tables": {
     "activity_logs": {
       "name": "activity_logs",
@@ -239,95 +239,6 @@
       "uniqueConstraints": {},
       "checkConstraints": {}
     },
-    "collections": {
-      "name": "collections",
-      "columns": {
-        "id": {
-          "name": "id",
-          "type": "text",
-          "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "name": {
-          "name": "name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "display_name": {
-          "name": "display_name",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "description": {
-          "name": "description",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": false,
-          "autoincrement": false
-        },
-        "schema": {
-          "name": "schema",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "is_active": {
-          "name": "is_active",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false,
-          "default": true
-        },
-        "created_at": {
-          "name": "created_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "updated_at": {
-          "name": "updated_at",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        }
-      },
-      "indexes": {
-        "collections_name_unique": {
-          "name": "collections_name_unique",
-          "columns": [
-            "name"
-          ],
-          "isUnique": true
-        },
-        "idx_collections_name": {
-          "name": "idx_collections_name",
-          "columns": [
-            "name"
-          ],
-          "isUnique": false
-        },
-        "idx_collections_active": {
-          "name": "idx_collections_active",
-          "columns": [
-            "is_active"
-          ],
-          "isUnique": false
-        }
-      },
-      "foreignKeys": {},
-      "compositePrimaryKeys": {},
-      "uniqueConstraints": {},
-      "checkConstraints": {}
-    },
     "content": {
       "name": "content",
       "columns": {
@@ -335,13 +246,6 @@
           "name": "id",
           "type": "text",
           "primaryKey": true,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "collection_id": {
-          "name": "collection_id",
-          "type": "text",
-          "primaryKey": false,
           "notNull": true,
           "autoincrement": false
         },
@@ -354,13 +258,6 @@
         },
         "title": {
           "name": "title",
-          "type": "text",
-          "primaryKey": false,
-          "notNull": true,
-          "autoincrement": false
-        },
-        "data": {
-          "name": "data",
           "type": "text",
           "primaryKey": false,
           "notNull": true,
@@ -411,13 +308,6 @@
         }
       },
       "indexes": {
-        "idx_content_collection": {
-          "name": "idx_content_collection",
-          "columns": [
-            "collection_id"
-          ],
-          "isUnique": false
-        },
         "idx_content_author": {
           "name": "idx_content_author",
           "columns": [
@@ -455,19 +345,6 @@
         }
       },
       "foreignKeys": {
-        "content_collection_id_collections_id_fk": {
-          "name": "content_collection_id_collections_id_fk",
-          "tableFrom": "content",
-          "tableTo": "collections",
-          "columnsFrom": [
-            "collection_id"
-          ],
-          "columnsTo": [
-            "id"
-          ],
-          "onDelete": "no action",
-          "onUpdate": "no action"
-        },
         "content_author_id_users_id_fk": {
           "name": "content_author_id_users_id_fk",
           "tableFrom": "content",

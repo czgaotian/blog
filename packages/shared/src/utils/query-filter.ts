@@ -453,11 +453,10 @@ export class QueryFilterBuilder {
       filter.where.and = []
     }
 
-    // Parse simple field filters (status, collection_id, etc.)
+    // Parse simple field filters.
     // These are convenience parameters that get converted to WHERE conditions
     const simpleFieldMappings: Record<string, string> = {
       'status': 'status',
-      'collection_id': 'collection_id'
     }
 
     for (const [queryParam, dbField] of Object.entries(simpleFieldMappings)) {

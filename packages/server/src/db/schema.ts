@@ -42,28 +42,11 @@ export const users = sqliteTable('users', {
   index('idx_users_invitation_token').on(table.invitationToken),
 ]);
 
-// Content collections - dynamic schema definitions
-export const collections = sqliteTable('collections', {
-  id: text('id').primaryKey(),
-  name: text('name').notNull().unique(),
-  displayName: text('display_name').notNull(),
-  description: text('description'),
-  schema: text('schema', { mode: 'json' }).notNull(), // JSON schema definition
-  isActive: integer('is_active', { mode: 'boolean' }).notNull().default(true),
-  createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-  updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
-}, (table) => [
-  index('idx_collections_name').on(table.name),
-  index('idx_collections_active').on(table.isActive),
-]);
-
-// Content items - actual content data
+// Content items - minimal blog content metadata
 export const content = sqliteTable('content', {
   id: text('id').primaryKey(),
-  collectionId: text('collection_id').notNull().references(() => collections.id),
   slug: text('slug').notNull(),
   title: text('title').notNull(),
-  data: text('data', { mode: 'json' }).notNull(), // JSON content data
   status: text('status').notNull().default('draft'), // 'draft', 'published', 'archived'
   publishedAt: integer('published_at', { mode: 'timestamp' }),
   authorId: text('author_id').notNull().references(() => users.id),
@@ -71,7 +54,6 @@ export const content = sqliteTable('content', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => [
-  index('idx_content_collection').on(table.collectionId),
   index('idx_content_author').on(table.authorId),
   index('idx_content_status').on(table.status),
   index('idx_content_published').on(table.publishedAt),
@@ -188,13 +170,6 @@ export const insertUserSchema = createInsertSchema(users, {
 
 export const selectUserSchema = createSelectSchema(users);
 
-export const insertCollectionSchema = createInsertSchema(collections, {
-  name: (schema: any) => schema.min(1).regex(/^[a-z0-9_]+$/, 'Collection name must be lowercase with underscores'),
-  displayName: (schema: any) => schema.min(1),
-});
-
-export const selectCollectionSchema = createSelectSchema(collections);
-
 export const insertContentSchema = createInsertSchema(content, {
   slug: (schema: any) => schema.min(1).regex(/^[a-zA-Z0-9_-]+$/, 'Slug must contain only letters, numbers, underscores, and hyphens'),
   title: (schema: any) => schema.min(1),
@@ -276,8 +251,6 @@ export const selectLogConfigSchema = createSelectSchema(logConfig);
 // Type exports
 export type User = typeof users.$inferSelect;
 export type NewUser = typeof users.$inferInsert;
-export type Collection = typeof collections.$inferSelect;
-export type NewCollection = typeof collections.$inferInsert;
 export type Content = typeof content.$inferSelect;
 export type NewContent = typeof content.$inferInsert;
 export type Media = typeof media.$inferSelect;

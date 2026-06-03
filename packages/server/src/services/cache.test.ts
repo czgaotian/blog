@@ -344,13 +344,6 @@ describe('CACHE_CONFIGS', () => {
       keyPrefix: 'content'
     })
   })
-
-  it('should have collection config with correct values', () => {
-    expect(CACHE_CONFIGS.collection).toEqual({
-      ttl: 600,
-      keyPrefix: 'collection'
-    })
-  })
 })
 
 describe('getCacheService', () => {

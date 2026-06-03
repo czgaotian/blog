@@ -12,8 +12,6 @@ import { SpaTestPage } from "./pages/spa-test";
 import { NotFoundPage } from "./pages/not-found";
 import { ContentListPage } from "./pages/content-list";
 import { MediaLibraryPage } from "./pages/media-library";
-import { CollectionsListPage } from "./pages/collections-list";
-import { CollectionEditPage } from "./pages/collection-edit";
 import { ProfilePage } from "./pages/profile";
 import { SecurityAuditPage } from "./pages/security-audit";
 import { AnalyticsPage } from "./pages/analytics";
@@ -40,9 +38,6 @@ export const router = createBrowserRouter(
         { path: "settings", element: <SettingsPage /> },
         { path: "content", element: <ContentListPage /> },
         { path: "media", element: <MediaLibraryPage /> },
-        { path: "collections", element: <CollectionsListPage /> },
-        { path: "collections/new", element: <CollectionEditPage /> },
-        { path: "collections/:id/edit", element: <CollectionEditPage /> },
         { path: "profile", element: <ProfilePage /> },
         { path: "security-audit", element: <SecurityAuditPage /> },
         { path: "analytics", element: <AnalyticsPage /> },

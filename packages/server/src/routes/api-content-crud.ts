@@ -3,23 +3,21 @@ import type { Bindings, Variables } from '../app'
 
 const apiContentCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// GET /api/content/check-slug - Check if slug is available in collection
-// Query params: collectionId, slug, excludeId (optional - when editing)
+// GET /api/content/check-slug - Check if slug is globally available
+// Query params: slug, excludeId (optional - when editing)
 // NOTE: This MUST come before /:id route to avoid route conflict
 apiContentCrudRoutes.get('/check-slug', async (c) => {
   try {
     const db = c.env.DB
-    const collectionId = c.req.query('collectionId')
     const slug = c.req.query('slug')
     const excludeId = c.req.query('excludeId') // When editing, exclude current item
     
-    if (!collectionId || !slug) {
-      return c.json({ error: 'collectionId and slug are required' }, 400)
+    if (!slug) {
+      return c.json({ error: 'slug is required' }, 400)
     }
     
-    // Check for existing content with this slug in the collection
-    let query = 'SELECT id FROM content WHERE collection_id = ? AND slug = ?'
-    const params: string[] = [collectionId, slug]
+    let query = 'SELECT id FROM content WHERE slug = ? AND deleted_at IS NULL'
+    const params: string[] = [slug]
     
     if (excludeId) {
       query += ' AND id != ?'
@@ -31,7 +29,7 @@ apiContentCrudRoutes.get('/check-slug', async (c) => {
     if (existing) {
       return c.json({ 
         available: false, 
-        message: 'This URL slug is already in use in this collection' 
+        message: 'This URL slug is already in use' 
       })
     }
     
@@ -64,8 +62,7 @@ apiContentCrudRoutes.get('/:id', async (c) => {
       title: (content as any).title,
       slug: (content as any).slug,
       status: (content as any).status,
-      collectionId: (content as any).collection_id,
-      data: (content as any).data ? JSON.parse((content as any).data) : {},
+      published_at: (content as any).published_at,
       created_at: (content as any).created_at,
       updated_at: (content as any).updated_at
     }

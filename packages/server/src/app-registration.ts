@@ -6,7 +6,6 @@ import {
   authRoutes,
   createSpaFallbackRoutes,
   adminApiContentRoutes,
-  adminApiCollectionsRoutes,
   adminApiProfileRoutes,
 } from "./routes";
 import { metricsMiddleware } from "./middleware/metrics";
@@ -78,7 +77,6 @@ export function registerCoreApiRoutes(app: WorkerBlogApp): void {
   // Each route is tested and migrated one-by-one
   app.route("/api", apiRoutes);
   app.route("/api/media", apiMediaRoutes);
-  app.route("/api/admin/collections", adminApiCollectionsRoutes);
   app.route("/api/admin/profile", adminApiProfileRoutes);
   app.route("/api/admin", adminApiRoutes);
   app.route("/api/admin/content", adminApiContentRoutes);

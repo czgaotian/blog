@@ -3,7 +3,6 @@ import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
 import {
   Activity,
-  Database,
   FileText,
   Gauge,
   Image,
@@ -28,7 +27,6 @@ const navItems = [
   { label: "Logs", href: "/logs", icon: Activity },
   { label: "Content", href: "/content", icon: FileText },
   { label: "Media", href: "/media", icon: Image },
-  { label: "Collections", href: "/collections", icon: Database },
   { label: "Security Audit", href: "/security-audit", icon: ShieldCheck },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
   { label: "SPA Test", href: "/spa-test", icon: Activity },

@@ -17,7 +17,6 @@ export { default as authRoutes } from './auth'
 // SPA fallback route
 export { createSpaFallbackRoutes } from './spa-fallback'
 export { adminApiContentRoutes } from './admin-api-content'
-export { adminApiCollectionsRoutes } from './admin-api-collections'
 export { adminApiProfileRoutes } from './admin-api-profile'
 
 export const ROUTES_INFO = {

@@ -8,8 +8,7 @@ vi.mock('../middleware', () => ({
 
 const mockContent = {
   id: 'c1', title: 'Test Post', slug: 'test-post', status: 'draft',
-  data: '{"title":"Test Post"}', collection_id: 'col1',
-  collection_name: 'blog_posts', collection_display_name: 'Blog Posts',
+  published_at: null,
   author_id: 'u1', first_name: 'Admin', last_name: 'User', author_email: 'admin@test.com',
   created_at: 1700000000000, updated_at: 1700000000000,
 }
@@ -20,16 +19,8 @@ const mockDb: any = {
       first: async () => {
         if (sql.includes('COUNT(*)')) return { count: 1 }
         if (sql.includes('content_versions') && sql.includes('MAX(version)')) return { max_version: 1 }
-        if (sql.includes('SELECT schema FROM collections')) {
-          return {
-            schema: JSON.stringify({
-              type: 'object',
-              properties: {
-                body: { type: 'string', title: 'Body', format: 'markdown', searchable: true },
-              },
-              required: ['body'],
-            }),
-          }
+        if (sql.includes('SELECT id FROM content WHERE slug = ?')) {
+          return null
         }
         return mockContent
       },
@@ -79,21 +70,15 @@ describe('GET /api/admin/content', () => {
 })
 
 describe('GET /api/admin/content/:id', () => {
-  it('returns single content item with fields', async () => {
+  it('returns single content item', async () => {
     const app = createApp()
     const res = await app.request('/api/admin/content/c1', {}, { DB: mockDb })
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('id', 'c1')
-    expect(json).toHaveProperty('fields')
-    expect(json.fields[0]).toMatchObject({
-      id: 'schema-body',
-      fieldName: 'body',
-      fieldLabel: 'Body',
-      fieldType: 'markdown',
-      isRequired: true,
-    })
-    expect(json).toHaveProperty('data')
+    expect(json).toHaveProperty('publishedAt', null)
+    expect(json).not.toHaveProperty('fields')
+    expect(json).not.toHaveProperty('data')
   })
 })
 
@@ -104,10 +89,8 @@ describe('POST /api/admin/content', () => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        collectionId: 'col1',
         title: 'New Post',
         status: 'draft',
-        data: {},
       }),
     }, { DB: mockDb })
     expect(res.status).toBe(201)

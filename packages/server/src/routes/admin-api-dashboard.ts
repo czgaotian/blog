@@ -18,15 +18,9 @@ adminApiDashboardRoutes.get('/', async (c) => {
   const db = c.env.DB
 
   // Stats
-  let collections = 0, contentItems = 0, mediaFiles = 0, mediaSize = 0, users = 0, databaseSize = 0
+  let contentItems = 0, mediaFiles = 0, mediaSize = 0, users = 0, databaseSize = 0
   try {
-    const r = await db.prepare('SELECT COUNT(*) as count FROM collections WHERE is_active = 1').first()
-    collections = (r as any)?.count || 0
-  } catch (e) {
-    console.error('Error fetching collections count:', e)
-  }
-  try {
-    const r = await db.prepare('SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL').first()
+    const r = await db.prepare('SELECT COUNT(*) as count FROM content WHERE deleted_at IS NULL').first()
     contentItems = (r as any)?.count || 0
   } catch (e) {
     console.error('Error fetching content items count:', e)
@@ -58,7 +52,7 @@ adminApiDashboardRoutes.get('/', async (c) => {
       SELECT a.id, a.action, a.resource_type, a.created_at, u.email, u.first_name, u.last_name
       FROM activity_logs a
       LEFT JOIN users u ON a.user_id = u.id
-      WHERE a.resource_type IN ('content', 'collections', 'users', 'media')
+      WHERE a.resource_type IN ('content', 'users', 'media')
       ORDER BY a.created_at DESC
       LIMIT 10
     `).all()
@@ -82,7 +76,7 @@ adminApiDashboardRoutes.get('/', async (c) => {
   }
 
   const response: DashboardResponse = {
-    stats: { collections, contentItems, mediaFiles, users, mediaSize, databaseSize },
+    stats: { contentItems, mediaFiles, users, mediaSize, databaseSize },
     recentActivity,
     metrics: {
       requestsPerSecond: metricsTracker.getRequestsPerSecond(),

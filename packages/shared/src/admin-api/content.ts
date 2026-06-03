@@ -7,8 +7,6 @@ export interface ContentListItem {
   title: string
   slug: string
   status: ContentStatus
-  collectionName: string
-  collectionDisplayName: string
   authorName: string
   createdAt: string
   updatedAt: string
@@ -21,27 +19,12 @@ export interface ContentListResponse {
   limit: number
 }
 
-export interface ContentField {
-  id: string
-  fieldName: string
-  fieldLabel: string
-  fieldType: string
-  fieldOptions: unknown
-  fieldOrder: number
-  isRequired: boolean
-  isSearchable: boolean
-}
-
 export interface ContentDetailResponse {
   id: string
   title: string
   slug: string
   status: ContentStatus
-  data: Record<string, unknown>
-  collectionId: string
-  collectionName: string
-  collectionDisplayName: string
-  fields: ContentField[]
+  publishedAt: string | null
   authorId: string
   authorName: string
   createdAt: string
@@ -51,7 +34,7 @@ export interface ContentDetailResponse {
 export interface ContentVersion {
   id: string
   version: number
-  data: Record<string, unknown>
+  data: ContentVersionSnapshot
   authorName: string
   createdAt: string
   isCurrent: boolean
@@ -61,19 +44,30 @@ export interface ContentVersionsResponse {
   versions: ContentVersion[]
 }
 
+export interface ContentVersionSnapshot {
+  id: string
+  title: string
+  slug: string
+  status: ContentStatus
+  publishedAt: string | null
+  authorId: string
+  createdAt: string
+  updatedAt: string
+  deletedAt: string | null
+}
+
 export const createContentSchema = z.object({
-  collectionId: z.string().min(1),
   title: z.string().min(1).max(500),
   slug: z.string().max(500).optional(),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived']).optional().default('draft'),
-  data: z.record(z.string(), z.unknown()),
+  publishedAt: z.string().nullable().optional(),
 })
 
 export const updateContentSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   slug: z.string().max(500).optional(),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived', 'deleted']).optional(),
-  data: z.record(z.string(), z.unknown()).optional(),
+  publishedAt: z.string().nullable().optional(),
 })
 
 export type CreateContentRequest = z.infer<typeof createContentSchema>

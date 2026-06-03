@@ -31,20 +31,10 @@ adminApiRoutes.get('/stats', async (c) => {
   try {
     const db = c.env.DB
 
-    // Get collections count
-    let collectionsCount = 0
-    try {
-      const collectionsStmt = db.prepare('SELECT COUNT(*) as count FROM collections WHERE is_active = 1')
-      const collectionsResult = await collectionsStmt.first()
-      collectionsCount = (collectionsResult as any)?.count || 0
-    } catch (error) {
-      console.error('Error fetching collections count:', error)
-    }
-
     // Get content count
     let contentCount = 0
     try {
-      const contentStmt = db.prepare('SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id WHERE c.deleted_at IS NULL')
+      const contentStmt = db.prepare('SELECT COUNT(*) as count FROM content WHERE deleted_at IS NULL')
       const contentResult = await contentStmt.first()
       contentCount = (contentResult as any)?.count || 0
     } catch (error) {
@@ -74,7 +64,6 @@ adminApiRoutes.get('/stats', async (c) => {
     }
 
     return c.json({
-      collections: collectionsCount,
       contentItems: contentCount,
       mediaFiles: mediaCount,
       mediaSize: mediaSize,
@@ -149,7 +138,7 @@ adminApiRoutes.get('/activity', async (c) => {
         u.last_name
       FROM activity_logs a
       LEFT JOIN users u ON a.user_id = u.id
-      WHERE a.resource_type IN ('content', 'collections', 'users', 'media')
+      WHERE a.resource_type IN ('content', 'users', 'media')
       ORDER BY a.created_at DESC
       LIMIT ?
     `)
@@ -187,134 +176,6 @@ adminApiRoutes.get('/activity', async (c) => {
   } catch (error) {
     console.error('Error fetching recent activity:', error)
     return c.json({ error: 'Failed to fetch recent activity' }, 500)
-  }
-})
-
-/**
- * Get reference options for a collection
- * GET /api/admin/references?collection=<nameOrId>&search=<query>&limit=20&id=<contentId>
- */
-adminApiRoutes.get('/references', async (c) => {
-  try {
-    const db = c.env.DB
-    const url = new URL(c.req.url)
-    const collectionParams = url.searchParams
-      .getAll('collection')
-      .flatMap((value) => value.split(','))
-      .map((value) => value.trim())
-      .filter(Boolean)
-    const search = c.req.query('search') || ''
-    const id = c.req.query('id') || ''
-    const limit = Math.min(Number.parseInt(c.req.query('limit') || '20', 10) || 20, 100)
-
-    if (collectionParams.length === 0) {
-      return c.json({ error: 'Collection is required' }, 400)
-    }
-
-    const placeholders = collectionParams.map(() => '?').join(', ')
-    const collectionStmt = db.prepare(`
-      SELECT id, name, display_name
-      FROM collections
-      WHERE id IN (${placeholders}) OR name IN (${placeholders})
-    `)
-    const collectionResults = await collectionStmt
-      .bind(...collectionParams, ...collectionParams)
-      .all()
-    const collections = (collectionResults.results || []) as any[]
-
-    if (collections.length === 0) {
-      return c.json({ error: 'Collection not found' }, 404)
-    }
-
-    const collectionById = Object.fromEntries(
-      collections.map((entry) => [
-        entry.id,
-        {
-          id: entry.id,
-          name: entry.name,
-          display_name: entry.display_name
-        }
-      ])
-    )
-    const collectionIds = collections.map((entry) => entry.id)
-
-    if (id) {
-      const idPlaceholders = collectionIds.map(() => '?').join(', ')
-      const itemStmt = db.prepare(`
-        SELECT id, title, slug, collection_id
-        FROM content
-        WHERE id = ? AND collection_id IN (${idPlaceholders})
-        LIMIT 1
-      `)
-      const item = await itemStmt.bind(id, ...collectionIds).first() as any
-
-      if (!item) {
-        return c.json({ error: 'Reference not found' }, 404)
-      }
-
-      return c.json({
-        data: {
-          id: item.id,
-          title: item.title,
-          slug: item.slug,
-          collection: collectionById[item.collection_id]
-        }
-      })
-    }
-
-    let stmt
-    let results
-
-    const listPlaceholders = collectionIds.map(() => '?').join(', ')
-    const statusFilterValues = ['published']
-    const statusClause = ` AND status IN (${statusFilterValues.map(() => '?').join(', ')})`
-
-    if (search) {
-      const searchParam = `%${search}%`
-      stmt = db.prepare(`
-        SELECT id, title, slug, status, updated_at, collection_id
-        FROM content
-        WHERE collection_id IN (${listPlaceholders})
-        AND (title LIKE ? OR slug LIKE ?)
-        ${statusClause}
-        ORDER BY updated_at DESC
-        LIMIT ?
-      `)
-      const queryResults = await stmt
-        .bind(...collectionIds, searchParam, searchParam, ...statusFilterValues, limit)
-        .all()
-      results = queryResults.results
-    } else {
-      stmt = db.prepare(`
-        SELECT id, title, slug, status, updated_at, collection_id
-        FROM content
-        WHERE collection_id IN (${listPlaceholders})
-        ${statusClause}
-        ORDER BY updated_at DESC
-        LIMIT ?
-      `)
-      const queryResults = await stmt
-        .bind(...collectionIds, ...statusFilterValues, limit)
-        .all()
-      results = queryResults.results
-    }
-
-    const items = (results || []).map((row: any) => ({
-      id: row.id,
-      title: row.title,
-      slug: row.slug,
-      status: row.status,
-      updated_at: row.updated_at ? Number(row.updated_at) : null,
-      collection: collectionById[row.collection_id]
-    }))
-
-    return c.json({
-      data: items,
-      count: items.length
-    })
-  } catch (error) {
-    console.error('Error fetching reference options:', error)
-    return c.json({ error: 'Failed to fetch references' }, 500)
   }
 })
 

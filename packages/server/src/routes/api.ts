@@ -128,96 +128,6 @@ apiRoutes.get('/', (c) => {
           }
         }
       },
-      '/api/collections': {
-        get: {
-          summary: 'List Collections',
-          description: 'Returns all active collections with their schemas',
-          operationId: 'getCollections',
-          tags: ['Content'],
-          responses: {
-            '200': {
-              description: 'List of collections',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      data: {
-                        type: 'array',
-                        items: {
-                          type: 'object',
-                          properties: {
-                            id: { type: 'string' },
-                            name: { type: 'string' },
-                            display_name: { type: 'string' },
-                            schema: { type: 'object' },
-                            is_active: { type: 'integer' }
-                          }
-                        }
-                      },
-                      meta: { type: 'object' }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        }
-      },
-      '/api/collections/{collection}/content': {
-        get: {
-          summary: 'Get Collection Content',
-          description: 'Returns content items from a specific collection with filtering support. Anonymous, viewer, and author requests are restricted to published content; admin and editor requests may query other statuses.',
-          operationId: 'getCollectionContent',
-          tags: ['Content'],
-          parameters: [
-            {
-              name: 'collection',
-              in: 'path',
-              required: true,
-              schema: { type: 'string' },
-              description: 'Collection name'
-            },
-            {
-              name: 'limit',
-              in: 'query',
-              schema: { type: 'integer', default: 50, maximum: 1000 },
-              description: 'Maximum number of items to return'
-            },
-            {
-              name: 'offset',
-              in: 'query',
-              schema: { type: 'integer', default: 0 },
-              description: 'Number of items to skip'
-            },
-            {
-              name: 'status',
-              in: 'query',
-              schema: { type: 'string', enum: ['draft', 'published', 'archived'] },
-              description: 'Filter by content status. Anonymous, viewer, and author requests are limited to published content.'
-            }
-          ],
-          responses: {
-            '200': {
-              description: 'List of content items',
-              content: {
-                'application/json': {
-                  schema: {
-                    type: 'object',
-                    properties: {
-                      data: { type: 'array', items: { type: 'object' } },
-                      meta: { type: 'object' }
-                    }
-                  }
-                }
-              }
-            },
-            '404': {
-              description: 'Collection not found'
-            }
-          }
-        }
-      },
       '/api/content': {
         get: {
           summary: 'List Content',
@@ -225,12 +135,6 @@ apiRoutes.get('/', (c) => {
           operationId: 'getContent',
           tags: ['Content'],
           parameters: [
-            {
-              name: 'collection',
-              in: 'query',
-              schema: { type: 'string' },
-              description: 'Filter by collection name'
-            },
             {
               name: 'limit',
               in: 'query',
@@ -343,21 +247,9 @@ apiRoutes.get('/', (c) => {
             title: { type: 'string' },
             slug: { type: 'string' },
             status: { type: 'string', enum: ['draft', 'published', 'archived'] },
-            collectionId: { type: 'string', format: 'uuid' },
-            data: { type: 'object' },
+            published_at: { type: 'integer' },
             created_at: { type: 'integer' },
             updated_at: { type: 'integer' }
-          }
-        },
-        Collection: {
-          type: 'object',
-          properties: {
-            id: { type: 'string', format: 'uuid' },
-            name: { type: 'string' },
-            display_name: { type: 'string' },
-            description: { type: 'string' },
-            schema: { type: 'object' },
-            is_active: { type: 'integer' }
           }
         },
         Media: {
@@ -396,80 +288,6 @@ apiRoutes.get('/health', (c) => {
   })
 })
 
-// Basic collections endpoint
-apiRoutes.get('/collections', async (c) => {
-  const executionStart = Date.now()
-
-  try {
-    const db = c.env.DB
-    const cacheEnabled = c.get('cacheEnabled')
-    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    const cacheKey = cache.generateKey('collections', 'all')
-
-    if (cacheEnabled) {
-      const cacheResult = await cache.getWithSource<any>(cacheKey)
-      if (cacheResult.hit && cacheResult.data) {
-        // Add cache headers
-        c.header('X-Cache-Status', 'HIT')
-        c.header('X-Cache-Source', cacheResult.source)
-        if (cacheResult.ttl) {
-          c.header('X-Cache-TTL', Math.floor(cacheResult.ttl).toString())
-        }
-
-        // Add cache info and timing to meta
-        const dataWithMeta = {
-          ...cacheResult.data,
-          meta: addTimingMeta(c, {
-            ...cacheResult.data.meta,
-            cache: {
-              hit: true,
-              source: cacheResult.source,
-              ttl: cacheResult.ttl ? Math.floor(cacheResult.ttl) : undefined
-            }
-          }, executionStart)
-        }
-
-        return c.json(dataWithMeta)
-      }
-    }
-
-    // Cache miss - fetch from database
-    c.header('X-Cache-Status', 'MISS')
-    c.header('X-Cache-Source', 'database')
-
-    const stmt = db.prepare('SELECT * FROM collections WHERE is_active = 1')
-    const { results } = await stmt.all()
-
-    // Parse schema and format results
-    const transformedResults = results.map((row: any) => ({
-      ...row,
-      schema: row.schema ? JSON.parse(row.schema) : {},
-      is_active: row.is_active // Keep as number (1 or 0)
-    }))
-
-    const responseData = {
-      data: transformedResults,
-      meta: addTimingMeta(c, {
-        count: results.length,
-        timestamp: new Date().toISOString(),
-        cache: {
-          hit: false,
-          source: 'database'
-        }
-      }, executionStart)
-    }
-
-    if (cacheEnabled) {
-      await cache.set(cacheKey, responseData)
-    }
-
-    return c.json(responseData)
-  } catch (error) {
-    console.error('Error fetching collections:', error)
-    return c.json({ error: 'Failed to fetch collections' }, 500)
-  }
-})
-
 // Basic content endpoint with advanced filtering
 apiRoutes.get('/content', optionalAuth(), async (c) => {
   const executionStart = Date.now()
@@ -477,29 +295,6 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
   try {
     const db = c.env.DB
     const queryParams = c.req.query()
-
-    // Handle collection parameter - convert collection name to collection_id
-    if (queryParams.collection) {
-      const collectionName = queryParams.collection
-      const collectionStmt = db.prepare('SELECT id FROM collections WHERE name = ? AND is_active = 1')
-      const collectionResult = await collectionStmt.bind(collectionName).first()
-
-      if (collectionResult) {
-        // Replace 'collection' param with 'collection_id' for the filter builder
-        queryParams.collection_id = (collectionResult as any).id
-        delete queryParams.collection
-      } else {
-        // Collection not found - return empty result
-        return c.json({
-          data: [],
-          meta: addTimingMeta(c, {
-            count: 0,
-            timestamp: new Date().toISOString(),
-            message: `Collection '${collectionName}' not found`
-          }, executionStart)
-        })
-      }
-    }
 
     // Parse filter from query parameters
     const filter: QueryFilter = QueryFilterBuilder.parseFromQuery(queryParams)
@@ -572,8 +367,7 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
       title: row.title,
       slug: row.slug,
       status: row.status,
-      collectionId: row.collection_id,
-      data: row.data ? JSON.parse(row.data) : {},
+      published_at: row.published_at,
       created_at: row.created_at,
       updated_at: row.updated_at
     }))
@@ -592,149 +386,6 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
     }
 
     // Cache the response only if cache is enabled
-    if (cacheEnabled) {
-      await cache.set(cacheKey, responseData)
-    }
-
-    return c.json(responseData)
-  } catch (error) {
-    console.error('Error fetching content:', error)
-    return c.json({
-      error: 'Failed to fetch content',
-      details: error instanceof Error ? error.message : String(error)
-    }, 500)
-  }
-})
-
-// Collection-specific routes with advanced filtering
-apiRoutes.get('/collections/:collection/content', optionalAuth(), async (c) => {
-  const executionStart = Date.now()
-
-  try {
-    const collection = c.req.param('collection')
-    const db = c.env.DB
-    const queryParams = c.req.query()
-
-    // First check if collection exists
-    const collectionStmt = db.prepare('SELECT * FROM collections WHERE name = ? AND is_active = 1')
-    const collectionResult = await collectionStmt.bind(collection).first()
-
-    if (!collectionResult) {
-      return c.json({ error: 'Collection not found' }, 404)
-    }
-
-    // Parse filter from query parameters
-    const filter: QueryFilter = QueryFilterBuilder.parseFromQuery(queryParams)
-    const normalizedFilter = normalizePublicContentFilter(filter, c.get('user')?.role)
-
-    // Add collection_id filter to where clause
-    if (!normalizedFilter.where) {
-      normalizedFilter.where = { and: [] }
-    }
-
-    if (!normalizedFilter.where.and) {
-      normalizedFilter.where.and = []
-    }
-
-    // Add collection filter
-    normalizedFilter.where.and.push({
-      field: 'collection_id',
-      operator: 'equals',
-      value: (collectionResult as any).id
-    })
-
-    // Set default limit if not provided
-    if (!normalizedFilter.limit) {
-      normalizedFilter.limit = 50
-    }
-    normalizedFilter.limit = Math.min(normalizedFilter.limit, 1000)
-
-    // Build SQL query from filter
-    const builder = new QueryFilterBuilder()
-    const queryResult = builder.build('content', normalizedFilter)
-
-    // Check for query building errors
-    if (queryResult.errors.length > 0) {
-      return c.json({
-        error: 'Invalid filter parameters',
-        details: queryResult.errors
-      }, 400)
-    }
-
-    // Generate cache key
-    const cacheEnabled = c.get('cacheEnabled')
-    const cache = getCacheService(CACHE_CONFIGS.api!, c.env.CACHE_KV)
-    const cacheKey = cache.generateKey('collection-content-filtered', `${collection}:${JSON.stringify({ filter: normalizedFilter, query: queryResult.sql })}`)
-
-    if (cacheEnabled) {
-      const cacheResult = await cache.getWithSource<any>(cacheKey)
-      if (cacheResult.hit && cacheResult.data) {
-        // Add cache headers
-        c.header('X-Cache-Status', 'HIT')
-        c.header('X-Cache-Source', cacheResult.source)
-        if (cacheResult.ttl) {
-          c.header('X-Cache-TTL', Math.floor(cacheResult.ttl).toString())
-        }
-
-        // Add cache info and timing to meta
-        const dataWithMeta = {
-          ...cacheResult.data,
-          meta: addTimingMeta(c, {
-            ...cacheResult.data.meta,
-            cache: {
-              hit: true,
-              source: cacheResult.source,
-              ttl: cacheResult.ttl ? Math.floor(cacheResult.ttl) : undefined
-            }
-          }, executionStart)
-        }
-
-        return c.json(dataWithMeta)
-      }
-    }
-
-    // Cache miss - fetch from database
-    c.header('X-Cache-Status', 'MISS')
-    c.header('X-Cache-Source', 'database')
-
-    // Execute query with parameters
-    const stmt = db.prepare(queryResult.sql)
-    const boundStmt = queryResult.params.length > 0
-      ? stmt.bind(...queryResult.params)
-      : stmt
-
-    const { results } = await boundStmt.all()
-
-    // Transform results to match API spec (camelCase)
-    const transformedResults = results.map((row: any) => ({
-      id: row.id,
-      title: row.title,
-      slug: row.slug,
-      status: row.status,
-      collectionId: row.collection_id,
-      data: row.data ? JSON.parse(row.data) : {},
-      created_at: row.created_at,
-      updated_at: row.updated_at
-    }))
-
-    const responseData = {
-      data: transformedResults,
-      meta: addTimingMeta(c, {
-        collection: {
-          ...(collectionResult as any),
-          schema: (collectionResult as any).schema ? JSON.parse((collectionResult as any).schema) : {}
-        },
-        count: results.length,
-        timestamp: new Date().toISOString(),
-        filter: normalizedFilter,
-        cache: {
-          hit: false,
-          source: 'database'
-        }
-      }, executionStart)
-    }
-
-    // Cache the response only if cache plugin is enabled
     if (cacheEnabled) {
       await cache.set(cacheKey, responseData)
     }

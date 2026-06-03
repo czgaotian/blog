@@ -17,9 +17,7 @@ export {
   getTelemetryConfig,
   getDefaultTelemetryConfig,
   isTelemetryEnabled,
-  shouldSkipEvent,
-  getBlocksFieldConfig,
-  parseBlocksValue
+  shouldSkipEvent
 } from '@worker-blog/shared/utils'
 export type {
   FilterOperator,

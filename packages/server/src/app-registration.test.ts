@@ -66,11 +66,11 @@ describe("createWorkerBlogApp route smoke tests", () => {
     expect(healthRes.status).toBe(200);
   });
 
-  it("mounts admin API routes behind the admin auth guard", async () => {
+  it("mounts admin content routes behind the admin auth guard", async () => {
     const app = createWorkerBlogApp();
 
     const res = await app.request(
-      "/api/admin/collections",
+      "/api/admin/content",
       {},
       createTestEnv(),
     );

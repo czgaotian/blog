@@ -21,34 +21,6 @@ export const adminApiContentRoutes = new Hono<{ Bindings: Bindings; Variables: V
 adminApiContentRoutes.use('*', requireAuth())
 adminApiContentRoutes.use('*', requireRole(['admin', 'editor', 'author']))
 
-async function getCollectionFieldsSimple(db: D1Database, collectionId: string) {
-  const collectionRow = await db
-    .prepare('SELECT schema FROM collections WHERE id = ?')
-    .bind(collectionId)
-    .first() as any
-
-  if (collectionRow?.schema) {
-    try {
-      const schema = typeof collectionRow.schema === 'string' ? JSON.parse(collectionRow.schema) : collectionRow.schema
-      if (schema?.properties) {
-        let order = 0
-        return Object.entries(schema.properties).map(([fieldName, fieldConfig]: [string, any]) => ({
-          id: `schema-${fieldName}`,
-          fieldName,
-          fieldLabel: fieldConfig.title || fieldName,
-          fieldType: fieldConfig.format || fieldConfig.type || 'text',
-          fieldOptions: fieldConfig,
-          fieldOrder: order++,
-          isRequired: fieldConfig.required === true || (schema.required?.includes(fieldName) ?? false),
-          isSearchable: false,
-        }))
-      }
-    } catch { /* ignore */ }
-  }
-
-  return []
-}
-
 adminApiContentRoutes.get('/', async (c) => {
   if (!c.get('user')) return c.json({ error: 'Authentication required' }, 401)
 
@@ -56,7 +28,6 @@ adminApiContentRoutes.get('/', async (c) => {
   const page = Math.max(1, Number(c.req.query('page') || '1'))
   const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '20')))
   const offset = (page - 1) * limit
-  const model = c.req.query('model') || ''
   const status = c.req.query('status') || ''
   const search = c.req.query('search') || ''
 
@@ -70,11 +41,6 @@ adminApiContentRoutes.get('/', async (c) => {
     conditions.push("c.status != 'deleted'")
   }
 
-  if (model) {
-    conditions.push('col.name = ?')
-    params.push(model)
-  }
-
   if (search) {
     conditions.push('(c.title LIKE ? OR c.slug LIKE ?)')
     params.push(`%${search}%`, `%${search}%`)
@@ -84,7 +50,7 @@ adminApiContentRoutes.get('/', async (c) => {
 
   try {
     const countRes = await db
-      .prepare(`SELECT COUNT(*) as count FROM content c JOIN collections col ON c.collection_id = col.id ${where}`)
+      .prepare(`SELECT COUNT(*) as count FROM content c ${where}`)
       .bind(...params)
       .first() as any
     const total = countRes?.count || 0
@@ -92,10 +58,8 @@ adminApiContentRoutes.get('/', async (c) => {
     const { results } = await db
       .prepare(`
         SELECT c.id, c.title, c.slug, c.status, c.created_at, c.updated_at,
-               col.name as collection_name, col.display_name as collection_display_name,
                u.first_name, u.last_name, u.email as author_email
         FROM content c
-        JOIN collections col ON c.collection_id = col.id
         LEFT JOIN users u ON c.author_id = u.id
         ${where}
         ORDER BY c.updated_at DESC
@@ -109,8 +73,6 @@ adminApiContentRoutes.get('/', async (c) => {
       title: row.title,
       slug: row.slug,
       status: row.status,
-      collectionName: row.collection_name,
-      collectionDisplayName: row.collection_display_name,
       authorName: row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
         : row.author_email || 'Unknown',
@@ -134,10 +96,8 @@ adminApiContentRoutes.get('/:id', async (c) => {
   try {
     const row = await db
       .prepare(`
-        SELECT c.*, col.name as collection_name, col.display_name as collection_display_name,
-               u.first_name, u.last_name, u.email as author_email
+        SELECT c.*, u.first_name, u.last_name, u.email as author_email
         FROM content c
-        JOIN collections col ON c.collection_id = col.id
         LEFT JOIN users u ON c.author_id = u.id
         WHERE c.id = ?
       `)
@@ -146,18 +106,12 @@ adminApiContentRoutes.get('/:id', async (c) => {
 
     if (!row) return c.json({ error: 'Content not found' }, 404)
 
-    const fields = await getCollectionFieldsSimple(db, row.collection_id)
-
     const response: ContentDetailResponse = {
       id: row.id,
       title: row.title,
       slug: row.slug,
       status: row.status,
-      data: JSON.parse(row.data || '{}'),
-      collectionId: row.collection_id,
-      collectionName: row.collection_name,
-      collectionDisplayName: row.collection_display_name,
-      fields,
+      publishedAt: row.published_at ? new Date(Number(row.published_at)).toISOString() : null,
       authorId: row.author_id,
       authorName: row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
@@ -182,7 +136,7 @@ adminApiContentRoutes.post('/', async (c) => {
   const parsed = createContentSchema.safeParse(body)
   if (!parsed.success) return c.json({ error: 'Validation failed', issues: parsed.error.issues }, 422)
 
-  const { collectionId, title, slug: rawSlug, status, data } = parsed.data
+  const { title, slug: rawSlug, status, publishedAt } = parsed.data
   const db = c.env.DB
 
   try {
@@ -190,19 +144,15 @@ adminApiContentRoutes.post('/', async (c) => {
       db,
       mode: 'admin-create',
       input: {
-        collectionId,
         title,
         slug: rawSlug,
         status,
-        data,
+        publishedAt,
       },
       authorId: user.userId,
       cacheKv: c.env.CACHE_KV,
     })
-    if (!result.collectionFound) return c.json({ error: 'Collection not found' }, 404)
-    if (result.validationErrors) {
-      return c.json({ error: 'Validation failed', issues: result.validationErrors }, 422)
-    }
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
 
     const response: MutateContentResponse = { message: 'Content created successfully', id: result.id! }
     return c.json(response, 201)
@@ -235,9 +185,7 @@ adminApiContentRoutes.put('/:id', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (!result.found) return c.json({ error: 'Content not found' }, 404)
-    if (result.validationErrors) {
-      return c.json({ error: 'Validation failed', issues: result.validationErrors }, 422)
-    }
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
 
     return c.json({ message: 'Content updated successfully' })
   } catch (error) {
