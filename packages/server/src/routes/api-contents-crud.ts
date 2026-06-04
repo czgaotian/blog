@@ -64,6 +64,7 @@ apiContentsCrudRoutes.get('/:id', async (c) => {
       excerpt: (content as any).excerpt ?? null,
       body: (content as any).body ?? '',
       status: (content as any).status,
+      cover_image_id: (content as any).cover_image_id ?? null,
       metadata: parseJsonObject((content as any).metadata),
       published_at: (content as any).published_at,
       created_at: (content as any).created_at,

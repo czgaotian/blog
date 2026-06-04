@@ -1,7 +1,7 @@
 {
   "version": "6",
   "dialect": "sqlite",
-  "id": "03d9f5bd-d530-412b-94ca-315f4603e2d2",
+  "id": "852a3570-b9d0-4813-946c-6142113c7a9c",
   "prevId": "4371e99c-56af-4ac8-ad64-0f4aaef51b95",
   "tables": {
     "activity_logs": {
@@ -571,6 +571,13 @@
           "notNull": false,
           "autoincrement": false
         },
+        "cover_image_id": {
+          "name": "cover_image_id",
+          "type": "text",
+          "primaryKey": false,
+          "notNull": false,
+          "autoincrement": false
+        },
         "published_at": {
           "name": "published_at",
           "type": "integer",
@@ -639,6 +646,13 @@
           ],
           "isUnique": false
         },
+        "idx_contents_cover_image": {
+          "name": "idx_contents_cover_image",
+          "columns": [
+            "cover_image_id"
+          ],
+          "isUnique": false
+        },
         "idx_content_author": {
           "name": "idx_content_author",
           "columns": [
@@ -682,6 +696,19 @@
           "tableTo": "categories",
           "columnsFrom": [
             "category_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "no action",
+          "onUpdate": "no action"
+        },
+        "contents_cover_image_id_media_id_fk": {
+          "name": "contents_cover_image_id_media_id_fk",
+          "tableFrom": "contents",
+          "tableTo": "media",
+          "columnsFrom": [
+            "cover_image_id"
           ],
           "columnsTo": [
             "id"

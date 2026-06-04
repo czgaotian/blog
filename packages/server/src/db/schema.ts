@@ -77,6 +77,7 @@ export const contents = sqliteTable('contents', {
   body: text('body').notNull().default(''),
   status: text('status').notNull().default('draft'), // 'draft', 'published', 'archived'
   categoryId: text('category_id').references(() => categories.id),
+  coverImageId: text('cover_image_id').references((): any => media.id),
   publishedAt: integer('published_at', { mode: 'timestamp' }),
   metadata: text('metadata', { mode: 'json' }).notNull().default({}),
   authorId: text('author_id').notNull().references(() => users.id),
@@ -87,6 +88,7 @@ export const contents = sqliteTable('contents', {
   uniqueIndex('idx_contents_slug_active').on(table.slug).where(sql`${table.deletedAt} IS NULL`),
   index('idx_contents_status_published').on(table.status, table.publishedAt),
   index('idx_contents_category').on(table.categoryId),
+  index('idx_contents_cover_image').on(table.coverImageId),
   index('idx_content_author').on(table.authorId),
   index('idx_content_status').on(table.status),
   index('idx_content_published').on(table.publishedAt),

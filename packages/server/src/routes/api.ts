@@ -247,6 +247,7 @@ apiRoutes.get('/', (c) => {
             title: { type: 'string' },
             slug: { type: 'string' },
             status: { type: 'string', enum: ['draft', 'published', 'archived'] },
+            cover_image_id: { type: ['string', 'null'] },
             published_at: { type: 'integer' },
             created_at: { type: 'integer' },
             updated_at: { type: 'integer' }
@@ -371,6 +372,7 @@ apiRoutes.get('/contents', optionalAuth(), async (c) => {
       slug: row.slug,
       excerpt: row.excerpt ?? null,
       status: row.status,
+      cover_image_id: row.cover_image_id ?? null,
       published_at: row.published_at,
       created_at: row.created_at,
       updated_at: row.updated_at
@@ -478,6 +480,7 @@ function mapPublicContent(row: any, tags: Array<{ id: string; name: string; slug
     excerpt: row.excerpt ?? null,
     body: row.body ?? '',
     status: row.status,
+    cover_image_id: row.cover_image_id ?? null,
     category: row.category_id ? {
       id: row.category_id,
       name: row.category_name,

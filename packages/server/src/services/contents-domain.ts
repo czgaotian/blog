@@ -12,6 +12,7 @@ export interface CreateContentInput {
   body?: string
   status: string
   categoryId?: string | null
+  coverImageId?: string | null
   tagIds?: string[]
   metadata?: Record<string, unknown>
   publishedAt?: string | null
@@ -42,6 +43,7 @@ export interface UpdateContentPatch {
   body?: string
   status?: string
   categoryId?: string | null
+  coverImageId?: string | null
   tagIds?: string[]
   metadata?: Record<string, unknown>
   publishedAt?: string | null
@@ -104,6 +106,7 @@ export interface ContentSnapshot {
   body: string
   status: string
   categoryId: string | null
+  coverImageId: string | null
   tagIds: string[]
   metadata: Record<string, unknown>
   publishedAt: string | null
@@ -120,6 +123,7 @@ interface NormalizedContentInput {
   body: string
   status: string
   categoryId: string | null
+  coverImageId: string | null
   tagIds: string[]
   metadata: Record<string, unknown>
   publishedAt: number | null
@@ -134,6 +138,7 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
     body: input.body ?? '',
     status: input.status,
     categoryId: input.categoryId ?? null,
+    coverImageId: input.coverImageId ?? null,
     tagIds: input.tagIds ?? [],
     metadata: input.metadata ?? {},
     publishedAt: parseOptionalTimestamp(input.publishedAt),
@@ -159,8 +164,8 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
   await db
     .prepare(`
       INSERT INTO contents
-        (id, slug, title, excerpt, body, status, category_id, published_at, metadata, author_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, slug, title, excerpt, body, status, category_id, cover_image_id, published_at, metadata, author_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       id,
@@ -170,6 +175,7 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
       value.body,
       value.status,
       value.categoryId,
+      value.coverImageId,
       value.publishedAt,
       JSON.stringify(value.metadata),
       authorId,
@@ -219,6 +225,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     body: patch.body ?? existing.body ?? '',
     status: patch.status ?? existing.status,
     categoryId: patch.categoryId !== undefined ? patch.categoryId : existing.category_id,
+    coverImageId: patch.coverImageId !== undefined ? patch.coverImageId : existing.cover_image_id,
     tagIds: patch.tagIds !== undefined ? patch.tagIds : existingTagIds,
     metadata: patch.metadata ?? parseJsonObject(existing.metadata),
     publishedAt: patch.publishedAt !== undefined
@@ -248,7 +255,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     .prepare(`
       UPDATE contents
       SET title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
-          category_id = ?, published_at = ?, metadata = ?, updated_at = ?
+          category_id = ?, cover_image_id = ?, published_at = ?, metadata = ?, updated_at = ?
       WHERE id = ?
     `)
     .bind(
@@ -258,6 +265,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
       value.body,
       value.status,
       value.categoryId,
+      value.coverImageId,
       value.publishedAt,
       JSON.stringify(value.metadata),
       now,
@@ -344,6 +352,7 @@ export async function restoreContentVersion(
     body: snapshot.body,
     status: snapshot.status,
     categoryId: snapshot.categoryId,
+    coverImageId: snapshot.coverImageId,
     tagIds: snapshot.tagIds,
     metadata: snapshot.metadata,
     publishedAt: parseOptionalTimestamp(snapshot.publishedAt),
@@ -365,7 +374,7 @@ export async function restoreContentVersion(
     .prepare(`
       UPDATE contents
       SET title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
-          category_id = ?, published_at = ?, metadata = ?, updated_at = ?, deleted_at = ?
+          category_id = ?, cover_image_id = ?, published_at = ?, metadata = ?, updated_at = ?, deleted_at = ?
       WHERE id = ?
     `)
     .bind(
@@ -375,6 +384,7 @@ export async function restoreContentVersion(
       value.body,
       value.status,
       value.categoryId,
+      value.coverImageId,
       value.publishedAt,
       JSON.stringify(value.metadata),
       now,
@@ -414,10 +424,19 @@ async function normalizeAndValidateContentInput(
 ): Promise<{ value: NormalizedContentInput; error?: never } | { value?: never; error: string }> {
   const tagIds = Array.from(new Set(input.tagIds.filter(Boolean)))
   const categoryId = input.categoryId || null
+  const coverImageId = input.coverImageId || null
 
   if (categoryId) {
     const category = await db.prepare('SELECT id FROM categories WHERE id = ?').bind(categoryId).first()
     if (!category) return { error: 'Category not found' }
+  }
+
+  if (coverImageId) {
+    const media = await db
+      .prepare('SELECT id FROM media WHERE id = ? AND deleted_at IS NULL')
+      .bind(coverImageId)
+      .first()
+    if (!media) return { error: 'Cover image not found' }
   }
 
   if (tagIds.length > 0) {
@@ -433,6 +452,7 @@ async function normalizeAndValidateContentInput(
     value: {
       ...input,
       categoryId,
+      coverImageId,
       tagIds,
       metadata: input.metadata ?? {},
       excerpt: input.excerpt ?? null,
@@ -482,6 +502,7 @@ function createSnapshot(row: any): ContentSnapshot {
     body: row.body ?? '',
     status: row.status,
     categoryId: row.categoryId ?? row.category_id ?? null,
+    coverImageId: row.coverImageId ?? row.cover_image_id ?? null,
     tagIds: row.tagIds ?? [],
     metadata: row.metadata ?? {},
     publishedAt: toIsoString(row.publishedAt ?? row.published_at),
@@ -506,6 +527,7 @@ function parseSnapshot(data: unknown): ContentSnapshot {
       body: '',
       status: 'draft',
       categoryId: null,
+      coverImageId: null,
       tagIds: [],
       metadata: {},
       publishedAt: null,
@@ -524,6 +546,7 @@ function hasContentChanged(existing: any, existingTagIds: string[], next: Normal
     || next.body !== (existing.body ?? '')
     || next.status !== existing.status
     || (next.categoryId ?? null) !== (existing.category_id ?? null)
+    || (next.coverImageId ?? null) !== (existing.cover_image_id ?? null)
     || Number(next.publishedAt ?? 0) !== Number(existing.published_at ?? 0)
     || JSON.stringify(next.metadata) !== JSON.stringify(parseJsonObject(existing.metadata))
     || JSON.stringify([...next.tagIds].sort()) !== JSON.stringify([...existingTagIds].sort())

@@ -32,6 +32,7 @@ const existingContent = {
   body: '',
   status: 'draft',
   category_id: null,
+  cover_image_id: null,
   metadata: '{}',
   published_at: null,
   author_id: 'user-1',
@@ -73,6 +74,7 @@ describe('content domain creation', () => {
       slug: 'new-post',
       status: 'draft',
       authorId: 'user-1',
+      coverImageId: null,
     })
   })
 
@@ -121,6 +123,47 @@ describe('content domain creation', () => {
 
     expect(result.created).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_tags'))).toBe(true)
+  })
+
+  it('accepts an existing cover image', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT id FROM media')) return { id: 'media-1' }
+      return null
+    })
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'admin-create',
+      input: {
+        title: 'Covered content',
+        status: 'draft',
+        coverImageId: 'media-1',
+      },
+      authorId: 'user-1',
+    })
+
+    expect(result.created).toBe(true)
+    expect(calls.some((call) => call.args.includes('media-1'))).toBe(true)
+  })
+
+  it('rejects a missing cover image', async () => {
+    const { db } = createMockDb(() => null)
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'admin-create',
+      input: {
+        title: 'Missing cover',
+        status: 'draft',
+        coverImageId: 'missing-media',
+      },
+      authorId: 'user-1',
+    })
+
+    expect(result).toMatchObject({
+      created: false,
+      validationError: 'Cover image not found',
+    })
   })
 })
 
@@ -229,6 +272,7 @@ describe('content domain version restore', () => {
       body: '',
       status: 'draft',
       categoryId: null,
+      coverImageId: null,
       tagIds: [],
       metadata: {},
       publishedAt: null,

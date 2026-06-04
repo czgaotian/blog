@@ -21,6 +21,7 @@ export interface ContentListItem {
   excerpt: string | null
   status: ContentStatus
   category: ContentCategorySummary | null
+  coverImageId: string | null
   tags: ContentTagSummary[]
   authorName: string
   createdAt: string
@@ -43,6 +44,7 @@ export interface ContentDetailResponse {
   status: ContentStatus
   categoryId: string | null
   category: ContentCategorySummary | null
+  coverImageId: string | null
   tags: ContentTagSummary[]
   tagIds: string[]
   metadata: Record<string, unknown>
@@ -74,6 +76,7 @@ export interface ContentVersionSnapshot {
   body: string
   status: ContentStatus
   categoryId: string | null
+  coverImageId: string | null
   tagIds: string[]
   metadata: Record<string, unknown>
   publishedAt: string | null
@@ -90,6 +93,7 @@ export const createContentSchema = z.object({
   body: z.string().optional().default(''),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived']).optional().default('draft'),
   categoryId: z.string().nullable().optional(),
+  coverImageId: z.string().nullable().optional(),
   tagIds: z.array(z.string()).optional().default([]),
   metadata: z.record(z.string(), z.unknown()).optional().default({}),
   publishedAt: z.string().nullable().optional(),
@@ -102,6 +106,7 @@ export const updateContentSchema = z.object({
   body: z.string().optional(),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived', 'deleted']).optional(),
   categoryId: z.string().nullable().optional(),
+  coverImageId: z.string().nullable().optional(),
   tagIds: z.array(z.string()).optional(),
   metadata: z.record(z.string(), z.unknown()).optional(),
   publishedAt: z.string().nullable().optional(),

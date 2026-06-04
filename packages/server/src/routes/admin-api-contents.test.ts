@@ -8,7 +8,7 @@ vi.mock('../middleware', () => ({
 
 const mockContent = {
   id: 'c1', title: 'Test Post', slug: 'test-post', excerpt: null, body: '',
-  status: 'draft', category_id: null, metadata: '{}',
+  status: 'draft', category_id: null, cover_image_id: null, metadata: '{}',
   published_at: null,
   author_id: 'u1', first_name: 'Admin', last_name: 'User', author_email: 'admin@test.com',
   created_at: 1700000000000, updated_at: 1700000000000,
@@ -84,6 +84,7 @@ describe('GET /api/admin/contents/:id', () => {
     expect(json).toHaveProperty('id', 'c1')
     expect(json).not.toHaveProperty('type')
     expect(json).toHaveProperty('publishedAt', null)
+    expect(json).toHaveProperty('coverImageId', null)
     expect(json).toHaveProperty('metadata')
     expect(json).not.toHaveProperty('fields')
     expect(json).not.toHaveProperty('data')

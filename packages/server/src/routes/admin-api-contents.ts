@@ -70,7 +70,7 @@ adminApiContentsRoutes.get('/', async (c) => {
 
     const { results } = await db
       .prepare(`
-        SELECT c.id, c.title, c.slug, c.excerpt, c.status, c.created_at, c.updated_at,
+        SELECT c.id, c.title, c.slug, c.excerpt, c.status, c.cover_image_id, c.created_at, c.updated_at,
                cat.id AS category_id, cat.name AS category_name, cat.slug AS category_slug,
                u.first_name, u.last_name, u.email as author_email
         FROM contents c
@@ -96,6 +96,7 @@ adminApiContentsRoutes.get('/', async (c) => {
         name: row.category_name,
         slug: row.category_slug,
       } : null,
+      coverImageId: row.cover_image_id ?? null,
       tags: tagsByContent.get(row.id) ?? [],
       authorName: row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
@@ -146,6 +147,7 @@ adminApiContentsRoutes.get('/:id', async (c) => {
         name: row.category_name,
         slug: row.category_slug,
       } : null,
+      coverImageId: row.cover_image_id ?? null,
       tags,
       tagIds: tags.map((tag) => tag.id),
       metadata: parseJsonObject(row.metadata),
@@ -374,5 +376,8 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
 function parseVersionSnapshot(value: unknown): ContentVersionSnapshot {
   const snapshot = parseJsonObject(value)
   const { type: _legacyType, ...contentSnapshot } = snapshot
-  return contentSnapshot as unknown as ContentVersionSnapshot
+  return {
+    ...contentSnapshot,
+    coverImageId: contentSnapshot.coverImageId ?? null,
+  } as unknown as ContentVersionSnapshot
 }
