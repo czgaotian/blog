@@ -5,6 +5,7 @@ import {
   updateContentSchema,
   type ContentDetailResponse,
   type ContentListResponse,
+  type ContentVersionSnapshot,
   type ContentVersionsResponse,
   type MutateContentResponse,
 } from '@worker-blog/shared/admin-api'
@@ -29,7 +30,6 @@ adminApiContentsRoutes.get('/', async (c) => {
   const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '20')))
   const offset = (page - 1) * limit
   const status = c.req.query('status') || ''
-  const type = c.req.query('type') || ''
   const categoryId = c.req.query('categoryId') || ''
   const tagId = c.req.query('tagId') || ''
   const search = c.req.query('search') || ''
@@ -42,11 +42,6 @@ adminApiContentsRoutes.get('/', async (c) => {
     params.push(status)
   } else if (!status) {
     conditions.push("c.status != 'deleted'")
-  }
-
-  if (type) {
-    conditions.push('c.type = ?')
-    params.push(type)
   }
 
   if (categoryId) {
@@ -75,7 +70,7 @@ adminApiContentsRoutes.get('/', async (c) => {
 
     const { results } = await db
       .prepare(`
-        SELECT c.id, c.type, c.title, c.slug, c.excerpt, c.status, c.created_at, c.updated_at,
+        SELECT c.id, c.title, c.slug, c.excerpt, c.status, c.created_at, c.updated_at,
                cat.id AS category_id, cat.name AS category_name, cat.slug AS category_slug,
                u.first_name, u.last_name, u.email as author_email
         FROM contents c
@@ -92,7 +87,6 @@ adminApiContentsRoutes.get('/', async (c) => {
     const tagsByContent = await getTagsByContentIds(db, ids)
     const items = (results || []).map((row: any) => ({
       id: row.id,
-      type: row.type,
       title: row.title,
       slug: row.slug,
       excerpt: row.excerpt ?? null,
@@ -141,7 +135,6 @@ adminApiContentsRoutes.get('/:id', async (c) => {
     const tags = await getContentTags(db, id)
     const response: ContentDetailResponse = {
       id: row.id,
-      type: row.type,
       title: row.title,
       slug: row.slug,
       excerpt: row.excerpt ?? null,
@@ -192,7 +185,7 @@ adminApiContentsRoutes.post('/', async (c) => {
       cacheKv: c.env.CACHE_KV,
     })
     if (result.validationError) return c.json({ error: result.validationError }, 422)
-    if (result.duplicateSlug) return c.json({ error: 'Slug already exists for this content type' }, 409)
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
 
     const response: MutateContentResponse = { message: 'Content created successfully', id: result.id! }
     return c.json(response, 201)
@@ -226,7 +219,7 @@ adminApiContentsRoutes.put('/:id', async (c) => {
     })
     if (!result.found) return c.json({ error: 'Content not found' }, 404)
     if (result.validationError) return c.json({ error: result.validationError }, 422)
-    if (result.duplicateSlug) return c.json({ error: 'Slug already exists for this content type' }, 409)
+    if (result.duplicateSlug) return c.json({ error: 'Slug already exists' }, 409)
 
     return c.json({ message: 'Content updated successfully' })
   } catch (error) {
@@ -282,7 +275,7 @@ adminApiContentsRoutes.get('/:id/versions', async (c) => {
     const versions = (results || []).map((row: any, i: number) => ({
       id: row.id,
       version: row.version,
-      data: JSON.parse(row.data || '{}'),
+      data: parseVersionSnapshot(row.data),
       authorName: row.first_name && row.last_name
         ? `${row.first_name} ${row.last_name}`
         : row.email || 'Unknown',
@@ -376,4 +369,10 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   } catch {
     return {}
   }
+}
+
+function parseVersionSnapshot(value: unknown): ContentVersionSnapshot {
+  const snapshot = parseJsonObject(value)
+  const { type: _legacyType, ...contentSnapshot } = snapshot
+  return contentSnapshot as unknown as ContentVersionSnapshot
 }

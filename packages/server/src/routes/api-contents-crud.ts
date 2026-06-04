@@ -3,13 +3,12 @@ import type { Bindings, Variables } from '../app'
 
 const apiContentsCrudRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
 
-// GET /api/contents/check-slug - Check if slug is available for a content type.
-// Query params: type, slug, excludeId (optional - when editing)
+// GET /api/contents/check-slug - Check if slug is available.
+// Query params: slug, excludeId (optional - when editing)
 // NOTE: This MUST come before /:id route to avoid route conflict
 apiContentsCrudRoutes.get('/check-slug', async (c) => {
   try {
     const db = c.env.DB
-    const type = c.req.query('type') || 'post'
     const slug = c.req.query('slug')
     const excludeId = c.req.query('excludeId') // When editing, exclude current item
     
@@ -17,12 +16,8 @@ apiContentsCrudRoutes.get('/check-slug', async (c) => {
       return c.json({ error: 'slug is required' }, 400)
     }
     
-    if (!['post', 'page', 'note'].includes(type)) {
-      return c.json({ error: 'type must be post, page, or note' }, 400)
-    }
-
-    let query = 'SELECT id FROM contents WHERE type = ? AND slug = ? AND deleted_at IS NULL'
-    const params: string[] = [type, slug]
+    let query = 'SELECT id FROM contents WHERE slug = ? AND deleted_at IS NULL'
+    const params: string[] = [slug]
     
     if (excludeId) {
       query += ' AND id != ?'
@@ -64,7 +59,6 @@ apiContentsCrudRoutes.get('/:id', async (c) => {
 
     const transformedContent = {
       id: (content as any).id,
-      type: (content as any).type,
       title: (content as any).title,
       slug: (content as any).slug,
       excerpt: (content as any).excerpt ?? null,

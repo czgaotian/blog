@@ -1,7 +1,6 @@
 import { z } from 'zod'
 
 export type ContentStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived' | 'deleted'
-export type ContentType = 'post' | 'page' | 'note'
 
 export interface ContentCategorySummary {
   id: string
@@ -17,7 +16,6 @@ export interface ContentTagSummary {
 
 export interface ContentListItem {
   id: string
-  type: ContentType
   title: string
   slug: string
   excerpt: string | null
@@ -38,7 +36,6 @@ export interface ContentListResponse {
 
 export interface ContentDetailResponse {
   id: string
-  type: ContentType
   title: string
   slug: string
   excerpt: string | null
@@ -71,7 +68,6 @@ export interface ContentVersionsResponse {
 
 export interface ContentVersionSnapshot {
   id: string
-  type: ContentType
   title: string
   slug: string
   excerpt: string | null
@@ -88,7 +84,6 @@ export interface ContentVersionSnapshot {
 }
 
 export const createContentSchema = z.object({
-  type: z.enum(['post', 'page', 'note']).optional().default('post'),
   title: z.string().min(1).max(500),
   slug: z.string().max(500).optional(),
   excerpt: z.string().max(1000).nullable().optional(),
@@ -101,7 +96,6 @@ export const createContentSchema = z.object({
 })
 
 export const updateContentSchema = z.object({
-  type: z.enum(['post', 'page', 'note']).optional(),
   title: z.string().min(1).max(500).optional(),
   slug: z.string().max(500).optional(),
   excerpt: z.string().max(1000).nullable().optional(),

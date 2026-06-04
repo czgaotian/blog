@@ -68,10 +68,9 @@ export const tags = sqliteTable('tags', {
   uniqueIndex('idx_tags_slug').on(table.slug),
 ]);
 
-// Content items - typed personal blog content.
+// Blog content items.
 export const contents = sqliteTable('contents', {
   id: text('id').primaryKey(),
-  type: text('type').notNull().default('post'), // 'post', 'page', 'note'
   slug: text('slug').notNull(),
   title: text('title').notNull(),
   excerpt: text('excerpt'),
@@ -85,8 +84,8 @@ export const contents = sqliteTable('contents', {
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   deletedAt: integer('deleted_at', { mode: 'timestamp' }),
 }, (table) => [
-  uniqueIndex('idx_contents_type_slug').on(table.type, table.slug),
-  index('idx_contents_type_status_published').on(table.type, table.status, table.publishedAt),
+  uniqueIndex('idx_contents_slug_active').on(table.slug).where(sql`${table.deletedAt} IS NULL`),
+  index('idx_contents_status_published').on(table.status, table.publishedAt),
   index('idx_contents_category').on(table.categoryId),
   index('idx_content_author').on(table.authorId),
   index('idx_content_status').on(table.status),

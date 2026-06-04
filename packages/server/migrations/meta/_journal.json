@@ -8,6 +8,13 @@
       "when": 1780525562729,
       "tag": "0000_orange_lightspeed",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "6",
+      "when": 1780606545318,
+      "tag": "0001_shocking_chamber",
+      "breakpoints": true
     }
   ]
 }

@@ -288,14 +288,11 @@ apiRoutes.get('/health', (c) => {
   })
 })
 
-apiRoutes.get('/posts/:slug', async (c) => getPublicContentBySlug(c, 'post'))
-apiRoutes.get('/pages/:slug', async (c) => getPublicContentBySlug(c, 'page'))
-apiRoutes.get('/notes/:slug', async (c) => getPublicContentBySlug(c, 'note'))
-apiRoutes.get('/category/:slug', async (c) => getPostsByCategorySlug(c))
-apiRoutes.get('/tag/:slug', async (c) => getPostsByTagSlug(c))
+apiRoutes.get('/category/:slug', async (c) => getContentsByCategorySlug(c))
+apiRoutes.get('/tag/:slug', async (c) => getContentsByTagSlug(c))
 
-// Basic content endpoint with advanced filtering
-apiRoutes.get('/content', optionalAuth(), async (c) => {
+// Public contents endpoint with advanced filtering
+apiRoutes.get('/contents', optionalAuth(), async (c) => {
   const executionStart = Date.now()
 
   try {
@@ -370,7 +367,6 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
     // Transform results to match API spec (camelCase)
     const transformedResults = results.map((row: any) => ({
       id: row.id,
-      type: row.type,
       title: row.title,
       slug: row.slug,
       excerpt: row.excerpt ?? null,
@@ -411,24 +407,7 @@ apiRoutes.get('/content', optionalAuth(), async (c) => {
 // Mount CRUD routes for contents
 apiRoutes.route('/contents', apiContentsCrudRoutes)
 
-async function getPublicContentBySlug(c: any, type: 'post' | 'page' | 'note') {
-  const row = await c.env.DB
-    .prepare(`
-      SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
-      FROM contents c
-      LEFT JOIN categories cat ON c.category_id = cat.id
-      WHERE c.type = ? AND c.slug = ? AND c.status = 'published' AND c.deleted_at IS NULL
-    `)
-    .bind(type, c.req.param('slug'))
-    .first() as any
-
-  if (!row) return c.json({ error: 'Content not found' }, 404)
-
-  const tags = type === 'post' ? await getContentTags(c.env.DB, row.id) : []
-  return c.json({ data: mapPublicContent(row, tags) })
-}
-
-async function getPostsByCategorySlug(c: any) {
+async function getContentsByCategorySlug(c: any) {
   const category = await c.env.DB
     .prepare('SELECT id, name, slug, description FROM categories WHERE slug = ?')
     .bind(c.req.param('slug'))
@@ -440,7 +419,7 @@ async function getPostsByCategorySlug(c: any) {
       SELECT c.*, cat.name AS category_name, cat.slug AS category_slug
       FROM contents c
       JOIN categories cat ON c.category_id = cat.id
-      WHERE c.type = 'post' AND cat.id = ? AND c.status = 'published' AND c.deleted_at IS NULL
+      WHERE cat.id = ? AND c.status = 'published' AND c.deleted_at IS NULL
       ORDER BY c.published_at DESC, c.created_at DESC
     `)
     .bind(category.id)
@@ -452,7 +431,7 @@ async function getPostsByCategorySlug(c: any) {
   })
 }
 
-async function getPostsByTagSlug(c: any) {
+async function getContentsByTagSlug(c: any) {
   const tag = await c.env.DB
     .prepare('SELECT id, name, slug, description FROM tags WHERE slug = ?')
     .bind(c.req.param('slug'))
@@ -465,7 +444,7 @@ async function getPostsByTagSlug(c: any) {
       FROM contents c
       JOIN content_tags ct ON c.id = ct.content_id
       LEFT JOIN categories cat ON c.category_id = cat.id
-      WHERE c.type = 'post' AND ct.tag_id = ? AND c.status = 'published' AND c.deleted_at IS NULL
+      WHERE ct.tag_id = ? AND c.status = 'published' AND c.deleted_at IS NULL
       ORDER BY c.published_at DESC, c.created_at DESC
     `)
     .bind(tag.id)
@@ -494,7 +473,6 @@ async function getContentTags(db: D1Database, contentId: string) {
 function mapPublicContent(row: any, tags: Array<{ id: string; name: string; slug: string }>) {
   return {
     id: row.id,
-    type: row.type,
     title: row.title,
     slug: row.slug,
     excerpt: row.excerpt ?? null,

@@ -7,7 +7,7 @@ vi.mock('../middleware', () => ({
 }))
 
 const mockContent = {
-  id: 'c1', type: 'post', title: 'Test Post', slug: 'test-post', excerpt: null, body: '',
+  id: 'c1', title: 'Test Post', slug: 'test-post', excerpt: null, body: '',
   status: 'draft', category_id: null, metadata: '{}',
   published_at: null,
   author_id: 'u1', first_name: 'Admin', last_name: 'User', author_email: 'admin@test.com',
@@ -20,7 +20,7 @@ const mockDb: any = {
       first: async () => {
         if (sql.includes('COUNT(*)')) return { count: 1 }
         if (sql.includes('content_versions') && sql.includes('MAX(version)')) return { max_version: 1 }
-        if (sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?')) {
+        if (sql.includes('SELECT id FROM contents WHERE slug = ?')) {
           return null
         }
         if (sql.includes('SELECT id FROM categories WHERE id = ?')) return null
@@ -64,6 +64,7 @@ describe('GET /api/admin/contents', () => {
     expect(json).toHaveProperty('page')
     expect(json).toHaveProperty('limit')
     expect(json.items[0].title).toBe('Test Post')
+    expect(json.items[0]).not.toHaveProperty('type')
   })
 
   it('returns 401 when unauthenticated', async () => {
@@ -81,7 +82,7 @@ describe('GET /api/admin/contents/:id', () => {
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json).toHaveProperty('id', 'c1')
-    expect(json).toHaveProperty('type', 'post')
+    expect(json).not.toHaveProperty('type')
     expect(json).toHaveProperty('publishedAt', null)
     expect(json).toHaveProperty('metadata')
     expect(json).not.toHaveProperty('fields')
@@ -97,7 +98,6 @@ describe('POST /api/admin/contents', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: 'New Post',
-        type: 'post',
         status: 'draft',
       }),
     }, { DB: mockDb })
@@ -116,6 +116,7 @@ describe('POST /api/admin/contents', () => {
     }, { DB: mockDb })
     expect(res.status).toBe(422)
   })
+
 })
 
 describe('PUT /api/admin/contents/:id', () => {
@@ -129,20 +130,6 @@ describe('PUT /api/admin/contents/:id', () => {
     expect(res.status).toBe(200)
   })
 
-  it('rejects category and tags for page content', async () => {
-    const app = createApp()
-    const res = await app.request('/api/admin/contents', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: 'page',
-        title: 'About',
-        categoryId: 'cat-1',
-        tagIds: ['tag-1'],
-      }),
-    }, { DB: mockDb })
-    expect(res.status).toBe(422)
-  })
 })
 
 describe('DELETE /api/admin/contents/:id', () => {

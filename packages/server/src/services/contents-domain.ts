@@ -1,13 +1,11 @@
 import { CACHE_CONFIGS, getCacheService } from './cache'
 import { contentsCacheKeys } from './cache-keys'
 
-export type ContentType = 'post' | 'page' | 'note'
 export type ContentCreateMode = 'admin-create' | 'headless-create'
 export type ContentDeleteMode = 'admin-soft' | 'headless-hard'
 export type ContentUpdateMode = 'admin-update' | 'headless-update'
 
 export interface CreateContentInput {
-  type?: ContentType
   title: string
   slug?: string
   excerpt?: string | null
@@ -38,7 +36,6 @@ export interface CreateContentResult {
 }
 
 export interface UpdateContentPatch {
-  type?: ContentType
   title?: string
   slug?: string
   excerpt?: string | null
@@ -101,7 +98,6 @@ export interface DeleteContentResult {
 
 export interface ContentSnapshot {
   id: string
-  type: ContentType
   title: string
   slug: string
   excerpt: string | null
@@ -118,7 +114,6 @@ export interface ContentSnapshot {
 }
 
 interface NormalizedContentInput {
-  type: ContentType
   slug: string
   title: string
   excerpt: string | null
@@ -133,7 +128,6 @@ interface NormalizedContentInput {
 export async function createContent(options: CreateContentOptions): Promise<CreateContentResult> {
   const { db, input, authorId, cacheKv } = options
   const normalized = await normalizeAndValidateContentInput(db, {
-    type: input.type ?? 'post',
     slug: normalizeSlug(input.slug || input.title, { trim: options.mode === 'headless-create' }),
     title: input.title,
     excerpt: input.excerpt ?? null,
@@ -143,9 +137,6 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
     tagIds: input.tagIds ?? [],
     metadata: input.metadata ?? {},
     publishedAt: parseOptionalTimestamp(input.publishedAt),
-  }, {
-    requestTouchedCategory: input.categoryId !== undefined,
-    requestTouchedTags: input.tagIds !== undefined,
   })
 
   if (normalized.error) {
@@ -154,8 +145,8 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
   const value = normalized.value as NormalizedContentInput
 
   const duplicate = await db
-    .prepare('SELECT id FROM contents WHERE type = ? AND slug = ? AND deleted_at IS NULL')
-    .bind(value.type, value.slug)
+    .prepare('SELECT id FROM contents WHERE slug = ? AND deleted_at IS NULL')
+    .bind(value.slug)
     .first()
 
   if (duplicate) {
@@ -168,12 +159,11 @@ export async function createContent(options: CreateContentOptions): Promise<Crea
   await db
     .prepare(`
       INSERT INTO contents
-        (id, type, slug, title, excerpt, body, status, category_id, published_at, metadata, author_id, created_at, updated_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        (id, slug, title, excerpt, body, status, category_id, published_at, metadata, author_id, created_at, updated_at)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
     `)
     .bind(
       id,
-      value.type,
       value.slug,
       value.title,
       value.excerpt,
@@ -218,13 +208,11 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
   }
 
   const existingTagIds = await getContentTagIds(db, id)
-  const newType = patch.type ?? existing.type
   const newSlug = patch.slug
     ? normalizeSlug(patch.slug, { trim: options.mode === 'headless-update' })
     : existing.slug
 
   const normalized = await normalizeAndValidateContentInput(db, {
-    type: newType,
     slug: newSlug,
     title: patch.title ?? existing.title,
     excerpt: patch.excerpt !== undefined ? patch.excerpt : existing.excerpt,
@@ -236,10 +224,6 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     publishedAt: patch.publishedAt !== undefined
       ? parseOptionalTimestamp(patch.publishedAt)
       : existing.published_at,
-  }, {
-    allowClearPostOnlyFieldsOnTypeChange: newType !== 'post',
-    requestTouchedCategory: patch.categoryId !== undefined,
-    requestTouchedTags: patch.tagIds !== undefined,
   })
 
   if (normalized.error) {
@@ -247,10 +231,10 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
   }
   const value = normalized.value as NormalizedContentInput
 
-  if (newType !== existing.type || value.slug !== existing.slug) {
+  if (value.slug !== existing.slug) {
     const duplicate = await db
-      .prepare('SELECT id FROM contents WHERE type = ? AND slug = ? AND id != ? AND deleted_at IS NULL')
-      .bind(value.type, value.slug, id)
+      .prepare('SELECT id FROM contents WHERE slug = ? AND id != ? AND deleted_at IS NULL')
+      .bind(value.slug, id)
       .first()
 
     if (duplicate) {
@@ -263,12 +247,11 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
   await db
     .prepare(`
       UPDATE contents
-      SET type = ?, title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
+      SET title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
           category_id = ?, published_at = ?, metadata = ?, updated_at = ?
       WHERE id = ?
     `)
     .bind(
-      value.type,
       value.title,
       value.slug,
       value.excerpt,
@@ -355,7 +338,6 @@ export async function restoreContentVersion(
 
   const snapshot = parseSnapshot(versionRow.data)
   const normalized = await normalizeAndValidateContentInput(db, {
-    type: snapshot.type,
     slug: snapshot.slug,
     title: snapshot.title,
     excerpt: snapshot.excerpt,
@@ -382,12 +364,11 @@ export async function restoreContentVersion(
   await db
     .prepare(`
       UPDATE contents
-      SET type = ?, title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
+      SET title = ?, slug = ?, excerpt = ?, body = ?, status = ?,
           category_id = ?, published_at = ?, metadata = ?, updated_at = ?, deleted_at = ?
       WHERE id = ?
     `)
     .bind(
-      value.type,
       value.title,
       value.slug,
       value.excerpt,
@@ -404,10 +385,14 @@ export async function restoreContentVersion(
 
   await replaceContentTags(db, id, value.tagIds, now)
 
-  await insertContentVersion(db, id, nextVersion, {
-    ...snapshot,
-    updatedAt: new Date(now).toISOString(),
-  }, authorId, now)
+  await insertContentVersion(db, id, nextVersion, createSnapshot({
+    id,
+    ...value,
+    author_id: snapshot.authorId,
+    created_at: snapshot.createdAt,
+    updated_at: now,
+    deleted_at: snapshot.deletedAt,
+  }), authorId, now)
 
   await invalidateContentCache(id, cacheKv)
 
@@ -426,28 +411,9 @@ export async function invalidateContentCache(
 async function normalizeAndValidateContentInput(
   db: D1Database,
   input: NormalizedContentInput,
-  options: {
-    allowClearPostOnlyFieldsOnTypeChange?: boolean
-    requestTouchedCategory?: boolean
-    requestTouchedTags?: boolean
-  } = {},
 ): Promise<{ value: NormalizedContentInput; error?: never } | { value?: never; error: string }> {
-  if (!['post', 'page', 'note'].includes(input.type)) {
-    return { error: 'Invalid content type' }
-  }
-
   const tagIds = Array.from(new Set(input.tagIds.filter(Boolean)))
-  let categoryId = input.categoryId || null
-
-  if (input.type !== 'post') {
-    if (options.requestTouchedCategory && categoryId) return { error: 'Only post content can have a category' }
-    if (options.requestTouchedTags && tagIds.length > 0) return { error: 'Only post content can have tags' }
-    if (!options.allowClearPostOnlyFieldsOnTypeChange && (categoryId || tagIds.length > 0)) {
-      return { error: 'Only post content can have category or tags' }
-    }
-    categoryId = null
-    tagIds.length = 0
-  }
+  const categoryId = input.categoryId || null
 
   if (categoryId) {
     const category = await db.prepare('SELECT id FROM categories WHERE id = ?').bind(categoryId).first()
@@ -510,7 +476,6 @@ async function insertContentVersion(
 function createSnapshot(row: any): ContentSnapshot {
   return {
     id: row.id,
-    type: row.type,
     title: row.title,
     slug: row.slug,
     excerpt: row.excerpt ?? null,
@@ -535,7 +500,6 @@ function parseSnapshot(data: unknown): ContentSnapshot {
   } catch {
     return {
       id: '',
-      type: 'post',
       title: 'Untitled',
       slug: 'untitled',
       excerpt: null,
@@ -554,8 +518,7 @@ function parseSnapshot(data: unknown): ContentSnapshot {
 }
 
 function hasContentChanged(existing: any, existingTagIds: string[], next: NormalizedContentInput): boolean {
-  return next.type !== existing.type
-    || next.title !== existing.title
+  return next.title !== existing.title
     || next.slug !== existing.slug
     || (next.excerpt ?? null) !== (existing.excerpt ?? null)
     || next.body !== (existing.body ?? '')

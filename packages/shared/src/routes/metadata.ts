@@ -80,11 +80,8 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
 
   'GET /api/contents': { description: 'List public contents', category: 'Content', authentication: false },
   'GET /api/contents/:id': { description: 'Get a content item by ID', category: 'Content', authentication: false },
-  'GET /api/posts/:slug': { description: 'Get a published post by slug', category: 'Content', authentication: false },
-  'GET /api/pages/:slug': { description: 'Get a published page by slug', category: 'Content', authentication: false },
-  'GET /api/notes/:slug': { description: 'Get a published note by slug', category: 'Content', authentication: false },
-  'GET /api/category/:slug': { description: 'List published posts in a category', category: 'Content', authentication: false },
-  'GET /api/tag/:slug': { description: 'List published posts with a tag', category: 'Content', authentication: false },
+  'GET /api/category/:slug': { description: 'List published contents in a category', category: 'Content', authentication: false },
+  'GET /api/tag/:slug': { description: 'List published contents with a tag', category: 'Content', authentication: false },
 
   'GET /api/media': { description: 'List media files', category: 'Media', authentication: true },
   'GET /api/media/:id': { description: 'Get a media file by ID', category: 'Media', authentication: true },
@@ -148,9 +145,6 @@ export function inferCategory(path: string): string {
   if (path === '/api' || path === '/api/health') return 'System'
   if (
     path.startsWith('/api/contents') ||
-    path.startsWith('/api/posts') ||
-    path.startsWith('/api/pages') ||
-    path.startsWith('/api/notes') ||
     path.startsWith('/api/category') ||
     path.startsWith('/api/tag')
   ) return 'Content'

@@ -2,6 +2,11 @@
 
 Guidance for Codex and other coding agents working in this repository.
 
+## 项目情况
+
+- 这是一个全新的项目，还没有上线，所以在做 plan，更改代码的时候不用考虑兼容性，直接使用最佳实践
+- 修改数据后不要更改迁移文件
+
 ## Monorepo Shared Code
 
 This repository is organized into packages under `packages/`.

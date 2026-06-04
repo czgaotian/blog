@@ -26,7 +26,6 @@ function createMockDb(firstBySql: (sql: string, args: any[]) => any = () => null
 
 const existingContent = {
   id: 'content-1',
-  type: 'post',
   title: 'Old Post',
   slug: 'old-post',
   excerpt: null,
@@ -51,7 +50,6 @@ describe('content domain creation', () => {
       input: {
         title: 'New Post',
         slug: 'New Post!',
-        type: 'post',
         status: 'draft',
       },
       authorId: 'user-1',
@@ -64,14 +62,13 @@ describe('content domain creation', () => {
       id: 'content-1',
       mode: 'admin-create',
     })
-    expect(calls.some((call) => call.sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('SELECT id FROM contents WHERE slug = ?'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO contents'))).toBe(true)
     expect(calls.some((call) => call.args.includes('new-post'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
     const versionCall = calls.find((call) => call.sql.includes('INSERT INTO content_versions'))
     expect(JSON.parse(versionCall?.args[3] as string)).toMatchObject({
       id: 'content-1',
-      type: 'post',
       title: 'New Post',
       slug: 'new-post',
       status: 'draft',
@@ -81,7 +78,7 @@ describe('content domain creation', () => {
 
   it('returns duplicate slug without inserting content', async () => {
     const { db, calls } = createMockDb((sql) => {
-      if (sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?')) return { id: 'existing' }
+      if (sql.includes('SELECT id FROM contents WHERE slug = ?')) return { id: 'existing' }
       return null
     })
 
@@ -103,14 +100,17 @@ describe('content domain creation', () => {
     expect(calls.some((call) => call.sql.includes('INSERT INTO contents'))).toBe(false)
   })
 
-  it('rejects category and tags on page content', async () => {
-    const { db } = createMockDb(() => null)
+  it('accepts category and tags', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT id FROM categories WHERE id = ?')) return { id: 'cat-1' }
+      if (sql.includes('SELECT COUNT(*) as count FROM tags')) return { count: 1 }
+      return null
+    })
 
     const result = await createContent({
       db: db as any,
       mode: 'admin-create',
       input: {
-        type: 'page',
         title: 'About',
         status: 'draft',
         categoryId: 'cat-1',
@@ -119,10 +119,8 @@ describe('content domain creation', () => {
       authorId: 'user-1',
     })
 
-    expect(result).toMatchObject({
-      created: false,
-      validationError: 'Only post content can have a category',
-    })
+    expect(result.created).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO content_tags'))).toBe(true)
   })
 })
 
@@ -168,7 +166,7 @@ describe('content domain update', () => {
   it('updates admin content and creates a snapshot version when fields change', async () => {
     const { db, calls } = createMockDb((sql) => {
       if (sql.includes('SELECT * FROM contents')) return existingContent
-      if (sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?')) return null
+      if (sql.includes('SELECT id FROM contents WHERE slug = ?')) return null
       if (sql.includes('SELECT MAX(version)')) return { max_version: 1 }
       return null
     })
@@ -198,7 +196,7 @@ describe('content domain update', () => {
   it('returns duplicate slug without updating', async () => {
     const { db, calls } = createMockDb((sql) => {
       if (sql.includes('SELECT * FROM contents')) return existingContent
-      if (sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?')) return { id: 'other' }
+      if (sql.includes('SELECT id FROM contents WHERE slug = ?')) return { id: 'other' }
       return null
     })
 
@@ -219,36 +217,12 @@ describe('content domain update', () => {
     expect(calls.some((call) => call.sql.includes('UPDATE contents SET'))).toBe(false)
   })
 
-  it('allows the same slug for a different content type', async () => {
-    const { db, calls } = createMockDb((sql, args) => {
-      if (sql.includes('SELECT * FROM contents')) return existingContent
-      if (sql.includes('SELECT id FROM contents WHERE type = ? AND slug = ?')) {
-        expect(args[0]).toBe('page')
-        return null
-      }
-      if (sql.includes('SELECT MAX(version)')) return { max_version: 1 }
-      return null
-    })
-
-    const result = await updateContent({
-      db: db as any,
-      id: 'content-1',
-      mode: 'admin-update',
-      patch: { type: 'page', slug: 'old-post' },
-      authorId: 'user-2',
-    })
-
-    expect(result.found).toBe(true)
-    expect(result.duplicateSlug).toBeUndefined()
-    expect(calls.some((call) => call.sql.includes('UPDATE contents'))).toBe(true)
-  })
 })
 
 describe('content domain version restore', () => {
   it('restores a snapshot and writes a new version', async () => {
     const snapshot = {
       id: 'content-1',
-      type: 'post',
       title: 'Restored title',
       slug: 'restored-title',
       excerpt: null,
