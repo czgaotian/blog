@@ -72,6 +72,11 @@ import "./simple-editor.css"
 
 import content from "./data/content.json"
 
+interface SimpleEditorProps {
+  value?: string
+  onChange?: (value: string) => void
+}
+
 const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,
@@ -174,13 +179,18 @@ const MobileToolbarContent = ({
   </>
 )
 
-export function SimpleEditor() {
+export function SimpleEditor({ value, onChange }: SimpleEditorProps) {
   const isMobile = useIsBreakpoint()
   const { height } = useWindowSize()
   const [mobileView, setMobileView] = useState<"main" | "highlighter" | "link">(
     "main"
   )
   const toolbarRef = useRef<HTMLDivElement>(null)
+  const onChangeRef = useRef(onChange)
+
+  useEffect(() => {
+    onChangeRef.current = onChange
+  }, [onChange])
 
   const editor = useEditor({
     immediatelyRender: false,
@@ -219,7 +229,10 @@ export function SimpleEditor() {
         onError: (error) => console.error("Upload failed:", error),
       }),
     ],
-    content,
+    content: value ?? content,
+    onUpdate: ({ editor }) => {
+      onChangeRef.current?.(editor.getHTML())
+    },
   })
 
   const rect = useCursorVisibility({
@@ -232,6 +245,12 @@ export function SimpleEditor() {
       setMobileView("main")
     }
   }, [isMobile, mobileView])
+
+  useEffect(() => {
+    if (value === undefined || !editor) return
+    if (editor.getHTML() === value) return
+    editor.commands.setContent(value, { emitUpdate: false })
+  }, [editor, value])
 
   return (
     <div className="tiptap-editor">

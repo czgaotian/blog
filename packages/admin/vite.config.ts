@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => {
       emptyOutDir: true,
     },
     resolve: {
+      dedupe: ["react", "react-dom"],
       alias: {
         "@": new URL("./src", import.meta.url).pathname,
       },

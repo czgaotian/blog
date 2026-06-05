@@ -1,4 +1,5 @@
 import { zodResolver } from '@hookform/resolvers/zod'
+import { SimpleEditor } from '@worker-blog/editor'
 import type { ContentStatus } from '@worker-blog/shared/admin-api'
 import { Plus } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
@@ -107,8 +108,13 @@ export function ContentForm({
                 </Field>
                 <Field data-invalid={!!errors.body}>
                   <FieldLabel htmlFor="body">Body</FieldLabel>
-                  <Textarea id="body" rows={24} aria-invalid={!!errors.body} {...form.register('body')} />
-                  <FieldDescription>A rich text editor will replace this textarea later.</FieldDescription>
+                  <Controller
+                    control={form.control}
+                    name="body"
+                    render={({ field }) => (
+                      <SimpleEditor value={field.value} onChange={field.onChange} />
+                    )}
+                  />
                   <FieldError errors={[errors.body]} />
                 </Field>
               </FieldGroup>
