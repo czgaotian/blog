@@ -1,13 +1,13 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { App } from './app'
-import './styles/globals.css'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { App } from "./app";
+import "./styles/index.scss";
 
-const root = document.getElementById('admin-root')
+const root = document.getElementById("root");
 
 if (!root) {
-  throw new Error('Missing #admin-root element')
+  throw new Error("Missing #root element");
 }
 
 const queryClient = new QueryClient({
@@ -17,7 +17,7 @@ const queryClient = new QueryClient({
       retry: 1,
     },
   },
-})
+});
 
 createRoot(root).render(
   <StrictMode>
@@ -25,4 +25,4 @@ createRoot(root).render(
       <App />
     </QueryClientProvider>
   </StrictMode>,
-)
+);
