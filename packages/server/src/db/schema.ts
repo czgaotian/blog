@@ -75,7 +75,8 @@ export const contents = sqliteTable('contents', {
   slug: text('slug').notNull(),
   title: text('title').notNull(),
   excerpt: text('excerpt'),
-  body: text('body').notNull().default(''),
+  bodyJson: text('body_json', { mode: 'json' }).notNull().default({ type: 'doc', content: [] }),
+  bodyHtml: text('body_html').notNull().default(''),
   status: text('status').notNull().default('draft'), // 'draft', 'published', 'archived'
   categoryId: text('category_id').references(() => categories.id),
   coverImageId: text('cover_image_id').references((): any => media.id),

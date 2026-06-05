@@ -7,7 +7,8 @@ vi.mock('../middleware', () => ({
 }))
 
 const mockContent = {
-  id: 'c1', title: 'Test Post', slug: 'test-post', excerpt: null, body: '',
+  id: 'c1', title: 'Test Post', slug: 'test-post', excerpt: null,
+  body_json: JSON.stringify({ type: 'doc', content: [] }), body_html: '',
   status: 'draft', category_id: null, cover_image_id: null, metadata: '{}',
   published_at: null,
   author_id: 'u1', first_name: 'Admin', last_name: 'User', author_email: 'admin@test.com',
@@ -85,6 +86,9 @@ describe('GET /api/admin/contents/:id', () => {
     expect(json).not.toHaveProperty('type')
     expect(json).toHaveProperty('publishedAt', null)
     expect(json).toHaveProperty('coverImageId', null)
+    expect(json).toHaveProperty('bodyJson')
+    expect(json).toHaveProperty('bodyHtml')
+    expect(json).not.toHaveProperty('body')
     expect(json).toHaveProperty('metadata')
     expect(json).not.toHaveProperty('fields')
     expect(json).not.toHaveProperty('data')
@@ -99,6 +103,7 @@ describe('POST /api/admin/contents', () => {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         title: 'New Post',
+        bodyJson: { type: 'doc', content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }] },
         status: 'draft',
       }),
     }, { DB: mockDb })
@@ -118,6 +123,22 @@ describe('POST /api/admin/contents', () => {
     expect(res.status).toBe(422)
   })
 
+})
+
+describe('content request validation', () => {
+  it('rejects client-provided generated HTML', async () => {
+    const app = createApp()
+    const res = await app.request('/api/admin/contents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        title: 'New Post',
+        bodyJson: { type: 'doc', content: [] },
+        bodyHtml: '<p>client html</p>',
+      }),
+    }, { DB: mockDb })
+    expect(res.status).toBe(422)
+  })
 })
 
 describe('PUT /api/admin/contents/:id', () => {

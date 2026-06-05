@@ -478,7 +478,6 @@ function mapPublicContent(row: any, tags: Array<{ id: string; name: string; slug
     title: row.title,
     slug: row.slug,
     excerpt: row.excerpt ?? null,
-    body: row.body ?? '',
     status: row.status,
     cover_image_id: row.cover_image_id ?? null,
     category: row.category_id ? {

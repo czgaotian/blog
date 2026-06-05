@@ -43,14 +43,14 @@ apiContentsCrudRoutes.get('/check-slug', async (c) => {
   }
 })
 
-// GET /api/contents/:id - Get single content item by ID
+// GET /api/contents/:id - Get single published content item by ID
 apiContentsCrudRoutes.get('/:id', async (c) => {
   try {
     const id = c.req.param('id')
     if (!id) return c.json({ error: 'Content id is required' }, 400)
     const db = c.env.DB
 
-    const stmt = db.prepare('SELECT * FROM contents WHERE id = ?')
+    const stmt = db.prepare("SELECT * FROM contents WHERE id = ? AND status = 'published' AND deleted_at IS NULL")
     const content = await stmt.bind(id).first()
 
     if (!content) {
@@ -62,7 +62,7 @@ apiContentsCrudRoutes.get('/:id', async (c) => {
       title: (content as any).title,
       slug: (content as any).slug,
       excerpt: (content as any).excerpt ?? null,
-      body: (content as any).body ?? '',
+      bodyHtml: (content as any).body_html ?? '',
       status: (content as any).status,
       cover_image_id: (content as any).cover_image_id ?? null,
       metadata: parseJsonObject((content as any).metadata),

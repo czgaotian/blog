@@ -29,7 +29,8 @@ const existingContent = {
   title: 'Old Post',
   slug: 'old-post',
   excerpt: null,
-  body: '',
+  body_json: JSON.stringify({ type: 'doc', content: [] }),
+  body_html: '',
   status: 'draft',
   category_id: null,
   cover_image_id: null,
@@ -73,9 +74,35 @@ describe('content domain creation', () => {
       title: 'New Post',
       slug: 'new-post',
       status: 'draft',
+      bodyJson: { type: 'doc', content: [] },
       authorId: 'user-1',
       coverImageId: null,
     })
+  })
+
+  it('renders cached HTML when creating published content', async () => {
+    const { db, calls } = createMockDb(() => null)
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'admin-create',
+      input: {
+        title: 'Published Post',
+        status: 'published',
+        bodyJson: {
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello <script>alert(1)</script>' }] }],
+        },
+      },
+      authorId: 'user-1',
+      id: 'content-1',
+      now: 123,
+    })
+
+    expect(result.created).toBe(true)
+    const insertCall = calls.find((call) => call.sql.includes('INSERT INTO contents'))
+    expect(insertCall?.args[4]).toContain('"type":"doc"')
+    expect(insertCall?.args[5]).toBe('<p>Hello &lt;script&gt;alert(1)&lt;/script&gt;</p>')
   })
 
   it('returns duplicate slug without inserting content', async () => {
@@ -236,6 +263,35 @@ describe('content domain update', () => {
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
   })
 
+  it('regenerates cached HTML when publishing updated JSON', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('SELECT * FROM contents')) return existingContent
+      if (sql.includes('SELECT id FROM contents WHERE slug = ?')) return null
+      if (sql.includes('SELECT MAX(version)')) return { max_version: 1 }
+      return null
+    })
+
+    const result = await updateContent({
+      db: db as any,
+      id: 'content-1',
+      mode: 'admin-update',
+      patch: {
+        status: 'published',
+        bodyJson: {
+          type: 'doc',
+          content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Published' }] }],
+        },
+      },
+      authorId: 'user-2',
+      now: 456,
+    })
+
+    expect(result.found).toBe(true)
+    const updateCall = calls.find((call) => call.sql.includes('UPDATE contents'))
+    expect(updateCall?.args[3]).toContain('"type":"doc"')
+    expect(updateCall?.args[4]).toBe('<p>Published</p>')
+  })
+
   it('returns duplicate slug without updating', async () => {
     const { db, calls } = createMockDb((sql) => {
       if (sql.includes('SELECT * FROM contents')) return existingContent
@@ -269,7 +325,7 @@ describe('content domain version restore', () => {
       title: 'Restored title',
       slug: 'restored-title',
       excerpt: null,
-      body: '',
+      bodyJson: { type: 'doc', content: [] },
       status: 'draft',
       categoryId: null,
       coverImageId: null,

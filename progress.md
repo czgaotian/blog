@@ -1,19 +1,19 @@
-# Editor Scoped CSS Migration Progress
+# Content Body JSON/HTML Progress
 
-## 2026-06-05
+## 2026-06-06
 
-- Started editor style migration.
-- Replaced previous planning files with the current editor-scoped CSS migration plan.
-- Confirmed SCSS usage spans editor root styles, Tiptap nodes, UI primitives, toolbar/popover/dropdown/link/highlight components, and style variables.
-- Initial Sass conversion command failed because the working directory and input paths were mismatched; will rerun from the repository root.
-- Root-level `pnpm exec sass` also failed because Sass is only exposed under the editor package; switching to the explicit editor package binary.
-- Converted editor SCSS files to plain CSS files and updated all style imports to `.css`.
-- Removed old SCSS files and the `scss.d.ts` declaration.
-- Added `.tiptap-editor` as the `SimpleEditor` root scope.
-- Scoped CSS variables and component selectors under `.tiptap-editor`, with dark mode under `.dark .tiptap-editor`.
-- Removed template-level body/html/root/global scrollbar styles and made the simple editor wrapper embeddable.
-- Kept popover/dropdown/tooltip floating content inside the editor DOM by default so scoped styles still apply.
-- Removed Sass dev dependencies from the editor package.
-- Added `css.d.ts` so TypeScript accepts side-effect CSS imports.
-- Adjusted tooltip context typing to avoid duplicated React type conflicts from Floating UI.
-- Verification passed: editor type-check, root type-check, and `git diff --check`.
+- Started implementation for server/shared content body JSON + cached HTML design.
+- Confirmed scope is `packages/shared` and `packages/server`; admin implementation remains untouched.
+- Replaced previous planning files with the current content body storage plan.
+- Added shared Tiptap document schema, `bodyJson` write contracts, `bodyHtml` response boundary, and contract tests.
+- Updated server Drizzle schema source to use `body_json` and `body_html`; no migration files were modified.
+- Added server-side Tiptap JSON to sanitized HTML renderer.
+- Replaced the initial hand-written renderer with Tiptap `generateHTML`.
+- Configured server rendering extensions to mirror admin editor usage: StarterKit with custom horizontal rule handling, TextAlign, TaskList/TaskItem, Highlight, Image, Typography, Superscript, Subscript, and an `imageUpload` placeholder node.
+- Added Tiptap rendering dependencies to `packages/server/package.json` and updated `pnpm-lock.yaml`.
+- Updated content domain create/update/restore/version behavior to store JSON as source and generate HTML for published content.
+- Updated admin content detail mapping to return `bodyJson/bodyHtml`.
+- Updated public content detail to read `body_html` and only serve published, non-deleted content; category/tag list mapping no longer returns body content.
+- Verification passed for shared tests, server focused tests, shared/server TypeScript, and `git diff --check`.
+- Re-ran server focused tests and server TypeScript after switching to Tiptap `generateHTML`; both passed.
+- Root `pnpm type-check` remains blocked by pre-existing missing `packages/editor/tsconfig.json`.

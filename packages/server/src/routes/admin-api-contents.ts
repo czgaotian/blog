@@ -139,7 +139,8 @@ adminApiContentsRoutes.get('/:id', async (c) => {
       title: row.title,
       slug: row.slug,
       excerpt: row.excerpt ?? null,
-      body: row.body ?? '',
+      bodyJson: parseTiptapDocument(row.body_json),
+      bodyHtml: row.body_html ?? '',
       status: row.status,
       categoryId: row.category_id ?? null,
       category: row.category_id ? {
@@ -378,6 +379,20 @@ function parseVersionSnapshot(value: unknown): ContentVersionSnapshot {
   const { type: _legacyType, ...contentSnapshot } = snapshot
   return {
     ...contentSnapshot,
+    bodyJson: parseTiptapDocument(contentSnapshot.bodyJson),
     coverImageId: contentSnapshot.coverImageId ?? null,
   } as unknown as ContentVersionSnapshot
+}
+
+function parseTiptapDocument(value: unknown) {
+  if (value && typeof value === 'object' && (value as { type?: unknown }).type === 'doc') return value
+  if (!value) return { type: 'doc', content: [] }
+  try {
+    const parsed = JSON.parse(String(value))
+    return parsed && typeof parsed === 'object' && parsed.type === 'doc'
+      ? parsed
+      : { type: 'doc', content: [] }
+  } catch {
+    return { type: 'doc', content: [] }
+  }
 }

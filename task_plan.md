@@ -1,43 +1,44 @@
-# Editor Scoped CSS Migration Plan
+# Content Body JSON/HTML Server Plan
 
 ## Goal
 
-Remove SCSS from `packages/editor`, convert editor styles to plain CSS, and ensure editor styles only affect DOM inside the `.tiptap-editor` component scope while following admin dark mode via `.dark .tiptap-editor`.
+Evolve content storage so Tiptap JSON is the source of truth and cached HTML is generated server-side for public rendering.
 
 ## Scope
 
-- Package: `packages/editor`.
-- Do not modify migration files.
-- Do not wire the editor into admin yet.
-- Keep behavior unchanged except for style scoping and full-page layout cleanup.
+- Packages: `packages/shared`, `packages/server`.
+- Do not modify admin implementation.
+- Do not modify existing migration files.
+- Keep `body_json` as source of truth and `body_html` as generated cache.
 
 ## Phases
 
-1. Inventory SCSS imports, global selectors, and package Sass dependencies. Status: complete.
-2. Convert all `.scss` files to `.css` files and update TypeScript/CSS imports. Status: complete.
-3. Scope variables and component selectors under `.tiptap-editor`, with dark mode via `.dark .tiptap-editor`. Status: complete.
-4. Remove full-page/global style effects and make the simple editor embeddable. Status: complete.
-5. Remove Sass-only package artifacts and dependencies. Status: complete.
-6. Run verification and fix regressions. Status: complete.
+1. Inventory current content contracts, schema, routes, domain service, and tests. Status: complete.
+2. Add shared Tiptap body schemas and update shared content request/response contracts. Status: complete.
+3. Update server DB schema and content domain write/version/restore behavior. Status: complete.
+4. Add server-side Tiptap JSON to sanitized HTML renderer and publish-time cache updates. Status: complete.
+5. Update admin/public content routes to expose the right JSON/HTML boundaries. Status: complete.
+6. Update focused tests and run verification. Status: complete.
 
 ## Decisions
 
-- The editor root scope class is `.tiptap-editor`.
-- Dark mode follows the host application: `.dark .tiptap-editor`.
-- No naked `body`, `html`, `#root`, `#app`, universal scrollbar, or unscoped editor selectors should remain in editor styles.
-- Convert Sass nesting to regular CSS rather than adding a new CSS module system.
+- Shared contracts use `bodyJson` for editable content and `bodyHtml` for generated/public content.
+- Server create/update accepts `bodyJson`; client-provided `bodyHtml` is not part of write schemas.
+- Publishing is represented by status transition to `published`; server regenerates `body_html` from `body_json`.
+- Draft edits do not clear existing `body_html`; the public API should only serve published content.
+- Version snapshots store `bodyJson`, not `bodyHtml`, as content truth.
 
 ## Verification
 
-- `pnpm --filter @worker-blog/editor type-check` passed.
-- `pnpm type-check` passed.
+- `pnpm --filter @worker-blog/shared test -- contents.test.ts` passed.
+- `pnpm --filter @worker-blog/server test -- content-renderer.test.ts contents-domain.test.ts admin-api-contents.test.ts` passed.
+- `tsc --noEmit -p packages/shared/tsconfig.json` passed.
+- `tsc --noEmit -p packages/server/tsconfig.json` passed.
 - `git diff --check` passed.
+- Root `pnpm type-check` is blocked by the existing script referencing missing `packages/editor/tsconfig.json`.
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| Sass reported every SCSS input as missing. | Ran `pnpm --dir packages/editor exec sass` while passing repo-root-relative paths. | Re-run Sass from the repository root so paths resolve correctly. |
-| `pnpm exec sass` could not find the Sass command from the workspace root. | Tried root-level `pnpm exec sass`. | Use `packages/editor/node_modules/.bin/sass`, which is available from the editor package install. |
-| TypeScript 6 rejected side-effect `.css` imports. | Replaced SCSS declaration by deleting `scss.d.ts`. | Added `packages/editor/src/css.d.ts`. |
-| Tooltip context types conflicted because Floating UI resolved a different React type instance. | Tried hand-copying the Floating UI prop getter signatures. | Changed the context value to `ReturnType<typeof useTooltip>` and kept a narrow cast at the third-party ref boundary. |
+| Root `pnpm type-check` fails because `packages/editor/tsconfig.json` does not exist. | Ran root type-check after focused tests. | Verified this task's changed packages with direct shared/server TypeScript commands. |
