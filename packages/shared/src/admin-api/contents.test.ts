@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { createContentSchema, updateContentSchema } from './contents'
 
 describe('content body contracts', () => {
-  it('accepts JSONContent as content source', () => {
+  it('accepts bodyJson as a JSON object content source', () => {
     const parsed = createContentSchema.parse({
       title: 'Draft',
       bodyJson: {

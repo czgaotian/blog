@@ -2,9 +2,6 @@ export {
   createContentRenderExtensions,
   HorizontalRule,
   ServerImageUploadNode,
-} from './extensions'
-export {
-  emptyTiptapDocument,
-  tiptapDocumentSchema,
-} from './schema'
-export type { JSONContent } from '@tiptap/core'
+} from "./extensions";
+export { emptyTiptapDocument, tiptapDocumentSchema } from "./schema";
+export type { JSONContent } from "@tiptap/core";
