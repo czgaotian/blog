@@ -26,13 +26,13 @@ import {
 // --- Tiptap Node ---
 import { ImageUploadNode } from "../../tiptap-node/image-upload-node/image-upload-node-extension"
 import { HorizontalRule } from "../../tiptap-node/horizontal-rule-node/horizontal-rule-node-extension"
-import "../../tiptap-node/blockquote-node/blockquote-node.scss"
-import "../../tiptap-node/code-block-node/code-block-node.scss"
-import "../../tiptap-node/horizontal-rule-node/horizontal-rule-node.scss"
-import "../../tiptap-node/list-node/list-node.scss"
-import "../../tiptap-node/image-node/image-node.scss"
-import "../../tiptap-node/heading-node/heading-node.scss"
-import "../../tiptap-node/paragraph-node/paragraph-node.scss"
+import "../../tiptap-node/blockquote-node/blockquote-node.css"
+import "../../tiptap-node/code-block-node/code-block-node.css"
+import "../../tiptap-node/horizontal-rule-node/horizontal-rule-node.css"
+import "../../tiptap-node/list-node/list-node.css"
+import "../../tiptap-node/image-node/image-node.css"
+import "../../tiptap-node/heading-node/heading-node.css"
+import "../../tiptap-node/paragraph-node/paragraph-node.css"
 
 // --- Tiptap UI ---
 import { HeadingDropdownMenu } from "../../tiptap-ui/heading-dropdown-menu"
@@ -64,14 +64,11 @@ import { useIsBreakpoint } from "../../../hooks/use-is-breakpoint"
 import { useWindowSize } from "../../../hooks/use-window-size"
 import { useCursorVisibility } from "../../../hooks/use-cursor-visibility"
 
-// --- Components ---
-import { ThemeToggle } from "./theme-toggle"
-
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "../../../lib/tiptap-utils"
 
 // --- Styles ---
-import "./simple-editor.scss"
+import "./simple-editor.css"
 
 import content from "./data/content.json"
 
@@ -144,12 +141,6 @@ const MainToolbarContent = ({
       </ToolbarGroup>
 
       <Spacer />
-
-      {isMobile && <ToolbarSeparator />}
-
-      <ToolbarGroup>
-        <ThemeToggle />
-      </ToolbarGroup>
     </>
   )
 }
@@ -243,38 +234,40 @@ export function SimpleEditor() {
   }, [isMobile, mobileView])
 
   return (
-    <div className="simple-editor-wrapper">
-      <EditorContext.Provider value={{ editor }}>
-        <Toolbar
-          ref={toolbarRef}
-          style={{
-            ...(isMobile
-              ? {
-                  bottom: `calc(100% - ${height - rect.y}px)`,
-                }
-              : {}),
-          }}
-        >
-          {mobileView === "main" ? (
-            <MainToolbarContent
-              onHighlighterClick={() => setMobileView("highlighter")}
-              onLinkClick={() => setMobileView("link")}
-              isMobile={isMobile}
-            />
-          ) : (
-            <MobileToolbarContent
-              type={mobileView === "highlighter" ? "highlighter" : "link"}
-              onBack={() => setMobileView("main")}
-            />
-          )}
-        </Toolbar>
+    <div className="tiptap-editor">
+      <div className="simple-editor-wrapper">
+        <EditorContext.Provider value={{ editor }}>
+          <Toolbar
+            ref={toolbarRef}
+            style={{
+              ...(isMobile
+                ? {
+                    bottom: `calc(100% - ${height - rect.y}px)`,
+                  }
+                : {}),
+            }}
+          >
+            {mobileView === "main" ? (
+              <MainToolbarContent
+                onHighlighterClick={() => setMobileView("highlighter")}
+                onLinkClick={() => setMobileView("link")}
+                isMobile={isMobile}
+              />
+            ) : (
+              <MobileToolbarContent
+                type={mobileView === "highlighter" ? "highlighter" : "link"}
+                onBack={() => setMobileView("main")}
+              />
+            )}
+          </Toolbar>
 
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
-      </EditorContext.Provider>
+          <EditorContent
+            editor={editor}
+            role="presentation"
+            className="simple-editor-content"
+          />
+        </EditorContext.Provider>
+      </div>
     </div>
   )
 }

@@ -43,8 +43,6 @@
     "@types/lodash.throttle": "^4.1.9",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",
-    "sass": "^1.99.0",
-    "sass-embedded": "^1.99.0",
     "typescript": "^5.9.3"
   }
 }

@@ -1,141 +1,43 @@
-# Admin Taxonomy Management Implementation Plan
+# Editor Scoped CSS Migration Plan
 
 ## Goal
 
-Add an admin tag management page to the frontend. The page should support listing, creating, editing, and deleting tags through the existing admin tag API, and tag color editing must use a `colorpicker` UI component.
-
-Extend the same management pattern to admin categories, including listing, creating, editing, deleting, optional parent category selection, and sort order editing.
+Remove SCSS from `packages/editor`, convert editor styles to plain CSS, and ensure editor styles only affect DOM inside the `.tiptap-editor` component scope while following admin dark mode via `.dark .tiptap-editor`.
 
 ## Scope
 
-- Frontend package: `packages/admin`.
-- Shared API contracts already exist in `packages/shared/src/admin-api/tags.ts`.
-- Backend tag CRUD routes already exist at `/api/admin/tags`.
+- Package: `packages/editor`.
 - Do not modify migration files.
-- Keep admin UI copy in English.
+- Do not wire the editor into admin yet.
+- Keep behavior unchanged except for style scoping and full-page layout cleanup.
 
 ## Phases
 
-1. Confirm contracts, routes, and component availability. Status: complete.
-2. Add or wire the `colorpicker` UI component. Status: complete.
-3. Add admin tag API hooks and form helpers. Status: complete.
-4. Build the tag management page. Status: complete.
-5. Register route and navigation entry. Status: complete.
-6. Add focused tests and run verification. Status: complete.
-
-## Implementation Notes
-
-### Phase 2: `colorpicker`
-
-- Check whether a suitable shadcn-compatible `colorpicker` registry component exists before writing one locally.
-- If no registry component exists, create `packages/admin/src/components/ui/colorpicker.tsx` as a reusable UI primitive.
-- Prefer a controlled API such as `value`, `onChange`, `disabled`, and `aria-invalid`.
-- Support hex values because `createTagSchema.color` currently accepts a short string and existing tag rows expose `color: string`.
-- Compose it with existing `Field`, `Input`, `Button`, and/or overlay primitives as appropriate.
-
-### Phase 3: API Hooks And Form Helpers
-
-- Extend `packages/admin/src/api/taxonomies.ts` with:
-  - `useTagDetail(id)`
-  - `useCreateTag()`
-  - `useUpdateTag(id)`
-  - `useDeleteTag(id)`
-- Import request/response types from `@worker-blog/shared/admin-api`.
-- Invalidate `['admin', 'tags']` after successful create/update/delete.
-- Add a small form model in `packages/admin/src/lib/tag-form.ts` using Zod or the shared schemas.
-- Default tag color to a valid hex color such as `#64748b`.
-- Keep slug optional so the backend can derive it from the name.
-
-### Phase 4: Page UX
-
-- Create `packages/admin/src/pages/tags-list.tsx`.
-- Use existing admin page patterns:
-  - `PageHeader`
-  - `Table`
-  - `Button`
-  - `Badge`
-  - `Alert`
-  - `LoadingState`
-  - existing `ConfirmDialog`
-- Show columns for color swatch, name, slug, description, updated date, and actions.
-- Create/edit can be a dialog on the list page to keep this taxonomy workflow compact.
-- Delete should use confirmation and surface the backend conflict error when a tag is in use.
-- Empty state should be simple and task-focused.
-
-### Phase 5: Routing And Navigation
-
-- Add `/tags` to `packages/admin/src/router.tsx`.
-- Add a sidebar item in `packages/admin/src/layouts/base-layout.tsx`.
-- Use a taxonomy-appropriate icon from the existing `lucide-react` dependency.
-
-### Phase 6: Verification
-
-- Add focused tests for form defaults/conversion and API invalidation behavior if practical.
-- Run:
-  - `pnpm --filter @worker-blog/admin test`
-  - `pnpm --filter @worker-blog/admin type-check`
-  - `pnpm --filter @worker-blog/admin build`
-  - `git diff --check`
+1. Inventory SCSS imports, global selectors, and package Sass dependencies. Status: complete.
+2. Convert all `.scss` files to `.css` files and update TypeScript/CSS imports. Status: complete.
+3. Scope variables and component selectors under `.tiptap-editor`, with dark mode via `.dark .tiptap-editor`. Status: complete.
+4. Remove full-page/global style effects and make the simple editor embeddable. Status: complete.
+5. Remove Sass-only package artifacts and dependencies. Status: complete.
+6. Run verification and fix regressions. Status: complete.
 
 ## Decisions
 
-- Reuse existing backend tag CRUD routes; no server route work is planned.
-- Reuse shared tag contracts; no duplicated request/response types in admin.
-- Use a dedicated `colorpicker` component for the `color` field.
-- Prefer a list-page dialog workflow over separate create/edit routes unless implementation reveals a strong reason to split pages.
+- The editor root scope class is `.tiptap-editor`.
+- Dark mode follows the host application: `.dark .tiptap-editor`.
+- No naked `body`, `html`, `#root`, `#app`, universal scrollbar, or unscoped editor selectors should remain in editor styles.
+- Convert Sass nesting to regular CSS rather than adding a new CSS module system.
 
-## Risks And Questions
+## Verification
 
-- The shadcn registry did not expose an obvious `color` component via the attempted command, so a local `colorpicker` may be needed.
-- The current shared schema validates color as `z.string().min(1).max(32)` rather than strict hex. The UI should guide toward hex without changing backend validation unless requested.
-- Deleting tags already linked to content returns a 409 `Tag is in use`; the UI must show that clearly instead of treating it as a generic failure.
+- `pnpm --filter @worker-blog/editor type-check` passed.
+- `pnpm type-check` passed.
+- `git diff --check` passed.
 
 ## Errors Encountered
 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
-| `shadcn search colorpicker color-picker color --limit 20` treated `colorpicker` as a registry namespace and failed. | Checked registry availability. | Use explicit registry item names or inspect docs/registry differently during implementation. |
-| `shadcn search @shadcn/color ...` reported `@shadcn/color` was not found. | Checked for an official color component. | Plan allows a local `colorpicker` component if no registry component is available. |
-
-## Verification
-
-- `pnpm --filter @worker-blog/admin test` passed: 5 files, 16 tests.
-- `pnpm --filter @worker-blog/admin type-check` passed.
-- `pnpm --filter @worker-blog/admin build` passed with the existing large client chunk warning.
-- `git diff --check` passed.
-
-## Category Management Extension
-
-### Goal
-
-Add a frontend category management page using the existing admin category API and the same compact list/dialog/delete-confirmation workflow as tags.
-
-### Phases
-
-1. Inspect category contracts and existing tag implementation. Status: complete.
-2. Add category API hooks and form helpers. Status: complete.
-3. Build category management page. Status: complete.
-4. Register route and navigation entry. Status: complete.
-5. Add tests and run verification. Status: complete.
-
-### Notes
-
-- Reuse `packages/shared/src/admin-api/categories.ts` request/response types.
-- Backend already supports category list/detail/create/update/delete.
-- Category form fields: name, slug, description, parent category, and sort order.
-- Keep slug optional on create so the backend can derive it from the name.
-- Deleting a category can fail with `Category is in use` if it has child categories or content.
-- Parent selection should exclude the category currently being edited; backend remains the source of truth for cycle prevention.
-
-### Verification
-
-- `pnpm --filter @worker-blog/admin test` passed: 6 files, 21 tests.
-- `pnpm --filter @worker-blog/admin type-check` passed after changing sort order parsing to `valueAsNumber`.
-- `pnpm --filter @worker-blog/admin build` passed with the existing large client chunk warning.
-- `git diff --check` passed.
-
-### Errors Encountered
-
-| Error | Attempt | Resolution |
-| --- | --- | --- |
-| `z.coerce.number()` resolver input type did not match `react-hook-form` form value type during type-check. | Used coercion in `categoryFormSchema` for sort order. | Changed schema to `z.number().int()` and registered the number input with `valueAsNumber`. |
+| Sass reported every SCSS input as missing. | Ran `pnpm --dir packages/editor exec sass` while passing repo-root-relative paths. | Re-run Sass from the repository root so paths resolve correctly. |
+| `pnpm exec sass` could not find the Sass command from the workspace root. | Tried root-level `pnpm exec sass`. | Use `packages/editor/node_modules/.bin/sass`, which is available from the editor package install. |
+| TypeScript 6 rejected side-effect `.css` imports. | Replaced SCSS declaration by deleting `scss.d.ts`. | Added `packages/editor/src/css.d.ts`. |
+| Tooltip context types conflicted because Floating UI resolved a different React type instance. | Tried hand-copying the Floating UI prop getter signatures. | Changed the context value to `ReturnType<typeof useTooltip>` and kept a narrow cast at the third-party ref boundary. |

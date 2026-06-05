@@ -1,6 +1,6 @@
 import * as PopoverPrimitive from "@radix-ui/react-popover"
 import { cn } from "../../../lib/tiptap-utils"
-import "./popover.scss"
+import "./popover.css"
 
 function Popover({
   ...props
@@ -21,14 +21,12 @@ function PopoverContent({
   ...props
 }: React.ComponentProps<typeof PopoverPrimitive.Content>) {
   return (
-    <PopoverPrimitive.Portal>
-      <PopoverPrimitive.Content
-        align={align}
-        sideOffset={sideOffset}
-        className={cn("tiptap-popover", className)}
-        {...props}
-      />
-    </PopoverPrimitive.Portal>
+    <PopoverPrimitive.Content
+      align={align}
+      sideOffset={sideOffset}
+      className={cn("tiptap-popover", className)}
+      {...props}
+    />
   )
 }
 

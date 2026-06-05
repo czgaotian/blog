@@ -24,11 +24,9 @@ import {
   useMergeRefs,
   FloatingPortal,
   type Placement,
-  type UseFloatingReturn,
-  type ReferenceType,
   FloatingDelayGroup,
 } from "@floating-ui/react"
-import "./tooltip.scss"
+import "./tooltip.css"
 
 interface TooltipProviderProps {
   children: React.ReactNode
@@ -57,17 +55,6 @@ interface TooltipContentProps extends Omit<
   children?: React.ReactNode
   portal?: boolean
   portalProps?: Omit<React.ComponentProps<typeof FloatingPortal>, "children">
-}
-
-interface TooltipContextValue extends UseFloatingReturn<ReferenceType> {
-  open: boolean
-  setOpen: (open: boolean) => void
-  getReferenceProps: (
-    userProps?: React.HTMLProps<HTMLElement>
-  ) => Record<string, unknown>
-  getFloatingProps: (
-    userProps?: React.HTMLProps<HTMLDivElement>
-  ) => Record<string, unknown>
 }
 
 function useTooltip({
@@ -129,6 +116,8 @@ function useTooltip({
   )
 }
 
+type TooltipContextValue = ReturnType<typeof useTooltip>
+
 const TooltipContext = createContext<TooltipContextValue | null>(null)
 
 function useTooltipContext() {
@@ -184,7 +173,8 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
       return cloneElement(
         children,
         context.getReferenceProps({
-          ref,
+          // eslint-disable-next-line @typescript-eslint/no-explicit-any
+          ref: ref as any,
           ...props,
           ...(typeof children.props === "object" ? children.props : {}),
           ...dataAttributes,
@@ -194,7 +184,7 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
 
     return (
       <button
-        ref={ref}
+        ref={ref as React.Ref<HTMLButtonElement>}
         data-tooltip-state={context.open ? "open" : "closed"}
         {...context.getReferenceProps(props)}
       >
@@ -206,7 +196,7 @@ export const TooltipTrigger = forwardRef<HTMLElement, TooltipTriggerProps>(
 
 export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
   function TooltipContent(
-    { style, children, portal = true, portalProps = {}, ...props },
+    { style, children, portal = false, portalProps = {}, ...props },
     propRef
   ) {
     const context = useTooltipContext()
@@ -216,7 +206,7 @@ export const TooltipContent = forwardRef<HTMLDivElement, TooltipContentProps>(
 
     const content = (
       <div
-        ref={ref}
+        ref={ref as React.Ref<HTMLDivElement>}
         style={{
           ...context.floatingStyles,
           ...style,

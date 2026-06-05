@@ -1,16 +1,16 @@
-:root {
+.tiptap-editor {
   --tt-input-placeholder: var(--tt-gray-light-a-400);
   --tt-input-border: var(--tt-gray-light-a-200);
   --tt-input-border-focus: var(--tt-gray-light-a-300);
 }
 
-.dark {
+.dark .tiptap-editor {
   --tt-input-placeholder: var(--tt-gray-dark-a-400);
   --tt-input-border: var(--tt-gray-dark-a-200);
   --tt-input-border-focus: var(--tt-gray-dark-a-300);
 }
 
-.tiptap-input {
+.tiptap-editor .tiptap-input {
   width: 100%;
   min-width: 0;
   height: 2rem;
@@ -20,22 +20,18 @@
   background: transparent;
   font-size: 1rem;
   outline: none;
-  transition:
-    color,
-    background-color,
-    border-color 150ms;
-
-  &::placeholder {
-    color: var(--tt-input-placeholder);
-  }
+  transition: color, background-color, border-color 150ms;
+}
+.tiptap-editor .tiptap-input::placeholder {
+  color: var(--tt-input-placeholder);
 }
 
-.tiptap-input:focus-visible {
+.tiptap-editor .tiptap-input:focus-visible {
   border-color: var(--tt-input-border-focus);
 }
 
 @media (min-width: 768px) {
-  .tiptap-input {
+  .tiptap-editor .tiptap-input {
     font-size: 0.875rem;
   }
 }

@@ -1,82 +1,71 @@
 @import url("https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&display=swap");
-
-body {
+.tiptap-editor {
   --tt-toolbar-height: 44px;
   --tt-theme-text: var(--tt-gray-light-900);
-
-  .dark & {
-    --tt-theme-text: var(--tt-gray-dark-900);
-  }
+}
+.dark .tiptap-editor {
+  --tt-theme-text: var(--tt-gray-dark-900);
 }
 
-body {
+.tiptap-editor {
   font-family: "Inter", sans-serif;
   color: var(--tt-theme-text);
   font-optical-sizing: auto;
   font-weight: 400;
   font-style: normal;
-  padding: 0;
-  overscroll-behavior-y: none;
-}
-
-html,
-body {
-  overscroll-behavior-x: none;
-}
-
-html,
-body,
-#root,
-#app {
-  height: 100%;
   background-color: var(--tt-bg-color);
 }
 
-::-webkit-scrollbar {
+.tiptap-editor .simple-editor-wrapper::-webkit-scrollbar {
   width: 0.25rem;
 }
 
-* {
+.tiptap-editor .simple-editor-wrapper {
   scrollbar-width: thin;
   scrollbar-color: var(--tt-scrollbar-color) transparent;
 }
 
-::-webkit-scrollbar-thumb {
+.tiptap-editor .simple-editor-wrapper::-webkit-scrollbar-thumb {
   background-color: var(--tt-scrollbar-color);
   border-radius: 9999px;
 }
 
-::-webkit-scrollbar-track {
+.tiptap-editor .simple-editor-wrapper::-webkit-scrollbar-track {
   background: transparent;
 }
 
-.tiptap.ProseMirror {
+.tiptap-editor .tiptap.ProseMirror {
   font-family: "DM Sans", sans-serif;
 }
 
-.simple-editor-wrapper {
-  width: 100vw;
-  height: 100vh;
+.tiptap-editor .simple-editor-wrapper {
+  position: relative;
+  width: 100%;
+  min-height: 24rem;
+  max-height: 70vh;
   overflow: auto;
+  border: 1px solid var(--tt-border-color);
+  border-radius: var(--tt-radius-md);
+  background-color: var(--tt-bg-color);
 }
 
-.simple-editor-content {
+.tiptap-editor .simple-editor-content {
   max-width: 648px;
   width: 100%;
   margin: 0 auto;
-  height: 100%;
+  min-height: 24rem;
   display: flex;
   flex-direction: column;
   flex: 1;
 }
 
-.simple-editor-content .tiptap.ProseMirror.simple-editor {
+.tiptap-editor .simple-editor-content .tiptap.ProseMirror.simple-editor {
   flex: 1;
   padding: 3rem 3rem 30vh;
 }
 
 @media screen and (max-width: 480px) {
-  .simple-editor-content .tiptap.ProseMirror.simple-editor {
+  .tiptap-editor .simple-editor-content .tiptap.ProseMirror.simple-editor {
     padding: 1rem 1.5rem 30vh;
   }
 }

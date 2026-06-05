@@ -2,7 +2,7 @@ import * as DropdownMenuPrimitive from "@radix-ui/react-dropdown-menu"
 import { cn } from "../../../lib/tiptap-utils"
 import { CheckIcon } from "../../tiptap-icons/check-icon"
 
-import "./dropdown-menu.scss"
+import "./dropdown-menu.css"
 
 function DropdownMenu({
   ...props
@@ -41,16 +41,14 @@ function DropdownMenuContent({
   ...props
 }: React.ComponentProps<typeof DropdownMenuPrimitive.Content>) {
   return (
-    <DropdownMenuPrimitive.Portal>
-      <DropdownMenuPrimitive.Content
-        data-slot="tiptap-dropdown-menu-content"
-        sideOffset={sideOffset}
-        align={align}
-        className={cn("tiptap-dropdown-menu-content", className)}
-        onCloseAutoFocus={(e) => e.preventDefault()}
-        {...props}
-      />
-    </DropdownMenuPrimitive.Portal>
+    <DropdownMenuPrimitive.Content
+      data-slot="tiptap-dropdown-menu-content"
+      sideOffset={sideOffset}
+      align={align}
+      className={cn("tiptap-dropdown-menu-content", className)}
+      onCloseAutoFocus={(e) => e.preventDefault()}
+      {...props}
+    />
   )
 }
 

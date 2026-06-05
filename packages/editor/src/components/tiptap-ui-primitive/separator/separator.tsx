@@ -1,4 +1,4 @@
-import "./separator.scss"
+import "./separator.css"
 import { cn } from "../../../lib/tiptap-utils"
 
 export type Orientation = "horizontal" | "vertical"

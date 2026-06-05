@@ -51,15 +51,15 @@ The editor config in `src/components/tiptap-templates/simple/simple-editor.tsx` 
 
 ## Styling
 
-The package entrypoint imports `src/styles.css`, which imports the template variables and keyframe styles. The template components also import their own SCSS files from the `src/components/tiptap-*` folders.
+The package entrypoint imports `src/styles.css`, which imports the template variables and keyframe styles. The template components also import their own plain CSS files from the `src/components/tiptap-*` folders.
 
-The simple editor layout is full viewport by default:
+Editor styles are scoped under the `.tiptap-editor` root class. Dark mode follows the host application through `.dark .tiptap-editor`.
 
-- `.simple-editor-wrapper` uses `100vw` and `100vh`.
+- `.simple-editor-wrapper` uses the available container width, with an embeddable minimum height and `70vh` maximum height.
 - `.simple-editor-content` constrains the document width to `648px`.
-- `simple-editor.scss` imports the Google fonts used by the upstream template.
+- `simple-editor.css` imports the Google fonts used by the upstream template.
 
-If this editor is embedded inside a smaller admin layout, expect to adjust `simple-editor.scss` before treating it as a reusable field component.
+If this editor is embedded inside a smaller admin layout, adjust `simple-editor.css` rather than adding host-page global overrides.
 
 ## Image Upload
 

@@ -1,5 +1,5 @@
 import { cn } from "../../../lib/tiptap-utils"
-import "./input.scss"
+import "./input.css"
 
 function Input({ className, type, ...props }: React.ComponentProps<"input">) {
   return (

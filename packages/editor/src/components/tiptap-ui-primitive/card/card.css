@@ -1,19 +1,18 @@
-:root {
+.tiptap-editor {
   --tiptap-card-bg-color: var(--white);
   --tiptap-card-border-color: var(--tt-gray-light-a-100);
   --tiptap-card-group-label-color: var(--tt-gray-light-a-800);
 }
 
-.dark {
+.dark .tiptap-editor {
   --tiptap-card-bg-color: var(--tt-gray-dark-50);
   --tiptap-card-border-color: var(--tt-gray-dark-a-100);
   --tiptap-card-group-label-color: var(--tt-gray-dark-a-800);
 }
 
-.tiptap-card {
+.tiptap-editor .tiptap-card {
   --padding: 0.375rem;
   --border-width: 1px;
-
   border-radius: calc(var(--padding) + var(--tt-radius-lg));
   box-shadow: var(--tt-shadow-elevated-md);
   background-color: var(--tiptap-card-bg-color);
@@ -22,14 +21,13 @@
   flex-direction: column;
   outline: none;
   align-items: center;
-
   position: relative;
   min-width: 0;
   word-wrap: break-word;
   background-clip: border-box;
 }
 
-.tiptap-card-header {
+.tiptap-editor .tiptap-card-header {
   padding: 0.375rem;
   flex: 0 0 auto;
   display: flex;
@@ -39,31 +37,29 @@
   border-bottom: var(--border-width) solid var(--tiptap-card-border-color);
 }
 
-.tiptap-card-body {
+.tiptap-editor .tiptap-card-body {
   padding: 0.375rem;
   flex: 1 1 auto;
   overflow-y: auto;
 }
 
-.tiptap-card-item-group {
+.tiptap-editor .tiptap-card-item-group {
   position: relative;
   display: flex;
   vertical-align: middle;
   min-width: max-content;
-
-  &[data-orientation="vertical"] {
-    flex-direction: column;
-    justify-content: center;
-  }
-
-  &[data-orientation="horizontal"] {
-    gap: 0.25rem;
-    flex-direction: row;
-    align-items: center;
-  }
+}
+.tiptap-editor .tiptap-card-item-group[data-orientation=vertical] {
+  flex-direction: column;
+  justify-content: center;
+}
+.tiptap-editor .tiptap-card-item-group[data-orientation=horizontal] {
+  gap: 0.25rem;
+  flex-direction: row;
+  align-items: center;
 }
 
-.tiptap-card-group-label {
+.tiptap-editor .tiptap-card-group-label {
   padding: 0.75rem 0.5rem 0.25rem;
   line-height: normal;
   font-size: 0.75rem;

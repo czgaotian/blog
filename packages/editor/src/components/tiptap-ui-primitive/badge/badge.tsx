@@ -1,7 +1,7 @@
 import { forwardRef } from "react"
-import "./badge-colors.scss"
-import "./badge-group.scss"
-import "./badge.scss"
+import "./badge-colors.css"
+import "./badge-group.css"
+import "./badge.css"
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
   variant?: "ghost" | "white" | "gray" | "green" | "yellow" | "default"

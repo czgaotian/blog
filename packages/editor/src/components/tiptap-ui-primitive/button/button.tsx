@@ -10,8 +10,8 @@ import {
 // --- Lib ---
 import { cn, parseShortcutKeys } from "../../../lib/tiptap-utils"
 
-import "./button-colors.scss"
-import "./button.scss"
+import "./button-colors.css"
+import "./button.css"
 
 export type ButtonVariant = "ghost" | "primary"
 export type ButtonSize = "small" | "default" | "large"
