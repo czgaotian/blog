@@ -5,6 +5,7 @@ export interface TagListItem {
   name: string
   slug: string
   description: string | null
+  color: string
   createdAt: string
   updatedAt: string
 }
@@ -20,12 +21,14 @@ export const createTagSchema = z.object({
   name: z.string().min(1).max(255),
   slug: z.string().max(255).optional(),
   description: z.string().max(1000).nullable().optional(),
+  color: z.string().min(1).max(32),
 })
 
 export const updateTagSchema = z.object({
   name: z.string().min(1).max(255).optional(),
   slug: z.string().max(255).optional(),
   description: z.string().max(1000).nullable().optional(),
+  color: z.string().min(1).max(32).optional(),
 })
 
 export type CreateTagRequest = z.infer<typeof createTagSchema>

@@ -2,12 +2,14 @@ export interface TagInput {
   name: string
   slug?: string
   description?: string | null
+  color: string
 }
 
 export interface TagPatch {
   name?: string
   slug?: string
   description?: string | null
+  color?: string
 }
 
 export interface MutateTagResult {
@@ -28,8 +30,8 @@ export async function createTag(
   const now = options.now ?? Date.now()
 
   await db
-    .prepare('INSERT INTO tags (id, name, slug, description, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)')
-    .bind(id, input.name, slug, input.description ?? null, now, now)
+    .prepare('INSERT INTO tags (id, name, slug, description, color, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?)')
+    .bind(id, input.name, slug, input.description ?? null, input.color, now, now)
     .run()
 
   return { ok: true, id }
@@ -47,14 +49,15 @@ export async function updateTag(
   const name = patch.name ?? existing.name
   const slug = patch.slug ? normalizeSlug(patch.slug) : existing.slug
   const description = patch.description !== undefined ? patch.description : existing.description
+  const color = patch.color !== undefined ? patch.color : existing.color
 
   if (slug !== existing.slug && await tagSlugExists(db, slug, id)) {
     return { ok: false, reason: 'duplicate_slug' }
   }
 
   await db
-    .prepare('UPDATE tags SET name = ?, slug = ?, description = ?, updated_at = ? WHERE id = ?')
-    .bind(name, slug, description ?? null, options.now ?? Date.now(), id)
+    .prepare('UPDATE tags SET name = ?, slug = ?, description = ?, color = ?, updated_at = ? WHERE id = ?')
+    .bind(name, slug, description ?? null, color, options.now ?? Date.now(), id)
     .run()
 
   return { ok: true, id }

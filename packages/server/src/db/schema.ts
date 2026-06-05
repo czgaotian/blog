@@ -62,6 +62,7 @@ export const tags = sqliteTable('tags', {
   name: text('name').notNull(),
   slug: text('slug').notNull(),
   description: text('description'),
+  color: text('color').notNull(),
   createdAt: integer('created_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
   updatedAt: integer('updated_at', { mode: 'timestamp' }).notNull().$defaultFn(() => new Date()),
 }, (table) => [

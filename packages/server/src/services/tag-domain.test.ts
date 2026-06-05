@@ -21,11 +21,12 @@ describe('tag domain', () => {
   it('creates a tag with a generated slug', async () => {
     const { db, calls } = createMockDb(() => null)
 
-    const result = await createTag(db as any, { name: 'Cloudflare Workers' }, { id: 'tag-1', now: 123 })
+    const result = await createTag(db as any, { name: 'Cloudflare Workers', color: '#f97316' }, { id: 'tag-1', now: 123 })
 
     expect(result).toEqual({ ok: true, id: 'tag-1' })
     expect(calls.some((call) => call.sql.includes('INSERT INTO tags'))).toBe(true)
     expect(calls.some((call) => call.args.includes('cloudflare-workers'))).toBe(true)
+    expect(calls.some((call) => call.args.includes('#f97316'))).toBe(true)
   })
 
   it('rejects duplicate tag slugs', async () => {

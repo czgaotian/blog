@@ -67,6 +67,7 @@ function mapTag(row: any): TagDetailResponse {
     name: row.name,
     slug: row.slug,
     description: row.description ?? null,
+    color: row.color,
     createdAt: new Date(Number(row.created_at)).toISOString(),
     updatedAt: new Date(Number(row.updated_at)).toISOString(),
   }
