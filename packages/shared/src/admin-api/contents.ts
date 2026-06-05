@@ -1,42 +1,14 @@
 import { z } from 'zod'
+import type { JSONContent } from '@tiptap/core'
 
 export type ContentStatus = 'draft' | 'review' | 'scheduled' | 'published' | 'archived' | 'deleted'
 
-export type TiptapJsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | TiptapJsonValue[]
-  | { [key: string]: TiptapJsonValue }
+export type { JSONContent }
 
-export interface TiptapDocument {
-  type: 'doc'
-  content?: TiptapJsonValue[]
-  attrs?: Record<string, TiptapJsonValue>
-}
-
-const tiptapJsonValueSchema: z.ZodType<TiptapJsonValue> = z.lazy(() =>
-  z.union([
-    z.string(),
-    z.number(),
-    z.boolean(),
-    z.null(),
-    z.array(tiptapJsonValueSchema),
-    z.record(z.string(), tiptapJsonValueSchema),
-  ]),
+const jsonContentSchema = z.custom<JSONContent>(
+  (value) => typeof value === 'object' && value !== null && !Array.isArray(value),
+  'Body must be valid JSONContent',
 )
-
-export const emptyTiptapDocument: TiptapDocument = {
-  type: 'doc',
-  content: [],
-}
-
-export const tiptapDocumentSchema = z.object({
-  type: z.literal('doc'),
-  content: z.array(tiptapJsonValueSchema).optional(),
-  attrs: z.record(z.string(), tiptapJsonValueSchema).optional(),
-}).passthrough()
 
 export interface ContentCategorySummary {
   id: string
@@ -76,7 +48,7 @@ export interface ContentDetailResponse {
   title: string
   slug: string
   excerpt: string | null
-  bodyJson: TiptapDocument
+  bodyJson: JSONContent
   bodyHtml: string
   status: ContentStatus
   categoryId: string | null
@@ -110,7 +82,7 @@ export interface ContentVersionSnapshot {
   title: string
   slug: string
   excerpt: string | null
-  bodyJson: TiptapDocument
+  bodyJson: JSONContent
   status: ContentStatus
   categoryId: string | null
   coverImageId: string | null
@@ -127,7 +99,7 @@ export const createContentSchema = z.object({
   title: z.string().min(1).max(500),
   slug: z.string().max(500).optional(),
   excerpt: z.string().max(1000).nullable().optional(),
-  bodyJson: tiptapDocumentSchema.optional().default(() => ({ type: 'doc' as const, content: [] })),
+  bodyJson: jsonContentSchema.optional().default(() => ({ type: 'doc', content: [] })),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived']).optional().default('draft'),
   categoryId: z.string().nullable().optional(),
   coverImageId: z.string().nullable().optional(),
@@ -140,7 +112,7 @@ export const updateContentSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   slug: z.string().max(500).optional(),
   excerpt: z.string().max(1000).nullable().optional(),
-  bodyJson: tiptapDocumentSchema.optional(),
+  bodyJson: jsonContentSchema.optional(),
   status: z.enum(['draft', 'review', 'scheduled', 'published', 'archived', 'deleted']).optional(),
   categoryId: z.string().nullable().optional(),
   coverImageId: z.string().nullable().optional(),

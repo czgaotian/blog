@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SimpleEditor } from "../../components/tiptap-templates/simple/simple-editor";
+import { SimpleEditor } from "@worker-blog/editor/react";
 import type { ContentStatus } from "@worker-blog/shared/admin-api";
 import { Plus } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -75,7 +75,7 @@ export function ContentForm({
   const categories = useCategoriesList();
   const tags = useTagsList();
   const form = useForm<ContentFormValues>({
-    resolver: zodResolver(contentFormSchema),
+    resolver: zodResolver(contentFormSchema) as any,
     defaultValues: values,
   });
   const status = form.watch("status");
@@ -144,19 +144,19 @@ export function ContentForm({
                   />
                   <FieldError errors={[errors.excerpt]} />
                 </Field>
-                <Field data-invalid={!!errors.body}>
+                <Field data-invalid={!!errors.bodyJson}>
                   <FieldLabel htmlFor="body">Body</FieldLabel>
                   <Controller
                     control={form.control}
-                    name="body"
+                    name="bodyJson"
                     render={({ field }) => (
                       <SimpleEditor
-                      // value={field.value}
-                      // onChange={field.onChange}
+                        value={field.value}
+                        onChange={field.onChange}
                       />
                     )}
                   />
-                  <FieldError errors={[errors.body]} />
+                  <FieldError errors={[errors.bodyJson]} />
                 </Field>
               </FieldGroup>
             </CardContent>

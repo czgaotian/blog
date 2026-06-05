@@ -1,4 +1,4 @@
-import { emptyTiptapDocument, type TiptapDocument } from '@worker-blog/shared/admin-api'
+import { emptyTiptapDocument, type JSONContent } from '@worker-blog/editor/schema'
 import { CACHE_CONFIGS, getCacheService } from './cache'
 import { contentsCacheKeys } from './cache-keys'
 import { renderTiptapJsonToHtml } from './content-renderer'
@@ -11,7 +11,7 @@ export interface CreateContentInput {
   title: string
   slug?: string
   excerpt?: string | null
-  bodyJson?: TiptapDocument
+  bodyJson?: JSONContent
   status: string
   categoryId?: string | null
   coverImageId?: string | null
@@ -42,7 +42,7 @@ export interface UpdateContentPatch {
   title?: string
   slug?: string
   excerpt?: string | null
-  bodyJson?: TiptapDocument
+  bodyJson?: JSONContent
   status?: string
   categoryId?: string | null
   coverImageId?: string | null
@@ -105,7 +105,7 @@ export interface ContentSnapshot {
   title: string
   slug: string
   excerpt: string | null
-  bodyJson: TiptapDocument
+  bodyJson: JSONContent
   status: string
   categoryId: string | null
   coverImageId: string | null
@@ -122,7 +122,7 @@ interface NormalizedContentInput {
   slug: string
   title: string
   excerpt: string | null
-  bodyJson: TiptapDocument
+  bodyJson: JSONContent
   status: string
   categoryId: string | null
   coverImageId: string | null
@@ -226,7 +226,7 @@ export async function updateContent(options: UpdateContentOptions): Promise<Upda
     slug: newSlug,
     title: patch.title ?? existing.title,
     excerpt: patch.excerpt !== undefined ? patch.excerpt : existing.excerpt,
-    bodyJson: patch.bodyJson ?? parseTiptapDocument(existing.body_json),
+    bodyJson: patch.bodyJson ?? parseJsonContent(existing.body_json),
     status: patch.status ?? existing.status,
     categoryId: patch.categoryId !== undefined ? patch.categoryId : existing.category_id,
     coverImageId: patch.coverImageId !== undefined ? patch.coverImageId : existing.cover_image_id,
@@ -511,7 +511,7 @@ function createSnapshot(row: any): ContentSnapshot {
     title: row.title,
     slug: row.slug,
     excerpt: row.excerpt ?? null,
-    bodyJson: parseTiptapDocument(row.bodyJson ?? row.body_json),
+    bodyJson: parseJsonContent(row.bodyJson ?? row.body_json),
     status: row.status,
     categoryId: row.categoryId ?? row.category_id ?? null,
     coverImageId: row.coverImageId ?? row.cover_image_id ?? null,
@@ -530,7 +530,7 @@ function parseSnapshot(data: unknown): ContentSnapshot {
     const snapshot = data as Partial<ContentSnapshot>
     return {
       ...snapshot,
-      bodyJson: parseTiptapDocument(snapshot.bodyJson),
+      bodyJson: parseJsonContent(snapshot.bodyJson),
     } as ContentSnapshot
   }
 
@@ -538,7 +538,7 @@ function parseSnapshot(data: unknown): ContentSnapshot {
     const snapshot = JSON.parse(String(data)) as Partial<ContentSnapshot> & { body?: string }
     return {
       ...snapshot,
-      bodyJson: parseTiptapDocument(snapshot.bodyJson),
+      bodyJson: parseJsonContent(snapshot.bodyJson),
     } as ContentSnapshot
   } catch {
     return {
@@ -565,7 +565,7 @@ function hasContentChanged(existing: any, existingTagIds: string[], next: Normal
   return next.title !== existing.title
     || next.slug !== existing.slug
     || (next.excerpt ?? null) !== (existing.excerpt ?? null)
-    || JSON.stringify(next.bodyJson) !== JSON.stringify(parseTiptapDocument(existing.body_json))
+    || JSON.stringify(next.bodyJson) !== JSON.stringify(parseJsonContent(existing.body_json))
     || next.status !== existing.status
     || (next.categoryId ?? null) !== (existing.category_id ?? null)
     || (next.coverImageId ?? null) !== (existing.cover_image_id ?? null)
@@ -585,24 +585,24 @@ function parseJsonObject(value: unknown): Record<string, unknown> {
   }
 }
 
-function parseTiptapDocument(value: unknown): TiptapDocument {
-  if (isTiptapDocument(value)) return value
+function parseJsonContent(value: unknown): JSONContent {
+  if (isJsonContent(value)) return value
   if (!value) return cloneEmptyTiptapDocument()
 
   try {
     const parsed = typeof value === 'string' ? JSON.parse(value) : value
-    return isTiptapDocument(parsed) ? parsed : cloneEmptyTiptapDocument()
+    return isJsonContent(parsed) ? parsed : cloneEmptyTiptapDocument()
   } catch {
     return cloneEmptyTiptapDocument()
   }
 }
 
-function isTiptapDocument(value: unknown): value is TiptapDocument {
+function isJsonContent(value: unknown): value is JSONContent {
   return Boolean(value && typeof value === 'object' && (value as { type?: unknown }).type === 'doc')
 }
 
-function cloneEmptyTiptapDocument(): TiptapDocument {
-  return JSON.parse(JSON.stringify(emptyTiptapDocument)) as TiptapDocument
+function cloneEmptyTiptapDocument(): JSONContent {
+  return JSON.parse(JSON.stringify(emptyTiptapDocument)) as JSONContent
 }
 
 function parseOptionalTimestamp(value: unknown): number | null {

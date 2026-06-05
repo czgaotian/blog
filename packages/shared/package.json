@@ -23,6 +23,7 @@
     "./admin-api/*": "./src/admin-api/*.ts"
   },
   "dependencies": {
+    "@tiptap/core": "^3.26.0",
     "zod": "^4.1.13"
   },
   "devDependencies": {

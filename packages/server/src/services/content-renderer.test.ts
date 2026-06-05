@@ -65,6 +65,7 @@ describe('renderTiptapJsonToHtml', () => {
         },
         { type: 'horizontalRule' },
         { type: 'image', attrs: { src: '/uploads/image.png', alt: 'Image alt' } },
+        { type: 'imageUpload', attrs: { accept: 'image/*', limit: 3, maxSize: 5242880 } },
       ],
     })
 
@@ -76,5 +77,7 @@ describe('renderTiptapJsonToHtml', () => {
     expect(html).toContain('<sup>2</sup>')
     expect(html).toContain('<sub>O</sub>')
     expect(html).toContain('<img src="/uploads/image.png" alt="Image alt">')
+    expect(html).toContain('data-type="image-upload"')
+    expect(html).toContain('hidden="hidden"')
   })
 })

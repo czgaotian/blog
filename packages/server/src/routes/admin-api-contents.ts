@@ -139,7 +139,7 @@ adminApiContentsRoutes.get('/:id', async (c) => {
       title: row.title,
       slug: row.slug,
       excerpt: row.excerpt ?? null,
-      bodyJson: parseTiptapDocument(row.body_json),
+      bodyJson: parseJsonContent(row.body_json),
       bodyHtml: row.body_html ?? '',
       status: row.status,
       categoryId: row.category_id ?? null,
@@ -379,12 +379,12 @@ function parseVersionSnapshot(value: unknown): ContentVersionSnapshot {
   const { type: _legacyType, ...contentSnapshot } = snapshot
   return {
     ...contentSnapshot,
-    bodyJson: parseTiptapDocument(contentSnapshot.bodyJson),
+    bodyJson: parseJsonContent(contentSnapshot.bodyJson),
     coverImageId: contentSnapshot.coverImageId ?? null,
   } as unknown as ContentVersionSnapshot
 }
 
-function parseTiptapDocument(value: unknown) {
+function parseJsonContent(value: unknown) {
   if (value && typeof value === 'object' && (value as { type?: unknown }).type === 'doc') return value
   if (!value) return { type: 'doc', content: [] }
   try {

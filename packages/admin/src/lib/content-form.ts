@@ -4,16 +4,21 @@ import type {
   CreateContentRequest,
   UpdateContentRequest,
 } from '@worker-blog/shared/admin-api'
+import { emptyTiptapDocument, type JSONContent, tiptapDocumentSchema } from '@worker-blog/editor/schema'
 import { z } from 'zod'
 
 const EDITABLE_STATUSES = ['draft', 'review', 'scheduled', 'published', 'archived'] as const
+const contentFormBodyJsonSchema = z.custom<JSONContent>(
+  (value) => tiptapDocumentSchema.safeParse(value).success,
+  'Body must be a valid Tiptap document',
+)
 
 export const contentFormSchema = z
   .object({
     title: z.string().trim().min(1, 'Title is required').max(500),
     slug: z.string().trim().max(500),
     excerpt: z.string().max(1000, 'Excerpt must be 1,000 characters or fewer'),
-    body: z.string(),
+    bodyJson: contentFormBodyJsonSchema,
     status: z.enum(EDITABLE_STATUSES),
     categoryId: z.string(),
     coverImageId: z.string(),
@@ -45,7 +50,7 @@ export const EMPTY_CONTENT_FORM_VALUES: ContentFormValues = {
   title: '',
   slug: '',
   excerpt: '',
-  body: '',
+  bodyJson: cloneEmptyTiptapDocument(),
   status: 'draft',
   categoryId: '',
   coverImageId: '',
@@ -58,7 +63,7 @@ export function detailToContentFormValues(detail: ContentDetailResponse): Conten
     title: detail.title,
     slug: detail.slug,
     excerpt: detail.excerpt ?? '',
-    body: detail.body,
+    bodyJson: detail.bodyJson,
     status: editableStatus(detail.status),
     categoryId: detail.categoryId ?? '',
     coverImageId: detail.coverImageId ?? '',
@@ -72,7 +77,7 @@ export function contentFormToCreateRequest(values: ContentFormValues): CreateCon
     title: values.title.trim(),
     ...(values.slug.trim() ? { slug: values.slug.trim() } : {}),
     excerpt: values.excerpt.trim() || null,
-    body: values.body,
+    bodyJson: values.bodyJson,
     status: values.status,
     categoryId: values.categoryId || null,
     coverImageId: values.coverImageId || null,
@@ -106,4 +111,8 @@ function toDateTimeLocal(value: string | null): string {
 
 function toIsoOrNull(value: string): string | null {
   return value ? new Date(value).toISOString() : null
+}
+
+function cloneEmptyTiptapDocument(): JSONContent {
+  return JSON.parse(JSON.stringify(emptyTiptapDocument)) as JSONContent
 }

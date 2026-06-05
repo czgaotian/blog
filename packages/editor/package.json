@@ -1,0 +1,50 @@
+{
+  "name": "@worker-blog/editor",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared Tiptap editor package for Worker Blog",
+  "type": "module",
+  "exports": {
+    "./schema": "./src/schema/index.ts",
+    "./react": "./src/react/index.ts",
+    "./server": "./src/server/index.ts"
+  },
+  "scripts": {
+    "test": "vitest --run",
+    "type-check": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@base-ui/react": "^1.5.0",
+    "@floating-ui/react": "^0.27.19",
+    "@radix-ui/react-dropdown-menu": "^2.1.16",
+    "@radix-ui/react-popover": "^1.1.15",
+    "@tiptap/core": "^3.26.0",
+    "@tiptap/extension-highlight": "^3.26.0",
+    "@tiptap/extension-horizontal-rule": "^3.26.0",
+    "@tiptap/extension-image": "^3.26.0",
+    "@tiptap/extension-list": "^3.26.0",
+    "@tiptap/extension-subscript": "^3.26.0",
+    "@tiptap/extension-superscript": "^3.26.0",
+    "@tiptap/extension-text-align": "^3.26.0",
+    "@tiptap/extension-typography": "^3.26.0",
+    "@tiptap/extensions": "^3.26.0",
+    "@tiptap/html": "^3.26.0",
+    "@tiptap/pm": "^3.26.0",
+    "@tiptap/react": "^3.26.0",
+    "@tiptap/starter-kit": "^3.26.0",
+    "@worker-blog/shared": "workspace:*",
+    "class-variance-authority": "^0.7.1",
+    "lodash.throttle": "^4.1.1",
+    "react": "^19.2.7",
+    "react-dom": "^19.2.7",
+    "react-hotkeys-hook": "^5.3.2",
+    "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "@types/lodash.throttle": "^4.1.9",
+    "@types/react": "^19.2.16",
+    "@types/react-dom": "^19.2.3",
+    "typescript": "^6.0.3",
+    "vitest": "^4.1.8"
+  }
+}

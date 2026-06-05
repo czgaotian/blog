@@ -1,14 +1,17 @@
 import { describe, expect, it } from 'vitest'
-import { createContentSchema, tiptapDocumentSchema, updateContentSchema } from './contents'
+import { createContentSchema, updateContentSchema } from './contents'
 
 describe('content body contracts', () => {
-  it('accepts Tiptap document JSON as content source', () => {
-    const parsed = tiptapDocumentSchema.parse({
-      type: 'doc',
-      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
+  it('accepts JSONContent as content source', () => {
+    const parsed = createContentSchema.parse({
+      title: 'Draft',
+      bodyJson: {
+        type: 'doc',
+        content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
+      },
     })
 
-    expect(parsed.type).toBe('doc')
+    expect(parsed.bodyJson.type).toBe('doc')
   })
 
   it('defaults create bodyJson to an empty Tiptap document', () => {

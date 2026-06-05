@@ -4,6 +4,7 @@ import {
   contentFormSchema,
   contentFormToCreateRequest,
   contentFormToUpdateRequest,
+  detailToContentFormValues,
 } from './content-form'
 
 describe('content form', () => {
@@ -14,7 +15,7 @@ describe('content form', () => {
     })).toEqual({
       title: 'Hello world',
       excerpt: null,
-      body: '',
+      bodyJson: { type: 'doc', content: [] },
       status: 'draft',
       categoryId: null,
       coverImageId: null,
@@ -34,6 +35,36 @@ describe('content form', () => {
       slug: 'updated',
       metadata: { seoTitle: 'Existing value' },
     })
+  })
+
+  it('maps detail bodyJson into form values and write requests', () => {
+    const bodyJson = {
+      type: 'doc' as const,
+      content: [{ type: 'paragraph', content: [{ type: 'text', text: 'Hello' }] }],
+    }
+    const values = detailToContentFormValues({
+      id: 'content-1',
+      title: 'Existing',
+      slug: 'existing',
+      excerpt: null,
+      bodyJson,
+      bodyHtml: '<p>Hello</p>',
+      status: 'draft',
+      categoryId: null,
+      category: null,
+      coverImageId: null,
+      tags: [],
+      tagIds: [],
+      metadata: {},
+      publishedAt: null,
+      authorId: 'user-1',
+      authorName: 'Author',
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    })
+
+    expect(values.bodyJson).toEqual(bodyJson)
+    expect(contentFormToCreateRequest(values).bodyJson).toEqual(bodyJson)
   })
 
   it('requires a future publish time for scheduled content', () => {
