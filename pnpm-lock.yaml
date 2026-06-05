@@ -164,9 +164,6 @@ importers:
       lodash.throttle:
         specifier: ^4.1.1
         version: 4.1.1
-      lucide-react:
-        specifier: ^0.555.0
-        version: 0.555.0(react@19.2.7)
       react:
         specifier: ^19.2.7
         version: 19.2.7
@@ -2585,11 +2582,6 @@ packages:
 
   lodash.throttle@4.1.1:
     resolution: {integrity: sha512-wIkUCfVKpVsWo3JSZlc+8MB5it+2AN5W8J7YVMST30UrvcQNZ1Okbj+rbVniijTWE6FGYy4XJq/rHkas8qJMLQ==}
-
-  lucide-react@0.555.0:
-    resolution: {integrity: sha512-D8FvHUGbxWBRQM90NZeIyhAvkFfsh3u9ekrMvJ30Z6gnpBHS6HC6ldLg7tL45hwiIz/u66eKDtdA23gwwGsAHA==}
-    peerDependencies:
-      react: ^16.5.1 || ^17.0.0 || ^18.0.0 || ^19.0.0
 
   lucide-react@1.17.0:
     resolution: {integrity: sha512-9FA9evdox/JQL5PT57fdA1x/yg8T7knJ98+zjTL3UfKza6pflQUUh3XtaQIHKvnsJw1lmsEyHVlt5jchYxOQ5w==}
@@ -5053,10 +5045,6 @@ snapshots:
   linkifyjs@4.3.3: {}
 
   lodash.throttle@4.1.1: {}
-
-  lucide-react@0.555.0(react@19.2.7):
-    dependencies:
-      react: 19.2.7
 
   lucide-react@1.17.0(react@19.2.7):
     dependencies:

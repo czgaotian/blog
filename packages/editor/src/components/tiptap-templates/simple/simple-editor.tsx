@@ -70,8 +70,6 @@ import { handleImageUpload, MAX_FILE_SIZE } from "../../../lib/tiptap-utils"
 // --- Styles ---
 import "./simple-editor.css"
 
-import content from "./data/content.json"
-
 interface SimpleEditorProps {
   value?: string
   onChange?: (value: string) => void
@@ -229,7 +227,7 @@ export function SimpleEditor({ value, onChange }: SimpleEditorProps) {
         onError: (error) => console.error("Upload failed:", error),
       }),
     ],
-    content: value ?? content,
+    content: value ?? "",
     onUpdate: ({ editor }) => {
       onChangeRef.current?.(editor.getHTML())
     },

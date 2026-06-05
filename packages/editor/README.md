@@ -18,7 +18,7 @@ export function PostEditorPage() {
 
 `@worker-blog/editor` imports its stylesheet from the package entrypoint, so consumers should not import a separate `styles.css` subpath.
 
-`SimpleEditor` does not currently accept props. It owns the Tiptap editor instance internally and starts with the demo document in `src/components/tiptap-templates/simple/data/content.json`.
+`SimpleEditor` accepts `value` and `onChange` props. It owns the Tiptap editor instance internally and emits HTML through `onChange`.
 
 ## Included Features
 
@@ -76,8 +76,7 @@ If this editor is embedded inside a smaller admin layout, adjust `simple-editor.
 
 - Public exports: `src/index.ts`.
 - Toolbar composition: `MainToolbarContent` and `MobileToolbarContent` in `simple-editor.tsx`.
-- Initial content: `src/components/tiptap-templates/simple/data/content.json`.
-- Theme toggle: `src/components/tiptap-templates/simple/theme-toggle.tsx`.
+- Editor component: `src/components/tiptap-templates/simple/simple-editor.tsx`.
 - Upload behavior and shared Tiptap helpers: `src/lib/tiptap-utils.ts`.
 - Primitive UI components: `src/components/tiptap-ui-primitive`.
 - Tiptap UI buttons and popovers: `src/components/tiptap-ui`.
@@ -89,7 +88,7 @@ All supported package usage should go through `@worker-blog/editor`.
 
 The package root exports:
 
-- `SimpleEditor` and `ThemeToggle`.
+- `SimpleEditor`.
 - Tiptap UI components, primitive components, icons, hooks, node extensions, and shared helpers.
 - Component props and hook config types.
 - Aliased helper names where upstream template files use common names like `shouldShowButton` or `canToggle`.
