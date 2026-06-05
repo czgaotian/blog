@@ -1,45 +1,26 @@
-# Lightweight CMS Server Cleanup Plan
+# Admin Content MVP Implementation Plan
 
 ## Goal
 
-Turn `packages/server` into a lightweight CMS backend by keeping only core CMS, password authentication, media, settings, logging, security audit, and analytics. Remove built-in product features and legacy plugin-era tables/routes/code.
-
-## Keep
-
-- Core CMS: users, user profiles if still needed by admin profile UI, collections, content, content fields, content versions, media, settings.
-- Auth: password login only.
-- Logs/audit/analytics: activity logs, system logs/log config, security events, analytics events.
-- Runtime support: migrations table, bootstrap, request context, security headers, rate limiting, CSRF.
-
-## Remove
-
-- Forms system.
-- Workflow and automation.
-- AI Search.
-- Stripe/payment.
-- Email/email templates.
-- Redirect management.
-- Content extensions: global variables, shortcodes.
-- OAuth, magic link, OTP auth.
-- Legacy plugin/demo/example tables and code.
-- Half-built team/permission/session tables and code.
+Complete the admin content-management workflow using the existing APIs, with a textarea as the first editor implementation.
 
 ## Phases
 
-1. Inventory database tables, routes, feature imports, and migration coupling. Status: complete.
-2. Define target schema and migration strategy for fresh installs and existing DB cleanup. Status: complete.
-3. Remove feature route registration and feature modules for deleted capabilities. Status: complete.
-4. Remove schema exports, migrations, services, tests, admin/shared API references, and env bindings for deleted capabilities. Status: complete.
-5. Reorganize server routes/directories around core modules. Status: partial.
-6. Run type-check and focused tests; fix fallout. Status: complete.
+1. Archive the previous plan and record the current content-management architecture. Status: complete.
+2. Add missing admin data hooks, form models, and UI primitives. Status: complete.
+3. Upgrade the content list with navigation, URL-backed filters, and deletion. Status: complete.
+4. Implement reusable content form, create/edit pages, cover selection, and version history. Status: complete.
+5. Add focused tests and run admin test, type-check, and build. Status: complete.
 
 ## Decisions
 
-- The server should no longer be a feature/plugin host.
-- Integrations are not built in by default; deleted capabilities can return later as external packages.
-- Password auth is the only supported auth mode in the slim core.
-- Forms are removed completely, including form/content integration.
+- Reuse existing Content, Category, Tag, Media, and Version APIs.
+- Keep metadata unchanged while editing because it is not exposed in the MVP form.
+- Use a plain textarea for the content body.
+- Do not modify database schema or migration files.
+- Keep admin UI copy in English.
 
 ## Errors Encountered
 
-None yet.
+- Initial admin type-check found a required create metadata field and edit-page narrowing errors; fixed by sending empty metadata on create and narrowing loaded content before rendering.
+- The shadcn CLI initially added the `radix-ui` umbrella dependency; replaced it with the repository-consistent `@radix-ui/react-select` and `@radix-ui/react-checkbox` packages.

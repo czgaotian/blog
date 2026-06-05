@@ -14,6 +14,8 @@ export interface ContentFilters {
   limit?: number
   search?: string
   status?: string
+  categoryId?: string
+  tagId?: string
 }
 
 export function useContentsList(filters: ContentFilters = {}) {
@@ -22,6 +24,8 @@ export function useContentsList(filters: ContentFilters = {}) {
   if (filters.limit) params.set('limit', String(filters.limit))
   if (filters.search) params.set('search', filters.search)
   if (filters.status) params.set('status', filters.status)
+  if (filters.categoryId) params.set('categoryId', filters.categoryId)
+  if (filters.tagId) params.set('tagId', filters.tagId)
   const qs = params.toString()
 
   return useQuery<ContentListResponse>({
@@ -70,6 +74,7 @@ export function useUpdateContents(id: string) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'contents'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents', id] })
     },
   })
 }
@@ -94,6 +99,8 @@ export function useRestoreContentsVersion(id: string) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'contents', id] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents', id, 'versions'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'contents'] })
     },
   })
 }

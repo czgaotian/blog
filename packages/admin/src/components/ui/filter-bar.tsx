@@ -4,10 +4,11 @@ import { cn } from '../../lib/utils'
 
 interface FilterBarProps extends FormHTMLAttributes<HTMLFormElement> {
   searchLabel?: string
+  searchValue?: string
   actions?: ReactNode
 }
 
-export function FilterBar({ searchLabel = 'Search', actions, children, className, ...props }: FilterBarProps) {
+export function FilterBar({ searchLabel = 'Search', searchValue, actions, children, className, ...props }: FilterBarProps) {
   return (
     <form
       data-slot="filter-bar"
@@ -22,6 +23,7 @@ export function FilterBar({ searchLabel = 'Search', actions, children, className
           name="q"
           placeholder={searchLabel}
           type="search"
+          defaultValue={searchValue}
         />
       </label>
       {children}

@@ -11,6 +11,8 @@ import { SettingsPage } from "./pages/settings";
 import { SpaTestPage } from "./pages/spa-test";
 import { NotFoundPage } from "./pages/not-found";
 import { ContentsListPage } from "./pages/contents-list";
+import { ContentCreatePage } from "./pages/content-create";
+import { ContentEditPage } from "./pages/content-edit";
 import { MediaLibraryPage } from "./pages/media-library";
 import { ProfilePage } from "./pages/profile";
 import { SecurityAuditPage } from "./pages/security-audit";
@@ -37,6 +39,8 @@ export const router = createBrowserRouter(
         { path: "logs/:id", element: <LogDetailsPage /> },
         { path: "settings", element: <SettingsPage /> },
         { path: "contents", element: <ContentsListPage /> },
+        { path: "contents/new", element: <ContentCreatePage /> },
+        { path: "contents/:id", element: <ContentEditPage /> },
         { path: "media", element: <MediaLibraryPage /> },
         { path: "profile", element: <ProfilePage /> },
         { path: "security-audit", element: <SecurityAuditPage /> },
