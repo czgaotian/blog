@@ -1,7 +1,9 @@
 import { zodResolver } from '@hookform/resolvers/zod'
 import type { ContentStatus } from '@worker-blog/shared/admin-api'
+import { Plus } from 'lucide-react'
 import { Controller, useForm } from 'react-hook-form'
 import { useEffect } from 'react'
+import { Link } from 'react-router'
 import { useCategoriesList, useTagsList } from '../../api/taxonomies'
 import {
   contentFormSchema,
@@ -62,6 +64,8 @@ export function ContentForm({
   })
   const status = form.watch('status')
   const { errors, isDirty } = form.formState
+  const hasNoCategories = categories.isSuccess && categories.data.items.length === 0
+  const hasNoTags = tags.isSuccess && tags.data.items.length === 0
 
   useEffect(() => {
     form.reset(values)
@@ -169,50 +173,68 @@ export function ContentForm({
               <FieldGroup>
                 <Field>
                   <FieldLabel>Category</FieldLabel>
-                  <Controller
-                    control={form.control}
-                    name="categoryId"
-                    render={({ field }) => (
-                      <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
-                        <SelectTrigger className="w-full"><SelectValue placeholder="No category" /></SelectTrigger>
-                        <SelectContent>
-                          <SelectGroup>
-                            <SelectItem value="none">No category</SelectItem>
-                            {categories.data?.items.map((category) => (
-                              <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
-                            ))}
-                          </SelectGroup>
-                        </SelectContent>
-                      </Select>
-                    )}
-                  />
+                  {hasNoCategories ? (
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to="/categories">
+                        <Plus />
+                        Manage categories
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Controller
+                      control={form.control}
+                      name="categoryId"
+                      render={({ field }) => (
+                        <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
+                          <SelectTrigger className="w-full"><SelectValue placeholder="No category" /></SelectTrigger>
+                          <SelectContent>
+                            <SelectGroup>
+                              <SelectItem value="none">No category</SelectItem>
+                              {categories.data?.items.map((category) => (
+                                <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                              ))}
+                            </SelectGroup>
+                          </SelectContent>
+                        </Select>
+                      )}
+                    />
+                  )}
                 </Field>
                 <Field>
                   <FieldLabel>Tags</FieldLabel>
-                  <Controller
-                    control={form.control}
-                    name="tagIds"
-                    render={({ field }) => (
-                      <div className="flex max-h-52 flex-col gap-3 overflow-y-auto rounded-md border border-border p-3">
-                        {tags.data?.items.length ? tags.data.items.map((tag) => {
-                          const checked = field.value.includes(tag.id)
-                          return (
-                            <label key={tag.id} className="flex items-center gap-2 text-sm">
-                              <Checkbox
-                                checked={checked}
-                                onCheckedChange={(next) => {
-                                  field.onChange(next
-                                    ? [...field.value, tag.id]
-                                    : field.value.filter((id) => id !== tag.id))
-                                }}
-                              />
-                              {tag.name}
-                            </label>
-                          )
-                        }) : <span className="text-sm text-muted-foreground">No tags available.</span>}
-                      </div>
-                    )}
-                  />
+                  {hasNoTags ? (
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to="/tags">
+                        <Plus />
+                        Manage tags
+                      </Link>
+                    </Button>
+                  ) : (
+                    <Controller
+                      control={form.control}
+                      name="tagIds"
+                      render={({ field }) => (
+                        <div className="flex max-h-52 flex-col gap-3 overflow-y-auto rounded-md border border-border p-3">
+                          {tags.data?.items.map((tag) => {
+                            const checked = field.value.includes(tag.id)
+                            return (
+                              <label key={tag.id} className="flex items-center gap-2 text-sm">
+                                <Checkbox
+                                  checked={checked}
+                                  onCheckedChange={(next) => {
+                                    field.onChange(next
+                                      ? [...field.value, tag.id]
+                                      : field.value.filter((id) => id !== tag.id))
+                                  }}
+                                />
+                                {tag.name}
+                              </label>
+                            )
+                          })}
+                        </div>
+                      )}
+                    />
+                  )}
                 </Field>
               </FieldGroup>
             </CardContent>

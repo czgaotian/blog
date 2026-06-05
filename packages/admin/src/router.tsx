@@ -13,7 +13,9 @@ import { NotFoundPage } from "./pages/not-found";
 import { ContentsListPage } from "./pages/contents-list";
 import { ContentCreatePage } from "./pages/content-create";
 import { ContentEditPage } from "./pages/content-edit";
+import { CategoriesListPage } from "./pages/categories-list";
 import { MediaLibraryPage } from "./pages/media-library";
+import { TagsListPage } from "./pages/tags-list";
 import { ProfilePage } from "./pages/profile";
 import { SecurityAuditPage } from "./pages/security-audit";
 import { AnalyticsPage } from "./pages/analytics";
@@ -41,6 +43,8 @@ export const router = createBrowserRouter(
         { path: "contents", element: <ContentsListPage /> },
         { path: "contents/new", element: <ContentCreatePage /> },
         { path: "contents/:id", element: <ContentEditPage /> },
+        { path: "categories", element: <CategoriesListPage /> },
+        { path: "tags", element: <TagsListPage /> },
         { path: "media", element: <MediaLibraryPage /> },
         { path: "profile", element: <ProfilePage /> },
         { path: "security-audit", element: <SecurityAuditPage /> },

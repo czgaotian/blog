@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import {
   Activity,
   FileText,
+  FolderTree,
   Gauge,
   Image,
   LogOut,
@@ -13,6 +14,7 @@ import {
   BarChart3,
   Settings,
   Sun,
+  Tags,
   User,
 } from "lucide-react";
 import { adminApi } from "../api/query";
@@ -26,6 +28,8 @@ const navItems = [
   { label: "Dashboard", href: "/dashboard", icon: Gauge },
   { label: "Logs", href: "/logs", icon: Activity },
   { label: "Contents", href: "/contents", icon: FileText },
+  { label: "Categories", href: "/categories", icon: FolderTree },
+  { label: "Tags", href: "/tags", icon: Tags },
   { label: "Media", href: "/media", icon: Image },
   { label: "Security Audit", href: "/security-audit", icon: ShieldCheck },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
