@@ -23,6 +23,14 @@ function isMutatingMethod(method: string): boolean {
   return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
 }
 
+function isAuthPage(pathname: string): boolean {
+  return pathname === '/auth/login' || pathname === '/auth/register'
+}
+
+function isAuthCredentialRequest(path: string): boolean {
+  return path === '/api/auth/login' || path === '/api/auth/register'
+}
+
 export async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = init.method || 'GET'
   const headers = new Headers(init.headers)
@@ -56,6 +64,14 @@ export async function adminFetch<T>(path: string, init: RequestInit = {}): Promi
       window.location.pathname !== '/auth/register'
     ) {
       window.location.href = '/auth/register?setup=true'
+    }
+
+    if (
+      response.status === 401 &&
+      !isAuthPage(window.location.pathname) &&
+      !isAuthCredentialRequest(path)
+    ) {
+      window.location.href = '/auth/login'
     }
 
     const message = typeof payload === 'object' && payload && 'error' in payload

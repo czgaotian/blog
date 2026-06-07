@@ -49,6 +49,35 @@ describe('adminFetch', () => {
     expect(location.href).toBe('http://localhost/auth/register')
   })
 
+  it('redirects to login when a protected session request requires authentication', async () => {
+    const location = stubBrowser('/dashboard')
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      error: 'Authentication required',
+    }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+
+    await expect(adminFetch('/api/auth/session')).rejects.toMatchObject({
+      message: 'Authentication required',
+      status: 401,
+    })
+    expect(location.href).toBe('/auth/login')
+  })
+
+  it('does not redirect again while already on the login page', async () => {
+    const location = stubBrowser('/auth/login')
+    vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
+      error: 'Authentication required',
+    }), {
+      status: 401,
+      headers: { 'Content-Type': 'application/json' },
+    }))
+
+    await expect(adminFetch('/api/auth/session')).rejects.toBeInstanceOf(AdminApiError)
+    expect(location.href).toBe('http://localhost/auth/login')
+  })
+
   it('preserves normal API error behavior for other failures', async () => {
     const location = stubBrowser('/dashboard')
     vi.mocked(fetch).mockResolvedValue(new Response(JSON.stringify({
