@@ -1,20 +1,19 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
+  BulkDeleteMediaResponse,
+  BulkMoveMediaResponse,
+  MediaFileIdsRequest,
+  MediaListFilters,
   MediaListResponse,
   MediaDetailResponse,
+  MoveMediaRequest,
   UploadMediaResponse,
   MutateMediaResponse,
   UpdateMediaRequest,
 } from '@worker-blog/shared/admin-api'
 import { adminFetch } from './client'
 
-export interface MediaFilters {
-  page?: number
-  limit?: number
-  folder?: string
-  type?: string
-  search?: string
-}
+export type MediaFilters = Partial<MediaListFilters>
 
 export function useMediaList(filters: MediaFilters = {}) {
   const params = new URLSearchParams()
@@ -42,18 +41,11 @@ export function useMediaDetail(id: string) {
 export function useUploadMedia() {
   const qc = useQueryClient()
   return useMutation<UploadMediaResponse, Error, FormData>({
-    mutationFn: async (formData) => {
-      const res = await fetch('/api/media/upload-multiple', {
+    mutationFn: (formData) =>
+      adminFetch<UploadMediaResponse>('/api/media/upload-multiple', {
         method: 'POST',
         body: formData,
-        credentials: 'include',
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({ error: 'Upload failed' }))
-        throw new Error((err as any).error || 'Upload failed')
-      }
-      return res.json()
-    },
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] })
     },
@@ -70,6 +62,7 @@ export function useUpdateMedia(id: string) {
       }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] })
+      qc.invalidateQueries({ queryKey: ['admin', 'media', id] })
     },
   })
 }
@@ -79,6 +72,34 @@ export function useDeleteMedia(id: string) {
   return useMutation<MutateMediaResponse, Error, void>({
     mutationFn: () =>
       adminFetch<MutateMediaResponse>(`/api/media/${id}`, { method: 'DELETE' }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'media'] })
+    },
+  })
+}
+
+export function useBulkDeleteMedia() {
+  const qc = useQueryClient()
+  return useMutation<BulkDeleteMediaResponse, Error, MediaFileIdsRequest>({
+    mutationFn: (data) =>
+      adminFetch<BulkDeleteMediaResponse>('/api/media/bulk-delete', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['admin', 'media'] })
+    },
+  })
+}
+
+export function useBulkMoveMedia() {
+  const qc = useQueryClient()
+  return useMutation<BulkMoveMediaResponse, Error, MoveMediaRequest>({
+    mutationFn: (data) =>
+      adminFetch<BulkMoveMediaResponse>('/api/media/bulk-move', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] })
     },

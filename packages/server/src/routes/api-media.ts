@@ -1,72 +1,55 @@
-import { Hono } from 'hono'
+import { Hono, type Context } from 'hono'
 import { z } from 'zod'
+import {
+  mediaFileIdsSchema,
+  mediaListFiltersSchema,
+  moveMediaSchema,
+  updateMediaSchema,
+  type BulkDeleteMediaResponse,
+  type BulkMoveMediaResponse,
+  type MediaDetailResponse,
+  type MediaItem,
+  type MediaListResponse,
+  type MediaMutationError,
+  type UploadMediaResponse,
+} from '@worker-blog/shared/admin-api'
 import { requireAuth } from '../middleware'
 import type { Bindings, Variables } from '../app'
-import type { MediaItem, MediaListResponse, MediaDetailResponse, UploadMediaResponse } from '@worker-blog/shared/admin-api'
 
-// Helper function to generate short IDs (replacement for nanoid)
-function generateId(): string {
-  return crypto.randomUUID().replace(/-/g, '').substring(0, 21)
-}
+const MAX_FILE_SIZE = 50 * 1024 * 1024
 
-// Helper function for emitting events (simplified for core package)
-async function emitEvent(eventName: string, data: any) {
-  console.log(`[Event] ${eventName}:`, data)
-  // TODO: Implement proper event system when plugin architecture is ready
-}
+const allowedMimeTypes = new Set([
+  'image/jpeg',
+  'image/jpg',
+  'image/png',
+  'image/gif',
+  'image/webp',
+  'image/svg+xml',
+  'application/pdf',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'video/mp4',
+  'video/webm',
+  'video/ogg',
+  'video/avi',
+  'video/mov',
+  'audio/mp3',
+  'audio/mpeg',
+  'audio/wav',
+  'audio/ogg',
+  'audio/m4a',
+])
 
-// File validation schema
 const fileValidationSchema = z.object({
   name: z.string().min(1).max(255),
-  type: z.string().refine(
-    (type) => {
-      const allowedTypes = [
-        // Images
-        'image/jpeg', 'image/jpg', 'image/png', 'image/gif', 'image/webp', 'image/svg+xml',
-        // Documents
-        'application/pdf', 'text/plain', 'application/msword', 
-        'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-        // Videos
-        'video/mp4', 'video/webm', 'video/ogg', 'video/avi', 'video/mov',
-        // Audio
-        'audio/mp3', 'audio/wav', 'audio/ogg', 'audio/m4a'
-      ]
-      return allowedTypes.includes(type)
-    },
-    { message: 'Unsupported file type' }
-  ),
-  size: z.number().min(1).max(50 * 1024 * 1024) // 50MB max
+  type: z.string().refine((type) => allowedMimeTypes.has(type), 'Unsupported file type'),
+  size: z.number().min(1).max(MAX_FILE_SIZE),
 })
 
-export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const folderSchema = moveMediaSchema.shape.folder.default('uploads')
 
-// Apply auth middleware to all routes
-apiMediaRoutes.use('*', requireAuth())
-
-function mapMediaRow(row: any): MediaItem {
-  const publicUrl = row.public_url || `/files/${row.r2_key}`
-  return {
-    id: row.id,
-    filename: row.filename,
-    originalName: row.original_name,
-    mimeType: row.mime_type,
-    size: row.size,
-    width: row.width ?? null,
-    height: row.height ?? null,
-    folder: row.folder,
-    publicUrl,
-    thumbnailUrl: row.thumbnail_url || (row.mime_type?.startsWith('image/') ? publicUrl : null),
-    alt: row.alt ?? null,
-    caption: row.caption ?? null,
-    tags: row.tags ? JSON.parse(row.tags) : [],
-    uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : '',
-    isImage: Boolean(row.mime_type?.startsWith('image/')),
-    isVideo: Boolean(row.mime_type?.startsWith('video/')),
-    isDocument: !row.mime_type?.startsWith('image/') && !row.mime_type?.startsWith('video/'),
-  }
-}
-
-function toMediaItem(record: {
+interface MediaRow {
   id: string
   filename: string
   original_name: string
@@ -75,82 +58,280 @@ function toMediaItem(record: {
   width: number | null
   height: number | null
   folder: string
-  public_url: string
+  r2_key: string
+  public_url: string | null
   thumbnail_url: string | null
-  uploaded_at: number
-}): MediaItem {
+  alt: string | null
+  caption: string | null
+  tags: string | string[] | null
+  uploaded_by: string
+  uploaded_at: number | string | null
+  deleted_at: number | string | null
+}
+
+type MediaContext = Context<{ Bindings: Bindings; Variables: Variables }>
+
+export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+
+apiMediaRoutes.use('*', requireAuth())
+
+function generateId(): string {
+  return crypto.randomUUID().replace(/-/g, '').substring(0, 21)
+}
+
+async function emitEvent(eventName: string, data: unknown) {
+  console.log(`[Event] ${eventName}:`, data)
+}
+
+function publicUrlForKey(r2Key: string): string {
+  return `/files/${r2Key}`
+}
+
+function parseTags(value: MediaRow['tags']): string[] {
+  if (!value) return []
+  if (Array.isArray(value)) return value.filter((tag): tag is string => typeof tag === 'string')
+  try {
+    const parsed = JSON.parse(value)
+    return Array.isArray(parsed) ? parsed.filter((tag): tag is string => typeof tag === 'string') : []
+  } catch {
+    return []
+  }
+}
+
+function mapMediaRow(row: MediaRow): MediaItem {
+  const publicUrl = row.public_url || publicUrlForKey(row.r2_key)
+  const isImage = row.mime_type.startsWith('image/')
+  const isVideo = row.mime_type.startsWith('video/')
+
   return {
-    id: record.id,
-    filename: record.filename,
-    originalName: record.original_name,
-    mimeType: record.mime_type,
-    size: record.size,
-    width: record.width,
-    height: record.height,
-    folder: record.folder,
-    publicUrl: record.public_url,
-    thumbnailUrl: record.thumbnail_url,
-    alt: null,
-    caption: null,
-    tags: [],
-    uploadedAt: new Date(record.uploaded_at * 1000).toISOString(),
-    isImage: record.mime_type.startsWith('image/'),
-    isVideo: record.mime_type.startsWith('video/'),
-    isDocument: !record.mime_type.startsWith('image/') && !record.mime_type.startsWith('video/'),
+    id: row.id,
+    filename: row.filename,
+    originalName: row.original_name,
+    mimeType: row.mime_type,
+    size: Number(row.size),
+    width: row.width ?? null,
+    height: row.height ?? null,
+    folder: row.folder,
+    publicUrl,
+    thumbnailUrl: row.thumbnail_url || (isImage ? publicUrl : null),
+    alt: row.alt ?? null,
+    caption: row.caption ?? null,
+    tags: parseTags(row.tags),
+    uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : '',
+    isImage,
+    isVideo,
+    isDocument: !isImage && !isVideo,
+  }
+}
+
+function validationPayload(error: z.ZodError) {
+  return {
+    error: 'Validation failed',
+    details: error.issues,
+  }
+}
+
+function canMutate(file: MediaRow, user: { userId: string; role: string }) {
+  return file.uploaded_by === user.userId || user.role === 'admin'
+}
+
+async function uploadOneFile(
+  c: MediaContext,
+  file: File,
+  folder: string,
+): Promise<{ item?: MediaItem; error?: MediaMutationError }> {
+  const user = c.get('user')!
+  const validation = fileValidationSchema.safeParse({
+    name: file.name,
+    type: file.type,
+    size: file.size,
+  })
+
+  if (!validation.success) {
+    return {
+      error: {
+        filename: file.name,
+        error: 'Validation failed',
+        details: validation.error.issues,
+      },
+    }
+  }
+
+  const fileId = generateId()
+  const extension = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
+  const filename = `${fileId}.${extension}`
+  const r2Key = `${folder}/${filename}`
+  const arrayBuffer = await file.arrayBuffer()
+
+  const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
+    httpMetadata: {
+      contentType: file.type,
+      contentDisposition: `inline; filename="${file.name.replace(/"/g, '')}"`,
+    },
+    customMetadata: {
+      originalName: file.name,
+      uploadedBy: user.userId,
+      uploadedAt: new Date().toISOString(),
+    },
+  })
+
+  if (!uploadResult) {
+    return { error: { filename: file.name, error: 'Failed to upload to storage' } }
+  }
+
+  let width: number | null = null
+  let height: number | null = null
+  if (file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
+    try {
+      const dimensions = await getImageDimensions(arrayBuffer)
+      width = dimensions.width || null
+      height = dimensions.height || null
+    } catch (error) {
+      console.warn('Failed to extract image dimensions:', error)
+    }
+  }
+
+  const publicUrl = publicUrlForKey(r2Key)
+  const thumbnailUrl = file.type.startsWith('image/') ? publicUrl : null
+  const uploadedAt = Math.floor(Date.now() / 1000)
+
+  await c.env.DB.prepare(`
+    INSERT INTO media (
+      id, filename, original_name, mime_type, size, width, height,
+      folder, r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+  `)
+    .bind(
+      fileId,
+      filename,
+      file.name,
+      file.type,
+      file.size,
+      width,
+      height,
+      folder,
+      r2Key,
+      publicUrl,
+      thumbnailUrl,
+      user.userId,
+      uploadedAt,
+    )
+    .run()
+
+  return {
+    item: mapMediaRow({
+      id: fileId,
+      filename,
+      original_name: file.name,
+      mime_type: file.type,
+      size: file.size,
+      width,
+      height,
+      folder,
+      r2_key: r2Key,
+      public_url: publicUrl,
+      thumbnail_url: thumbnailUrl,
+      alt: null,
+      caption: null,
+      tags: null,
+      uploaded_by: user.userId,
+      uploaded_at: uploadedAt,
+      deleted_at: null,
+    }),
   }
 }
 
 apiMediaRoutes.get('/', async (c) => {
-  const db = c.env.DB
-  const page = Math.max(1, Number(c.req.query('page') || '1'))
-  const limit = Math.min(100, Math.max(1, Number(c.req.query('limit') || '24')))
-  const offset = (page - 1) * limit
-  const folder = c.req.query('folder') || ''
-  const type = c.req.query('type') || ''
-  const search = c.req.query('search') || ''
+  const filters = mediaListFiltersSchema.safeParse({
+    page: c.req.query('page'),
+    limit: c.req.query('limit'),
+    folder: c.req.query('folder'),
+    type: c.req.query('type') || undefined,
+    search: c.req.query('search'),
+  })
 
-  const conditions: string[] = ['deleted_at IS NULL']
+  if (!filters.success) {
+    return c.json(validationPayload(filters.error), 422)
+  }
+
+  const { page, limit, folder, type, search } = filters.data
+  const conditions = ['deleted_at IS NULL']
   const params: unknown[] = []
 
-  if (folder) { conditions.push('folder = ?'); params.push(folder) }
-  if (type === 'images') { conditions.push('mime_type LIKE ?'); params.push('image/%') }
-  else if (type === 'videos') { conditions.push('mime_type LIKE ?'); params.push('video/%') }
-  else if (type === 'documents') {
-    conditions.push('(mime_type = ? OR mime_type = ? OR mime_type LIKE ?)')
-    params.push('application/pdf', 'text/plain', 'application/%document%')
+  if (folder) {
+    conditions.push('folder = ?')
+    params.push(folder)
   }
-  if (search) { conditions.push('(filename LIKE ? OR original_name LIKE ?)'); params.push(`%${search}%`, `%${search}%`) }
+
+  if (type === 'images') {
+    conditions.push('mime_type LIKE ?')
+    params.push('image/%')
+  } else if (type === 'videos') {
+    conditions.push('mime_type LIKE ?')
+    params.push('video/%')
+  } else if (type === 'documents') {
+    conditions.push("mime_type NOT LIKE ? AND mime_type NOT LIKE ?")
+    params.push('image/%', 'video/%')
+  }
+
+  if (search) {
+    conditions.push('(filename LIKE ? OR original_name LIKE ? OR alt LIKE ? OR caption LIKE ?)')
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`)
+  }
 
   const where = `WHERE ${conditions.join(' AND ')}`
+  const offset = (page - 1) * limit
 
   try {
-    const countRes = await db
-      .prepare(`SELECT COUNT(*) as count FROM media ${where}`)
+    const countRes = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM media ${where}`)
       .bind(...params)
-      .first() as any
-    const total = countRes?.count || 0
+      .first() as { count?: number } | null
 
-    const { results } = await db
-      .prepare(`SELECT * FROM media ${where} ORDER BY uploaded_at DESC LIMIT ? OFFSET ?`)
+    const { results = [] } = await c.env.DB.prepare(`
+      SELECT * FROM media ${where}
+      ORDER BY uploaded_at DESC
+      LIMIT ? OFFSET ?
+    `)
       .bind(...params, limit, offset)
-      .all()
+      .all<MediaRow>()
 
-    const { results: folderResults } = await db
-      .prepare('SELECT folder, COUNT(*) as count, COALESCE(SUM(size),0) as totalSize FROM media WHERE deleted_at IS NULL GROUP BY folder ORDER BY folder')
-      .all()
+    const { results: folderResults = [] } = await c.env.DB.prepare(`
+      SELECT folder, COUNT(*) as count, COALESCE(SUM(size), 0) as totalSize
+      FROM media
+      WHERE deleted_at IS NULL
+      GROUP BY folder
+      ORDER BY folder
+    `).all<{ folder: string; count: number; totalSize: number }>()
 
-    const { results: typeResults } = await db
-      .prepare(`SELECT CASE WHEN mime_type LIKE 'image/%' THEN 'images' WHEN mime_type LIKE 'video/%' THEN 'videos' ELSE 'documents' END as type, COUNT(*) as count FROM media WHERE deleted_at IS NULL GROUP BY type`)
-      .all()
+    const { results: typeResults = [] } = await c.env.DB.prepare(`
+      SELECT
+        CASE
+          WHEN mime_type LIKE 'image/%' THEN 'images'
+          WHEN mime_type LIKE 'video/%' THEN 'videos'
+          ELSE 'documents'
+        END as type,
+        COUNT(*) as count
+      FROM media
+      WHERE deleted_at IS NULL
+      GROUP BY type
+    `).all<{ type: 'images' | 'videos' | 'documents'; count: number }>()
 
     const response: MediaListResponse = {
-      items: (results || []).map(mapMediaRow),
-      total,
+      items: results.map(mapMediaRow),
+      total: Number(countRes?.count || 0),
       page,
       limit,
-      folders: (folderResults || []).map((r: any) => ({ folder: r.folder, count: r.count, totalSize: r.totalSize })),
-      types: (typeResults || []).map((r: any) => ({ type: r.type, count: r.count })),
+      folders: folderResults.map((row) => ({
+        folder: row.folder,
+        count: Number(row.count),
+        totalSize: Number(row.totalSize),
+      })),
+      types: typeResults.map((row) => ({
+        type: row.type,
+        count: Number(row.count),
+      })),
     }
+
     return c.json(response)
   } catch (error) {
     console.error('[api-media] Error fetching media:', error)
@@ -159,14 +340,10 @@ apiMediaRoutes.get('/', async (c) => {
 })
 
 apiMediaRoutes.get('/:id', async (c) => {
-  const id = c.req.param('id')
-  const db = c.env.DB
-
   try {
-    const row = await db
-      .prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-      .bind(id)
-      .first() as any
+    const row = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+      .bind(c.req.param('id'))
+      .first<MediaRow>()
 
     if (!row) return c.json({ error: 'Media item not found' }, 404)
 
@@ -178,722 +355,363 @@ apiMediaRoutes.get('/:id', async (c) => {
   }
 })
 
-// Upload single file
 apiMediaRoutes.post('/upload', async (c) => {
+  const formData = await c.req.formData()
+  const fileData = formData.get('file')
+  if (!fileData || typeof fileData === 'string') {
+    return c.json({ error: 'No file provided' }, 400)
+  }
+
+  const folder = folderSchema.safeParse(formData.get('folder') || undefined)
+  if (!folder.success) {
+    return c.json(validationPayload(folder.error), 422)
+  }
+
   try {
-    const user = c.get('user')!
-    const formData = await c.req.formData()
-    const fileData = formData.get('file')
-
-    if (!fileData || typeof fileData === 'string') {
-      return c.json({ error: 'No file provided' }, 400)
+    const result = await uploadOneFile(c, fileData as File, folder.data)
+    if (result.error || !result.item) {
+      return c.json({ error: result.error?.error || 'Upload failed', details: result.error?.details }, 400)
     }
 
-    const file = fileData as File
-
-    // Validate file
-    const validation = fileValidationSchema.safeParse({
-      name: file.name,
-      type: file.type,
-      size: file.size
-    })
-
-    if (!validation.success) {
-      return c.json({ 
-        error: 'File validation failed', 
-        details: validation.error.issues 
-      }, 400)
-    }
-
-    // Generate unique filename and R2 key
-    const fileId = generateId()
-    const fileExtension = file.name.split('.').pop() || ''
-    const filename = `${fileId}.${fileExtension}`
-    const folder = formData.get('folder') as string || 'uploads'
-    const r2Key = `${folder}/${filename}`
-
-    // Upload to R2
-    const arrayBuffer = await file.arrayBuffer()
-    const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
-      httpMetadata: {
-        contentType: file.type,
-        contentDisposition: `inline; filename="${file.name}"`
-      },
-      customMetadata: {
-        originalName: file.name,
-        uploadedBy: user.userId,
-        uploadedAt: new Date().toISOString()
-      }
-    })
-
-    if (!uploadResult) {
-      return c.json({ error: 'Failed to upload file to storage' }, 500)
-    }
-
-    // Generate public URL using environment variable for bucket name
-    const bucketName = c.env.BUCKET_NAME || 'worker-blog-media-dev'
-    const publicUrl = `https://pub-${bucketName}.r2.dev/${r2Key}`
-    
-    // Extract image dimensions if it's an image
-    let width: number | null = null
-    let height: number | null = null
-    
-    if (file.type.startsWith('image/') && !file.type.includes('svg')) {
-      try {
-        const dimensions = await getImageDimensions(arrayBuffer)
-        width = dimensions.width
-        height = dimensions.height
-      } catch (error) {
-        console.warn('Failed to extract image dimensions:', error)
-      }
-    }
-
-    // Generate thumbnail URL for images
-    let thumbnailUrl: string | null = null
-    if (file.type.startsWith('image/') && c.env.IMAGES_ACCOUNT_ID) {
-      thumbnailUrl = `https://imagedelivery.net/${c.env.IMAGES_ACCOUNT_ID}/${r2Key}/thumbnail`
-    }
-
-    // Save to database
-    const mediaRecord = {
-      id: fileId,
-      filename: filename,
-      original_name: file.name,
-      mime_type: file.type,
-      size: file.size,
-      width,
-      height,
-      folder,
-      r2_key: r2Key,
-      public_url: publicUrl,
-      thumbnail_url: thumbnailUrl,
-      uploaded_by: user.userId,
-      uploaded_at: Math.floor(Date.now() / 1000),
-      created_at: Math.floor(Date.now() / 1000)
-    }
-
-    const stmt = c.env.DB.prepare(`
-      INSERT INTO media (
-        id, filename, original_name, mime_type, size, width, height, 
-        folder, r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
-      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-    `)
-    
-    await stmt.bind(
-      mediaRecord.id,
-      mediaRecord.filename,
-      mediaRecord.original_name,
-      mediaRecord.mime_type,
-      mediaRecord.size,
-      mediaRecord.width,
-      mediaRecord.height,
-      mediaRecord.folder,
-      mediaRecord.r2_key,
-      mediaRecord.public_url,
-      mediaRecord.thumbnail_url,
-      mediaRecord.uploaded_by,
-      mediaRecord.uploaded_at
-    ).run()
-
-    // Emit media upload event
-    await emitEvent('media.upload', { id: mediaRecord.id, filename: mediaRecord.filename })
-
-    const item = toMediaItem(mediaRecord)
-    const response: UploadMediaResponse & { success: true; file: MediaItem } = {
+    await emitEvent('media.upload', { id: result.item.id, filename: result.item.filename })
+    const response: UploadMediaResponse & { file: MediaItem } = {
       success: true,
-      file: item,
-      uploaded: [item],
+      file: result.item,
+      uploaded: [result.item],
       errors: [],
+      summary: { total: 1, successful: 1, failed: 0 },
     }
-    return c.json(response)
+    return c.json(response, 201)
   } catch (error) {
-    console.error('Upload error:', error)
+    console.error('[api-media] Upload error:', error)
     return c.json({ error: 'Upload failed' }, 500)
   }
 })
 
-// Upload multiple files
 apiMediaRoutes.post('/upload-multiple', async (c) => {
-  try {
-    const user = c.get('user')!
-    const formData = await c.req.formData()
-    const filesData = formData.getAll('files')
+  const formData = await c.req.formData()
+  const files = formData.getAll('files').filter((file): file is File => typeof file !== 'string')
 
-    // Filter out strings and ensure we only have File objects
-    const files: File[] = []
-    for (const f of filesData) {
-      if (typeof f !== 'string') {
-        files.push(f as File)
-      }
-    }
-
-    if (!files || files.length === 0) {
-      return c.json({ error: 'No files provided' }, 400)
-    }
-
-    const uploadResults = []
-    const errors = []
-
-    for (const file of files) {
-      try {
-        // Validate file
-        const validation = fileValidationSchema.safeParse({
-          name: file.name,
-          type: file.type,
-          size: file.size
-        })
-
-        if (!validation.success) {
-          errors.push({
-            filename: file.name,
-            error: 'Validation failed',
-            details: validation.error.issues
-          })
-          continue
-        }
-
-        // Generate unique filename and R2 key
-        const fileId = generateId()
-        const fileExtension = file.name.split('.').pop() || ''
-        const filename = `${fileId}.${fileExtension}`
-        const folder = formData.get('folder') as string || 'uploads'
-        const r2Key = `${folder}/${filename}`
-
-        // Upload to R2
-        const arrayBuffer = await file.arrayBuffer()
-        const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
-          httpMetadata: {
-            contentType: file.type,
-            contentDisposition: `inline; filename="${file.name}"`
-          },
-          customMetadata: {
-            originalName: file.name,
-            uploadedBy: user.userId,
-            uploadedAt: new Date().toISOString()
-          }
-        })
-
-        if (!uploadResult) {
-          errors.push({
-            filename: file.name,
-            error: 'Failed to upload to storage'
-          })
-          continue
-        }
-
-        // Generate public URL using environment variable for bucket name
-        const bucketName = c.env.BUCKET_NAME || 'worker-blog-media-dev'
-        const publicUrl = `https://pub-${bucketName}.r2.dev/${r2Key}`
-        
-        // Extract image dimensions if it's an image
-        let width: number | null = null
-        let height: number | null = null
-        
-        if (file.type.startsWith('image/') && !file.type.includes('svg')) {
-          try {
-            const dimensions = await getImageDimensions(arrayBuffer)
-            width = dimensions.width
-            height = dimensions.height
-          } catch (error) {
-            console.warn('Failed to extract image dimensions:', error)
-          }
-        }
-
-        // Generate thumbnail URL for images
-        let thumbnailUrl: string | null = null
-        if (file.type.startsWith('image/') && c.env.IMAGES_ACCOUNT_ID) {
-          thumbnailUrl = `https://imagedelivery.net/${c.env.IMAGES_ACCOUNT_ID}/${r2Key}/thumbnail`
-        }
-
-        // Save to database
-        const mediaRecord = {
-          id: fileId,
-          filename: filename,
-          original_name: file.name,
-          mime_type: file.type,
-          size: file.size,
-          width,
-          height,
-          folder,
-          r2_key: r2Key,
-          public_url: publicUrl,
-          thumbnail_url: thumbnailUrl,
-          uploaded_by: user.userId,
-          uploaded_at: Math.floor(Date.now() / 1000)
-        }
-
-        const stmt = c.env.DB.prepare(`
-          INSERT INTO media (
-            id, filename, original_name, mime_type, size, width, height, 
-            folder, r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
-          ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        `)
-        
-        await stmt.bind(
-          mediaRecord.id,
-          mediaRecord.filename,
-          mediaRecord.original_name,
-          mediaRecord.mime_type,
-          mediaRecord.size,
-          mediaRecord.width,
-          mediaRecord.height,
-          mediaRecord.folder,
-          mediaRecord.r2_key,
-          mediaRecord.public_url,
-          mediaRecord.thumbnail_url,
-          mediaRecord.uploaded_by,
-          mediaRecord.uploaded_at
-        ).run()
-
-        uploadResults.push(toMediaItem(mediaRecord))
-      } catch (error) {
-        errors.push({
-          filename: file.name,
-          error: 'Upload failed',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
-    }
-
-    // Emit media upload event if any uploads succeeded
-    if (uploadResults.length > 0) {
-      await emitEvent('media.upload', { count: uploadResults.length })
-    }
-
-    return c.json({
-      success: uploadResults.length > 0,
-      uploaded: uploadResults,
-      errors: errors,
-      summary: {
-        total: files.length,
-        successful: uploadResults.length,
-        failed: errors.length
-      }
-    })
-  } catch (error) {
-    console.error('Multiple upload error:', error)
-    return c.json({ error: 'Upload failed' }, 500)
+  if (files.length === 0) {
+    return c.json({ error: 'No files provided' }, 400)
   }
-})
 
-// Bulk delete files
-apiMediaRoutes.post('/bulk-delete', async (c) => {
-  try {
-    const user = c.get('user')!
-    const body = await c.req.json()
-    const fileIds = body.fileIds as string[]
-    
-    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
-      return c.json({ error: 'No file IDs provided' }, 400)
-    }
-
-    // Limit bulk operations to prevent abuse
-    if (fileIds.length > 50) {
-      return c.json({ error: 'Too many files selected. Maximum 50 files per operation.' }, 400)
-    }
-
-    const results = []
-    const errors = []
-
-    for (const fileId of fileIds) {
-      try {
-        // Get file record (including already deleted files to check if they exist at all)
-        const stmt = c.env.DB.prepare('SELECT * FROM media WHERE id = ?')
-        const fileRecord = await stmt.bind(fileId).first() as any
-
-        if (!fileRecord) {
-          errors.push({ fileId, error: 'File not found' })
-          continue
-        }
-
-        // Skip if already deleted (treat as success)
-        if (fileRecord.deleted_at !== null) {
-          console.log(`File ${fileId} already deleted, skipping`)
-          results.push({
-            fileId,
-            filename: fileRecord.original_name,
-            success: true,
-            alreadyDeleted: true
-          })
-          continue
-        }
-
-        // Check permissions (only allow deletion by uploader or admin)
-        if (fileRecord.uploaded_by !== user.userId && user.role !== 'admin') {
-          errors.push({ fileId, error: 'Permission denied' })
-          continue
-        }
-
-        // Delete from R2
-        try {
-          await c.env.MEDIA_BUCKET.delete(fileRecord.r2_key)
-        } catch (error) {
-          console.warn(`Failed to delete from R2 for file ${fileId}:`, error)
-          // Continue with database deletion even if R2 deletion fails
-        }
-
-        // Soft delete in database
-        const deleteStmt = c.env.DB.prepare('UPDATE media SET deleted_at = ? WHERE id = ?')
-        await deleteStmt.bind(Math.floor(Date.now() / 1000), fileId).run()
-
-        results.push({
-          fileId,
-          filename: fileRecord.original_name,
-          success: true
-        })
-      } catch (error) {
-        errors.push({
-          fileId,
-          error: 'Delete failed',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
-    }
-
-    // Emit media delete event if any deletes succeeded
-    if (results.length > 0) {
-      await emitEvent('media.delete', { count: results.length, ids: fileIds })
-    }
-
-    return c.json({
-      success: results.length > 0,
-      deleted: results,
-      errors: errors,
-      summary: {
-        total: fileIds.length,
-        successful: results.length,
-        failed: errors.length
-      }
-    })
-  } catch (error) {
-    console.error('Bulk delete error:', error)
-    return c.json({ error: 'Bulk delete failed' }, 500)
+  const folder = folderSchema.safeParse(formData.get('folder') || undefined)
+  if (!folder.success) {
+    return c.json(validationPayload(folder.error), 422)
   }
-})
 
-// Create folder
-apiMediaRoutes.post('/create-folder', async (c) => {
-  try {
-    const body = await c.req.json()
-    const folderName = body.folderName as string
+  const uploaded: MediaItem[] = []
+  const errors: MediaMutationError[] = []
 
-    if (!folderName || typeof folderName !== 'string') {
-      return c.json({ success: false, error: 'No folder name provided' }, 400)
-    }
-
-    // Validate folder name format
-    const folderPattern = /^[a-z0-9-_]+$/
-    if (!folderPattern.test(folderName)) {
-      return c.json({
-        success: false,
-        error: 'Folder name can only contain lowercase letters, numbers, hyphens, and underscores'
-      }, 400)
-    }
-
-    // Check if folder already exists in the database
-    const checkStmt = c.env.DB.prepare('SELECT COUNT(*) as count FROM media WHERE folder = ? AND deleted_at IS NULL')
-    const existingFolder = await checkStmt.bind(folderName).first() as any
-
-    if (existingFolder && existingFolder.count > 0) {
-      return c.json({
-        success: false,
-        error: `Folder "${folderName}" already exists`
-      }, 400)
-    }
-
-    // Note: R2 folders are virtual - they only exist when files are uploaded to them
-    // Return success message explaining this behavior
-    return c.json({
-      success: true,
-      message: `Folder "${folderName}" is ready. Upload files to this folder to make it appear in the media library.`,
-      folder: folderName,
-      note: 'Folders appear automatically when you upload files to them'
-    })
-  } catch (error) {
-    console.error('Create folder error:', error)
-    return c.json({ success: false, error: 'Failed to create folder' }, 500)
-  }
-})
-
-// Bulk move files to folder
-apiMediaRoutes.post('/bulk-move', async (c) => {
-  try {
-    const user = c.get('user')!
-    const body = await c.req.json()
-    const fileIds = body.fileIds as string[]
-    const targetFolder = body.folder as string
-
-    if (!fileIds || !Array.isArray(fileIds) || fileIds.length === 0) {
-      return c.json({ error: 'No file IDs provided' }, 400)
-    }
-
-    if (!targetFolder || typeof targetFolder !== 'string') {
-      return c.json({ error: 'No target folder provided' }, 400)
-    }
-
-    // Limit bulk operations to prevent abuse
-    if (fileIds.length > 50) {
-      return c.json({ error: 'Too many files selected. Maximum 50 files per operation.' }, 400)
-    }
-
-    const results = []
-    const errors = []
-
-    for (const fileId of fileIds) {
-      try {
-        // Get file record
-        const stmt = c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-        const fileRecord = await stmt.bind(fileId).first() as any
-
-        if (!fileRecord) {
-          errors.push({ fileId, error: 'File not found' })
-          continue
-        }
-
-        // Check permissions (only allow move by uploader or admin)
-        if (fileRecord.uploaded_by !== user.userId && user.role !== 'admin') {
-          errors.push({ fileId, error: 'Permission denied' })
-          continue
-        }
-
-        // Skip if already in target folder
-        if (fileRecord.folder === targetFolder) {
-          results.push({
-            fileId,
-            filename: fileRecord.original_name,
-            success: true,
-            skipped: true
-          })
-          continue
-        }
-
-        // Generate new R2 key with new folder
-        const oldR2Key = fileRecord.r2_key
-        const filename = oldR2Key.split('/').pop() || fileRecord.filename
-        const newR2Key = `${targetFolder}/${filename}`
-
-        // Copy file to new location in R2
-        try {
-          const object = await c.env.MEDIA_BUCKET.get(oldR2Key)
-          if (!object) {
-            errors.push({ fileId, error: 'File not found in storage' })
-            continue
-          }
-
-          await c.env.MEDIA_BUCKET.put(newR2Key, object.body, {
-            httpMetadata: object.httpMetadata,
-            customMetadata: {
-              ...object.customMetadata,
-              movedBy: user.userId,
-              movedAt: new Date().toISOString()
-            }
-          })
-
-          // Delete old file from R2
-          await c.env.MEDIA_BUCKET.delete(oldR2Key)
-        } catch (error) {
-          console.warn(`Failed to move file in R2 for file ${fileId}:`, error)
-          errors.push({ fileId, error: 'Failed to move file in storage' })
-          continue
-        }
-
-        // Update database with new folder and R2 key
-        const bucketName = c.env.BUCKET_NAME || 'worker-blog-media-dev'
-        const newPublicUrl = `https://pub-${bucketName}.r2.dev/${newR2Key}`
-
-        const updateStmt = c.env.DB.prepare(`
-          UPDATE media
-          SET folder = ?, r2_key = ?, public_url = ?, updated_at = ?
-          WHERE id = ?
-        `)
-        await updateStmt.bind(
-          targetFolder,
-          newR2Key,
-          newPublicUrl,
-          Math.floor(Date.now() / 1000),
-          fileId
-        ).run()
-
-        results.push({
-          fileId,
-          filename: fileRecord.original_name,
-          success: true,
-          skipped: false
-        })
-      } catch (error) {
-        errors.push({
-          fileId,
-          error: 'Move failed',
-          details: error instanceof Error ? error.message : 'Unknown error'
-        })
-      }
-    }
-
-    // Emit media move event if any moves succeeded
-    if (results.length > 0) {
-      await emitEvent('media.move', { count: results.length, targetFolder, ids: fileIds })
-    }
-
-    return c.json({
-      success: results.length > 0,
-      moved: results,
-      errors: errors,
-      summary: {
-        total: fileIds.length,
-        successful: results.length,
-        failed: errors.length
-      }
-    })
-  } catch (error) {
-    console.error('Bulk move error:', error)
-    return c.json({ error: 'Bulk move failed' }, 500)
-  }
-})
-
-// Delete file
-apiMediaRoutes.delete('/:id', async (c) => {
-  try {
-    const user = c.get('user')!
-    const fileId = c.req.param('id')
-    
-    // Get file record
-    const stmt = c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-    const fileRecord = await stmt.bind(fileId).first() as any
-    
-    if (!fileRecord) {
-      return c.json({ error: 'File not found' }, 404)
-    }
-
-    // Check permissions (only allow deletion by uploader or admin)
-    if (fileRecord.uploaded_by !== user.userId && user.role !== 'admin') {
-      return c.json({ error: 'Permission denied' }, 403)
-    }
-
-    // Delete from R2
+  for (const file of files) {
     try {
-      await c.env.MEDIA_BUCKET.delete(fileRecord.r2_key)
+      const result = await uploadOneFile(c, file, folder.data)
+      if (result.item) uploaded.push(result.item)
+      if (result.error) errors.push(result.error)
     } catch (error) {
-      console.warn('Failed to delete from R2:', error)
-      // Continue with database deletion even if R2 deletion fails
+      errors.push({
+        filename: file.name,
+        error: 'Upload failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  if (uploaded.length > 0) {
+    await emitEvent('media.upload', { count: uploaded.length })
+  }
+
+  const response: UploadMediaResponse = {
+    success: uploaded.length > 0,
+    uploaded,
+    errors,
+    summary: {
+      total: files.length,
+      successful: uploaded.length,
+      failed: errors.length,
+    },
+  }
+
+  return c.json(response, uploaded.length > 0 ? 201 : 400)
+})
+
+apiMediaRoutes.post('/bulk-delete', async (c) => {
+  const user = c.get('user')!
+  const body = mediaFileIdsSchema.safeParse(await c.req.json().catch(() => null))
+  if (!body.success) {
+    return c.json(validationPayload(body.error), 422)
+  }
+
+  const deleted: BulkDeleteMediaResponse['deleted'] = []
+  const errors: MediaMutationError[] = []
+  const now = Math.floor(Date.now() / 1000)
+
+  for (const fileId of body.data.fileIds) {
+    try {
+      const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?')
+        .bind(fileId)
+        .first<MediaRow>()
+
+      if (!file) {
+        errors.push({ fileId, error: 'File not found' })
+        continue
+      }
+
+      if (!canMutate(file, user)) {
+        errors.push({ fileId, filename: file.original_name, error: 'Permission denied' })
+        continue
+      }
+
+      if (file.deleted_at !== null) {
+        deleted.push({ fileId, filename: file.original_name, success: true, alreadyDeleted: true })
+        continue
+      }
+
+      try {
+        await c.env.MEDIA_BUCKET.delete(file.r2_key)
+      } catch (error) {
+        console.warn(`Failed to delete R2 object for media ${fileId}:`, error)
+      }
+
+      await c.env.DB.prepare('UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?')
+        .bind(now, now, fileId)
+        .run()
+
+      deleted.push({ fileId, filename: file.original_name, success: true })
+    } catch (error) {
+      errors.push({
+        fileId,
+        error: 'Delete failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  if (deleted.length > 0) {
+    await emitEvent('media.delete', { count: deleted.length, ids: body.data.fileIds })
+  }
+
+  const response: BulkDeleteMediaResponse = {
+    success: deleted.length > 0,
+    deleted,
+    errors,
+    summary: {
+      total: body.data.fileIds.length,
+      successful: deleted.length,
+      failed: errors.length,
+    },
+  }
+
+  return c.json(response)
+})
+
+apiMediaRoutes.post('/bulk-move', async (c) => {
+  const user = c.get('user')!
+  const body = moveMediaSchema.safeParse(await c.req.json().catch(() => null))
+  if (!body.success) {
+    return c.json(validationPayload(body.error), 422)
+  }
+
+  const moved: BulkMoveMediaResponse['moved'] = []
+  const errors: MediaMutationError[] = []
+  const now = Math.floor(Date.now() / 1000)
+
+  for (const fileId of body.data.fileIds) {
+    try {
+      const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+        .bind(fileId)
+        .first<MediaRow>()
+
+      if (!file) {
+        errors.push({ fileId, error: 'File not found' })
+        continue
+      }
+
+      if (!canMutate(file, user)) {
+        errors.push({ fileId, filename: file.original_name, error: 'Permission denied' })
+        continue
+      }
+
+      if (file.folder === body.data.folder) {
+        moved.push({ fileId, filename: file.original_name, success: true, skipped: true })
+        continue
+      }
+
+      const filename = file.r2_key.split('/').pop() || file.filename
+      const newR2Key = `${body.data.folder}/${filename}`
+      const object = await c.env.MEDIA_BUCKET.get(file.r2_key)
+
+      if (!object) {
+        errors.push({ fileId, filename: file.original_name, error: 'File not found in storage' })
+        continue
+      }
+
+      await c.env.MEDIA_BUCKET.put(newR2Key, object.body, {
+        httpMetadata: object.httpMetadata,
+        customMetadata: {
+          ...object.customMetadata,
+          movedBy: user.userId,
+          movedAt: new Date().toISOString(),
+        },
+      })
+      await c.env.MEDIA_BUCKET.delete(file.r2_key)
+
+      await c.env.DB.prepare(`
+        UPDATE media
+        SET folder = ?, r2_key = ?, public_url = ?, thumbnail_url = ?, updated_at = ?
+        WHERE id = ?
+      `)
+        .bind(
+          body.data.folder,
+          newR2Key,
+          publicUrlForKey(newR2Key),
+          file.mime_type.startsWith('image/') ? publicUrlForKey(newR2Key) : file.thumbnail_url,
+          now,
+          fileId,
+        )
+        .run()
+
+      moved.push({ fileId, filename: file.original_name, success: true, skipped: false })
+    } catch (error) {
+      errors.push({
+        fileId,
+        error: 'Move failed',
+        details: error instanceof Error ? error.message : 'Unknown error',
+      })
+    }
+  }
+
+  if (moved.length > 0) {
+    await emitEvent('media.move', { count: moved.length, targetFolder: body.data.folder, ids: body.data.fileIds })
+  }
+
+  const response: BulkMoveMediaResponse = {
+    success: moved.length > 0,
+    moved,
+    errors,
+    summary: {
+      total: body.data.fileIds.length,
+      successful: moved.length,
+      failed: errors.length,
+    },
+  }
+
+  return c.json(response)
+})
+
+apiMediaRoutes.delete('/:id', async (c) => {
+  const user = c.get('user')!
+  const fileId = c.req.param('id')
+
+  try {
+    const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+      .bind(fileId)
+      .first<MediaRow>()
+
+    if (!file) return c.json({ error: 'File not found' }, 404)
+    if (!canMutate(file, user)) return c.json({ error: 'Permission denied' }, 403)
+
+    try {
+      await c.env.MEDIA_BUCKET.delete(file.r2_key)
+    } catch (error) {
+      console.warn(`Failed to delete R2 object for media ${fileId}:`, error)
     }
 
-    // Soft delete in database
-    const deleteStmt = c.env.DB.prepare('UPDATE media SET deleted_at = ? WHERE id = ?')
-    await deleteStmt.bind(Math.floor(Date.now() / 1000), fileId).run()
+    const now = Math.floor(Date.now() / 1000)
+    await c.env.DB.prepare('UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?')
+      .bind(now, now, fileId)
+      .run()
 
-    // Emit media delete event
     await emitEvent('media.delete', { id: fileId })
-
     return c.json({ success: true, message: 'File deleted successfully' })
   } catch (error) {
-    console.error('Delete error:', error)
+    console.error('[api-media] Delete error:', error)
     return c.json({ error: 'Delete failed' }, 500)
   }
 })
 
-// Update file metadata
 apiMediaRoutes.patch('/:id', async (c) => {
+  const user = c.get('user')!
+  const fileId = c.req.param('id')
+  const body = updateMediaSchema.safeParse(await c.req.json().catch(() => null))
+
+  if (!body.success) {
+    return c.json(validationPayload(body.error), 422)
+  }
+
+  const entries = Object.entries(body.data).filter(([, value]) => value !== undefined)
+  if (entries.length === 0) {
+    return c.json({ error: 'No valid fields to update' }, 400)
+  }
+
   try {
-    const user = c.get('user')!
-    const fileId = c.req.param('id')
-    const body = await c.req.json()
-    
-    // Get file record
-    const stmt = c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-    const fileRecord = await stmt.bind(fileId).first() as any
-    
-    if (!fileRecord) {
-      return c.json({ error: 'File not found' }, 404)
-    }
+    const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+      .bind(fileId)
+      .first<MediaRow>()
 
-    // Check permissions (only allow updates by uploader or admin)
-    if (fileRecord.uploaded_by !== user.userId && user.role !== 'admin') {
-      return c.json({ error: 'Permission denied' }, 403)
-    }
+    if (!file) return c.json({ error: 'File not found' }, 404)
+    if (!canMutate(file, user)) return c.json({ error: 'Permission denied' }, 403)
 
-    // Update allowed fields
-    const allowedFields = ['alt', 'caption', 'tags', 'folder']
-    const updates = []
-    const values = []
-    
-    for (const [key, value] of Object.entries(body)) {
-      if (allowedFields.includes(key)) {
-        updates.push(`${key} = ?`)
-        values.push(key === 'tags' ? JSON.stringify(value) : value)
-      }
-    }
+    const updates: string[] = []
+    const values: unknown[] = []
 
-    if (updates.length === 0) {
-      return c.json({ error: 'No valid fields to update' }, 400)
+    for (const [key, value] of entries) {
+      updates.push(`${key} = ?`)
+      values.push(key === 'tags' ? JSON.stringify(value) : value)
     }
 
     updates.push('updated_at = ?')
-    values.push(Math.floor(Date.now() / 1000))
-    values.push(fileId)
+    values.push(Math.floor(Date.now() / 1000), fileId)
 
-    const updateStmt = c.env.DB.prepare(`
-      UPDATE media SET ${updates.join(', ')} WHERE id = ?
-    `)
-    await updateStmt.bind(...values).run()
+    await c.env.DB.prepare(`UPDATE media SET ${updates.join(', ')} WHERE id = ?`)
+      .bind(...values)
+      .run()
 
-    // Emit media update event
     await emitEvent('media.update', { id: fileId })
-
     return c.json({ success: true, message: 'File updated successfully' })
   } catch (error) {
-    console.error('Update error:', error)
+    console.error('[api-media] Update error:', error)
     return c.json({ error: 'Update failed' }, 500)
   }
 })
 
-// Helper function to extract image dimensions
 async function getImageDimensions(arrayBuffer: ArrayBuffer): Promise<{ width: number; height: number }> {
-  // This is a simplified implementation
-  // In a real-world scenario, you'd use a proper image processing library
-  const uint8Array = new Uint8Array(arrayBuffer)
-  
-  // Check for JPEG
-  if (uint8Array[0] === 0xFF && uint8Array[1] === 0xD8) {
-    return getJPEGDimensions(uint8Array)
+  const bytes = new Uint8Array(arrayBuffer)
+
+  if (bytes[0] === 0xff && bytes[1] === 0xd8) {
+    return getJPEGDimensions(bytes)
   }
-  
-  // Check for PNG
-  if (uint8Array[0] === 0x89 && uint8Array[1] === 0x50 && uint8Array[2] === 0x4E && uint8Array[3] === 0x47) {
-    return getPNGDimensions(uint8Array)
+
+  if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
+    return getPNGDimensions(bytes)
   }
-  
-  // Default fallback
+
   return { width: 0, height: 0 }
 }
 
-function getJPEGDimensions(uint8Array: Uint8Array): { width: number; height: number } {
+function getJPEGDimensions(bytes: Uint8Array): { width: number; height: number } {
   let i = 2
-  while (i < uint8Array.length) {
-    if (i + 8 >= uint8Array.length) break
-    if (uint8Array[i] === 0xFF && uint8Array[i + 1] === 0xC0) {
-      if (i + 8 < uint8Array.length) {
-        return {
-          height: (uint8Array[i + 5]! << 8) | uint8Array[i + 6]!,
-          width: (uint8Array[i + 7]! << 8) | uint8Array[i + 8]!
-        }
+  while (i < bytes.length) {
+    if (i + 8 >= bytes.length) break
+    const marker = bytes[i + 1]
+    if (bytes[i] === 0xff && marker && marker >= 0xc0 && marker <= 0xc3) {
+      return {
+        height: (bytes[i + 5]! << 8) | bytes[i + 6]!,
+        width: (bytes[i + 7]! << 8) | bytes[i + 8]!,
       }
     }
-    if (i + 3 < uint8Array.length) {
-      i += 2 + ((uint8Array[i + 2]! << 8) | uint8Array[i + 3]!)
-    } else {
-      break
-    }
+    if (i + 3 >= bytes.length) break
+    i += 2 + ((bytes[i + 2]! << 8) | bytes[i + 3]!)
   }
   return { width: 0, height: 0 }
 }
 
-function getPNGDimensions(uint8Array: Uint8Array): { width: number; height: number } {
-  if (uint8Array.length < 24) {
-    return { width: 0, height: 0 }
-  }
+function getPNGDimensions(bytes: Uint8Array): { width: number; height: number } {
+  if (bytes.length < 24) return { width: 0, height: 0 }
   return {
-    width: (uint8Array[16]! << 24) | (uint8Array[17]! << 16) | (uint8Array[18]! << 8) | uint8Array[19]!,
-    height: (uint8Array[20]! << 24) | (uint8Array[21]! << 16) | (uint8Array[22]! << 8) | uint8Array[23]!
+    width: (bytes[16]! << 24) | (bytes[17]! << 16) | (bytes[18]! << 8) | bytes[19]!,
+    height: (bytes[20]! << 24) | (bytes[21]! << 16) | (bytes[22]! << 8) | bytes[23]!,
   }
 }
 
