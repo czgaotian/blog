@@ -1,5 +1,6 @@
 import { useState, type FormEvent } from 'react'
 import type { MediaItem, MediaTypeFilter, UploadMediaResponse } from '@worker-blog/shared/admin-api'
+import { toast } from 'sonner'
 import {
   Copy,
   FileText,
@@ -60,6 +61,15 @@ function mutationErrorMessage(error: unknown, fallback: string) {
   if (error instanceof AdminApiError) return error.message
   if (error instanceof Error) return error.message
   return fallback
+}
+
+async function copyMediaUrl(url: string) {
+  try {
+    await navigator.clipboard.writeText(url)
+    toast.success('Media URL copied')
+  } catch {
+    toast.error('Could not copy media URL')
+  }
 }
 
 function mediaKind(item: MediaItem): MediaTypeFilter {
@@ -204,7 +214,7 @@ function DetailDialog({ item, onClose }: DetailDialogProps) {
                 <span>Dimensions</span><span>{formatDimensions(item)}</span>
               </div>
               <div className="flex gap-2">
-                <Button type="button" variant="outline" size="sm" onClick={() => navigator.clipboard?.writeText(item.publicUrl)}>
+                <Button type="button" variant="outline" size="sm" onClick={() => copyMediaUrl(item.publicUrl)}>
                   <Copy />
                   Copy URL
                 </Button>
@@ -369,7 +379,7 @@ function MediaTable({
             <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(item.uploadedAt)}</TableCell>
             <TableCell>
               <div className="flex justify-end gap-2">
-                <Button type="button" variant="outline" size="icon" aria-label={`Copy URL for ${item.originalName}`} onClick={() => navigator.clipboard?.writeText(item.publicUrl)}>
+                <Button type="button" variant="outline" size="icon" aria-label={`Copy URL for ${item.originalName}`} onClick={() => copyMediaUrl(item.publicUrl)}>
                   <Copy />
                 </Button>
                 <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.originalName}`} onClick={() => onDelete(item)}>
