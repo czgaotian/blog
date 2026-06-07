@@ -30,7 +30,16 @@ describe('renderTiptapJsonToHtml', () => {
           ],
         },
         { type: 'horizontalRule' },
-        { type: 'image', attrs: { src: '/uploads/image.png', alt: 'Image alt' } },
+        {
+          type: 'image',
+          attrs: {
+            src: '/uploads/image.png',
+            alt: 'Image alt',
+            mediaId: 'media_123',
+            width: 1200,
+            height: 800,
+          },
+        },
         { type: 'imageUpload', attrs: { accept: 'image/*', limit: 3, maxSize: 5242880 } },
       ],
     })
@@ -43,7 +52,11 @@ describe('renderTiptapJsonToHtml', () => {
     expect(html).toContain('data-type="taskList"')
     expect(html).toContain('data-checked="true"')
     expect(html).toContain('data-type="horizontalRule"')
-    expect(html).toContain('<img src="/uploads/image.png" alt="Image alt">')
+    expect(html).toContain('src="/uploads/image.png"')
+    expect(html).toContain('alt="Image alt"')
+    expect(html).not.toContain('data-media-id')
+    expect(html).toContain('width="1200"')
+    expect(html).toContain('height="800"')
     expect(html).toContain('data-type="image-upload"')
     expect(html).toContain('hidden="hidden"')
   })

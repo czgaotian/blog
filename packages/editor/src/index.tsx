@@ -3,11 +3,10 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
-import { emptyTiptapDocument } from "@worker-blog/editor/schema";
+import { BlogImage, emptyTiptapDocument } from "@worker-blog/editor/schema";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
-import { Image } from "@tiptap/extension-image";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
@@ -69,6 +68,7 @@ import { useCursorVisibility } from "./hooks/use-cursor-visibility";
 
 // --- Lib ---
 import { handleImageUpload, MAX_FILE_SIZE } from "./lib/tiptap-utils";
+import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
 
 // --- Styles ---
 import "./index.scss";
@@ -180,11 +180,13 @@ const MobileToolbarContent = ({
 export interface SimpleEditorProps {
   value?: JSONContent;
   onChange?: (value: JSONContent) => void;
+  uploadImage?: UploadFunction;
 }
 
 export function SimpleEditor({
   value = emptyTiptapDocument,
   onChange,
+  uploadImage = handleImageUpload,
 }: SimpleEditorProps) {
   const isMobile = useIsBreakpoint();
   const { height } = useWindowSize();
@@ -219,7 +221,7 @@ export function SimpleEditor({
         TaskList,
         TaskItem.configure({ nested: true }),
         Highlight.configure({ multicolor: true }),
-        Image,
+        BlogImage,
         Typography,
         Superscript,
         Subscript,
@@ -229,7 +231,7 @@ export function SimpleEditor({
           accept: "image/*",
           maxSize: MAX_FILE_SIZE,
           limit: 3,
-          upload: handleImageUpload,
+          upload: uploadImage,
           onError: (error) => console.error("Upload failed:", error),
         }),
       ],
@@ -238,7 +240,7 @@ export function SimpleEditor({
         onChange?.(editor.getJSON());
       },
     },
-    [onChange],
+    [onChange, uploadImage],
   );
 
   useEffect(() => {

@@ -1,4 +1,5 @@
 export {
+  BlogImage,
   createContentRenderExtensions,
   HorizontalRule,
   ServerImageUploadNode,

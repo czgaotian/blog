@@ -12,6 +12,7 @@ import {
   type Editor,
   type NodeWithPos,
 } from "@tiptap/react"
+import type { UploadedImage } from "../components/tiptap-node/image-upload-node/image-upload-node-extension"
 
 export const MAX_FILE_SIZE = 5 * 1024 * 1024 // 5MB
 
@@ -362,7 +363,7 @@ export const handleImageUpload = async (
   file: File,
   onProgress?: (event: { progress: number }) => void,
   abortSignal?: AbortSignal
-): Promise<string> => {
+): Promise<UploadedImage> => {
   // Validate file
   if (!file) {
     throw new Error("No file provided")
@@ -384,7 +385,9 @@ export const handleImageUpload = async (
     onProgress?.({ progress })
   }
 
-  return "/images/tiptap-ui-placeholder-image.jpg"
+  return {
+    src: "/images/tiptap-ui-placeholder-image.jpg",
+  }
 }
 
 type ProtocolOptions = {
