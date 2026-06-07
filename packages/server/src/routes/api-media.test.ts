@@ -144,6 +144,23 @@ describe('/api/media', () => {
     expect(calls.some((call) => call.sql.includes('INSERT INTO media') && call.args.includes('gallery'))).toBe(true)
   })
 
+  it('stores an ASCII-safe content disposition for unicode filenames', async () => {
+    const app = createApp()
+    const { env, bucket } = createEnv()
+    const fd = new FormData()
+    fd.append('files', new File(['img'], '截图 2026-05-28 22-38-40.png', { type: 'image/png' }))
+
+    const res = await app.request('/api/media/upload-multiple', { method: 'POST', body: fd }, env)
+    const options = bucket.put.mock.calls[0][2]
+    const contentDisposition = options.httpMetadata.contentDisposition
+
+    expect(res.status).toBe(201)
+    expect(contentDisposition).toBe(
+      `inline; filename="2026-05-28-22-38-40.png"; filename*=UTF-8''${encodeURIComponent('截图 2026-05-28 22-38-40.png')}`,
+    )
+    expect(contentDisposition).toMatch(/^[\x00-\x7F]+$/)
+  })
+
   it('updates only media metadata fields', async () => {
     const app = createApp()
     const { env, calls } = createEnv()
