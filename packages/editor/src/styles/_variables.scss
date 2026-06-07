@@ -1,4 +1,19 @@
 :root {
+  /******************* 
+  Brand colors
+  ******************/
+  --tt-brand-color-50: hsl(188 75% 96%);
+  --tt-brand-color-100: hsl(188 78% 90%);
+  --tt-brand-color-200: hsl(188 82% 80%);
+  --tt-brand-color-300: hsl(188 86% 66%);
+  --tt-brand-color-400: hsl(188 88% 52%);
+  --tt-brand-color-500: hsl(188 90% 42%);
+  --tt-brand-color-600: hsl(188 90% 32%);
+  --tt-brand-color-700: hsl(188 86% 26%);
+  --tt-brand-color-800: hsl(188 78% 20%);
+  --tt-brand-color-900: hsl(188 68% 15%);
+  --tt-brand-color-950: hsl(188 62% 9%);
+
   /****************** 
   Colors variables
   ******************/
@@ -50,19 +65,6 @@
   --tt-gray-dark-700: rgba(192, 192, 195, 1);
   --tt-gray-dark-800: rgba(224, 224, 225, 1);
   --tt-gray-dark-900: rgba(245, 245, 245, 1);
-
-  /* Brand colors */
-  --tt-brand-color-50: rgba(239, 238, 255, 1);
-  --tt-brand-color-100: rgba(222, 219, 255, 1);
-  --tt-brand-color-200: rgba(195, 189, 255, 1);
-  --tt-brand-color-300: rgba(157, 138, 255, 1);
-  --tt-brand-color-400: rgba(122, 82, 255, 1);
-  --tt-brand-color-500: rgba(98, 41, 255, 1);
-  --tt-brand-color-600: rgba(84, 0, 229, 1);
-  --tt-brand-color-700: rgba(75, 0, 204, 1);
-  --tt-brand-color-800: rgba(56, 0, 153, 1);
-  --tt-brand-color-900: rgba(43, 25, 102, 1);
-  --tt-brand-color-950: hsla(257, 100%, 9%, 1);
 
   /* Green */
   --tt-color-green-inc-5: hsla(129, 100%, 97%, 1);
@@ -120,8 +122,8 @@
     0px 2px 3px 0px rgba(17, 24, 39, 0.02);
 
   /************************************************** 
-       Radius variables 
-    **************************************************/
+  Radius variables 
+  **************************************************/
 
   --tt-radius-xxs: 0.125rem; /* 2px */
   --tt-radius-xs: 0.25rem; /* 4px */
@@ -131,8 +133,8 @@
   --tt-radius-xl: 1rem; /* 16px */
 
   /************************************************** 
-       Transition variables 
-    **************************************************/
+  Transition variables 
+  **************************************************/
 
   --tt-transition-duration-short: 0.1s;
   --tt-transition-duration-default: 0.2s;
