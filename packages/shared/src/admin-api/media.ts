@@ -11,7 +11,6 @@ export interface MediaItem {
   size: number
   width: number | null
   height: number | null
-  folder: string
   publicUrl: string
   thumbnailUrl: string | null
   alt: string | null
@@ -23,12 +22,6 @@ export interface MediaItem {
   isDocument: boolean
 }
 
-export interface FolderStats {
-  folder: string
-  count: number
-  totalSize: number
-}
-
 export interface TypeStats {
   type: MediaTypeFilter
   count: number
@@ -37,7 +30,6 @@ export interface TypeStats {
 export const mediaListFiltersSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   limit: z.coerce.number().int().min(1).max(100).default(24),
-  folder: z.string().trim().max(100).optional().default(''),
   type: z.enum(MEDIA_TYPES).optional(),
   search: z.string().trim().max(200).optional().default(''),
 })
@@ -49,7 +41,6 @@ export interface MediaListResponse {
   total: number
   page: number
   limit: number
-  folders: FolderStats[]
   types: TypeStats[]
 }
 
@@ -91,24 +82,9 @@ export const mediaFileIdsSchema = z.object({
 
 export type MediaFileIdsRequest = z.infer<typeof mediaFileIdsSchema>
 
-export const moveMediaSchema = mediaFileIdsSchema.extend({
-  folder: z.string().trim().min(1).max(100).regex(/^[a-z0-9][a-z0-9_-]*(?:\/[a-z0-9][a-z0-9_-]*)*$/, {
-    message: 'Folder can only contain lowercase letters, numbers, hyphens, underscores, and slashes',
-  }),
-})
-
-export type MoveMediaRequest = z.infer<typeof moveMediaSchema>
-
 export interface BulkDeleteMediaResponse {
   success: boolean
   deleted: Array<{ fileId: string; filename: string; success: true; alreadyDeleted?: boolean }>
-  errors: MediaMutationError[]
-  summary: MediaMutationSummary
-}
-
-export interface BulkMoveMediaResponse {
-  success: boolean
-  moved: Array<{ fileId: string; filename: string; success: true; skipped: boolean }>
   errors: MediaMutationError[]
   summary: MediaMutationSummary
 }

@@ -1,20 +1,16 @@
-import { useMemo, useState, type FormEvent } from 'react'
+import { useState, type FormEvent } from 'react'
 import type { MediaItem, MediaTypeFilter, UploadMediaResponse } from '@worker-blog/shared/admin-api'
 import {
-  CheckSquare,
   Copy,
   FileText,
-  FolderInput,
   ImageIcon,
   Pencil,
   Trash2,
   Upload,
   Video,
-  X,
 } from 'lucide-react'
 import {
   useBulkDeleteMedia,
-  useBulkMoveMedia,
   useDeleteMedia,
   useMediaList,
   useUpdateMedia,
@@ -35,6 +31,7 @@ import { LoadingState } from '../components/ui/loading-state'
 import { Pagination } from '../components/ui/pagination'
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select'
 import { Spinner } from '../components/ui/spinner'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
 import { Textarea } from '../components/ui/textarea'
 
 const mediaTypes: Array<{ value: 'all' | MediaTypeFilter; label: string }> = [
@@ -55,14 +52,20 @@ function formatDate(value: string): string {
   return new Date(value).toLocaleString()
 }
 
+function formatDimensions(item: MediaItem): string {
+  return item.width && item.height ? `${item.width} x ${item.height}` : '-'
+}
+
 function mutationErrorMessage(error: unknown, fallback: string) {
   if (error instanceof AdminApiError) return error.message
   if (error instanceof Error) return error.message
   return fallback
 }
 
-function folderOptions(items: string[]) {
-  return ['all', ...items]
+function mediaKind(item: MediaItem): MediaTypeFilter {
+  if (item.isVideo) return 'videos'
+  if (item.isImage) return 'images'
+  return 'documents'
 }
 
 function MediaIcon({ item }: { item: MediaItem }) {
@@ -71,75 +74,39 @@ function MediaIcon({ item }: { item: MediaItem }) {
   return <FileText />
 }
 
-interface MediaCardProps {
-  item: MediaItem
-  selected: boolean
-  selectionMode: boolean
-  onSelect: (checked: boolean) => void
-  onOpen: () => void
-}
-
-function MediaCard({ item, selected, selectionMode, onSelect, onOpen }: MediaCardProps) {
+function MediaPreview({ item, onOpen }: { item: MediaItem; onOpen: () => void }) {
   return (
-    <article className="group overflow-hidden rounded-md border border-border bg-card">
-      <div className="relative aspect-square overflow-hidden bg-muted">
-        {selectionMode ? (
-          <label className="absolute left-2 top-2 z-10 rounded-md bg-background/90 p-1 shadow-sm">
-            <span className="sr-only">Select {item.originalName}</span>
-            <Checkbox checked={selected} onCheckedChange={(checked) => onSelect(Boolean(checked))} />
-          </label>
-        ) : null}
-        <button
-          type="button"
-          className="flex size-full items-center justify-center text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
-          onClick={onOpen}
-        >
-          {item.isImage ? (
-            <img
-              src={item.thumbnailUrl ?? item.publicUrl}
-              alt={item.alt ?? item.originalName}
-              className="size-full object-cover"
-            />
-          ) : (
-            <span className="flex flex-col items-center gap-2 px-3 text-center">
-              <MediaIcon item={item} />
-              <span className="max-w-full truncate text-xs">{item.mimeType}</span>
-            </span>
-          )}
-        </button>
-      </div>
-      <div className="flex flex-col gap-1 p-3">
-        <button type="button" className="truncate text-left text-sm font-medium hover:underline" title={item.originalName} onClick={onOpen}>
-          {item.originalName}
-        </button>
-        <div className="flex items-center justify-between gap-2 text-xs text-muted-foreground">
-          <span>{formatFileSize(item.size)}</span>
-          <Badge>{item.folder}</Badge>
-        </div>
-      </div>
-    </article>
+    <button
+      type="button"
+      className="flex size-12 items-center justify-center overflow-hidden rounded-md border border-border bg-muted text-muted-foreground outline-none focus-visible:ring-2 focus-visible:ring-ring"
+      onClick={onOpen}
+    >
+      {item.isImage ? (
+        <img
+          src={item.thumbnailUrl ?? item.publicUrl}
+          alt={item.alt ?? item.originalName}
+          className="size-full object-cover"
+        />
+      ) : (
+        <MediaIcon item={item} />
+      )}
+    </button>
   )
 }
 
 interface UploadDialogProps {
   open: boolean
-  folders: string[]
   onClose: () => void
 }
 
-function UploadDialog({ open, folders, onClose }: UploadDialogProps) {
+function UploadDialog({ open, onClose }: UploadDialogProps) {
   const upload = useUploadMedia()
   const [result, setResult] = useState<UploadMediaResponse | null>(null)
-  const [folder, setFolder] = useState('uploads')
-  const [customFolder, setCustomFolder] = useState('')
 
   async function handleSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     const form = event.currentTarget
-    const data = new FormData(form)
-    const targetFolder = customFolder.trim() || folder
-    data.set('folder', targetFolder)
-    const response = await upload.mutateAsync(data)
+    const response = await upload.mutateAsync(new FormData(form))
     setResult(response)
     if (response.success) form.reset()
   }
@@ -147,7 +114,6 @@ function UploadDialog({ open, folders, onClose }: UploadDialogProps) {
   function close() {
     upload.reset()
     setResult(null)
-    setCustomFolder('')
     onClose()
   }
 
@@ -157,25 +123,6 @@ function UploadDialog({ open, folders, onClose }: UploadDialogProps) {
         <div className="flex flex-col gap-2">
           <Label htmlFor="media-files">Files</Label>
           <Input id="media-files" name="files" type="file" multiple required />
-        </div>
-        <div className="grid gap-3 sm:grid-cols-2">
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="upload-folder">Folder</Label>
-            <Select value={folder} onValueChange={setFolder}>
-              <SelectTrigger id="upload-folder" className="w-full"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                <SelectGroup>
-                  {[...new Set(['uploads', ...folders])].map((name) => (
-                    <SelectItem key={name} value={name}>{name}</SelectItem>
-                  ))}
-                </SelectGroup>
-              </SelectContent>
-            </Select>
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label htmlFor="custom-upload-folder">New folder</Label>
-            <Input id="custom-upload-folder" value={customFolder} onChange={(event) => setCustomFolder(event.target.value)} placeholder="optional-folder" />
-          </div>
         </div>
         {upload.isError ? (
           <Alert title="Upload failed" tone="danger">
@@ -193,64 +140,6 @@ function UploadDialog({ open, folders, onClose }: UploadDialogProps) {
           <Button type="submit" disabled={upload.isPending}>
             {upload.isPending ? <Spinner /> : <Upload />}
             Upload
-          </Button>
-        </div>
-      </form>
-    </Dialog>
-  )
-}
-
-interface MoveDialogProps {
-  open: boolean
-  folders: string[]
-  selectedIds: string[]
-  onClose: () => void
-  onMoved: () => void
-}
-
-function MoveDialog({ open, folders, selectedIds, onClose, onMoved }: MoveDialogProps) {
-  const move = useBulkMoveMedia()
-  const [folder, setFolder] = useState(folders[0] || 'uploads')
-  const [customFolder, setCustomFolder] = useState('')
-
-  async function handleSubmit(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-    await move.mutateAsync({ fileIds: selectedIds, folder: customFolder.trim() || folder })
-    onMoved()
-    onClose()
-  }
-
-  return (
-    <Dialog open={open} onClose={onClose} title="Move media">
-      <form className="flex flex-col gap-5" onSubmit={handleSubmit}>
-        <p className="text-sm text-muted-foreground">{selectedIds.length} selected files will move to the target folder.</p>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="move-folder">Folder</Label>
-          <Select value={folder} onValueChange={setFolder}>
-            <SelectTrigger id="move-folder" className="w-full"><SelectValue /></SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {[...new Set(['uploads', ...folders])].map((name) => (
-                  <SelectItem key={name} value={name}>{name}</SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex flex-col gap-2">
-          <Label htmlFor="custom-move-folder">New folder</Label>
-          <Input id="custom-move-folder" value={customFolder} onChange={(event) => setCustomFolder(event.target.value)} placeholder="optional-folder" />
-        </div>
-        {move.isError ? (
-          <Alert title="Move failed" tone="danger">
-            {mutationErrorMessage(move.error, 'Could not move media.')}
-          </Alert>
-        ) : null}
-        <div className="flex justify-end gap-2">
-          <Button type="button" variant="outline" disabled={move.isPending} onClick={onClose}>Cancel</Button>
-          <Button type="submit" disabled={move.isPending || selectedIds.length === 0}>
-            {move.isPending ? <Spinner /> : <FolderInput />}
-            Move
           </Button>
         </div>
       </form>
@@ -311,9 +200,8 @@ function DetailDialog({ item, onClose }: DetailDialogProps) {
               <div className="grid grid-cols-[6rem_1fr] gap-2 text-xs text-muted-foreground">
                 <span>Size</span><span>{formatFileSize(item.size)}</span>
                 <span>Type</span><span className="break-all">{item.mimeType}</span>
-                <span>Folder</span><span>{item.folder}</span>
                 <span>Uploaded</span><span>{formatDate(item.uploadedAt)}</span>
-                {item.width && item.height ? <><span>Dimensions</span><span>{item.width} x {item.height}</span></> : null}
+                <span>Dimensions</span><span>{formatDimensions(item)}</span>
               </div>
               <div className="flex gap-2">
                 <Button type="button" variant="outline" size="sm" onClick={() => navigator.clipboard?.writeText(item.publicUrl)}>
@@ -370,10 +258,129 @@ function DetailDialog({ item, onClose }: DetailDialogProps) {
             {mutationErrorMessage(remove.error, 'Delete failed.')}
           </Alert>
         ) : (
-          <>“{item.originalName}” will be removed from the media library.</>
+          <>{item.originalName} will be removed from the media library.</>
         )}
       </ConfirmDialog>
     </>
+  )
+}
+
+interface DeleteMediaDialogProps {
+  item: MediaItem | null
+  onClose: () => void
+}
+
+function DeleteMediaDialog({ item, onClose }: DeleteMediaDialogProps) {
+  const remove = useDeleteMedia(item?.id ?? '')
+
+  async function handleDelete() {
+    if (!item) return
+    await remove.mutateAsync()
+    onClose()
+  }
+
+  return (
+    <ConfirmDialog
+      open={Boolean(item)}
+      title="Delete media?"
+      confirmLabel="Delete"
+      pendingLabel="Deleting..."
+      destructive
+      pending={remove.isPending}
+      onCancel={onClose}
+      onConfirm={handleDelete}
+    >
+      {remove.isError ? (
+        <Alert title="Could not delete media" tone="danger">
+          {mutationErrorMessage(remove.error, 'Delete failed.')}
+        </Alert>
+      ) : (
+        <>{item?.originalName} will be removed from the media library.</>
+      )}
+    </ConfirmDialog>
+  )
+}
+
+interface MediaTableProps {
+  items: MediaItem[]
+  selectedIds: string[]
+  allPageSelected: boolean
+  onToggleAll: (checked: boolean) => void
+  onToggleItem: (id: string, checked: boolean) => void
+  onOpen: (item: MediaItem) => void
+  onDelete: (item: MediaItem) => void
+}
+
+function MediaTable({
+  items,
+  selectedIds,
+  allPageSelected,
+  onToggleAll,
+  onToggleItem,
+  onOpen,
+  onDelete,
+}: MediaTableProps) {
+  return (
+    <Table>
+      <TableHeader>
+        <TableRow>
+          <TableHead className="w-12">
+            <Checkbox checked={allPageSelected} onCheckedChange={(checked) => onToggleAll(Boolean(checked))} aria-label="Select current page" />
+          </TableHead>
+          <TableHead className="w-20">Preview</TableHead>
+          <TableHead>Name</TableHead>
+          <TableHead>Type</TableHead>
+          <TableHead>Size</TableHead>
+          <TableHead>Dimensions</TableHead>
+          <TableHead>Uploaded</TableHead>
+          <TableHead className="text-right">Actions</TableHead>
+        </TableRow>
+      </TableHeader>
+      <TableBody>
+        {items.map((item) => (
+          <TableRow key={item.id}>
+            <TableCell>
+              <Checkbox
+                checked={selectedIds.includes(item.id)}
+                onCheckedChange={(checked) => onToggleItem(item.id, Boolean(checked))}
+                aria-label={`Select ${item.originalName}`}
+              />
+            </TableCell>
+            <TableCell>
+              <MediaPreview item={item} onOpen={() => onOpen(item)} />
+            </TableCell>
+            <TableCell>
+              <button
+                type="button"
+                className="max-w-80 truncate text-left font-medium hover:underline"
+                title={item.originalName}
+                onClick={() => onOpen(item)}
+              >
+                {item.originalName}
+              </button>
+              <div className="max-w-80 truncate font-mono text-xs text-muted-foreground">{item.filename}</div>
+            </TableCell>
+            <TableCell>
+              <Badge>{mediaKind(item)}</Badge>
+              <div className="mt-1 max-w-40 truncate text-xs text-muted-foreground">{item.mimeType}</div>
+            </TableCell>
+            <TableCell className="whitespace-nowrap">{formatFileSize(item.size)}</TableCell>
+            <TableCell className="whitespace-nowrap text-muted-foreground">{formatDimensions(item)}</TableCell>
+            <TableCell className="whitespace-nowrap text-xs text-muted-foreground">{formatDate(item.uploadedAt)}</TableCell>
+            <TableCell>
+              <div className="flex justify-end gap-2">
+                <Button type="button" variant="outline" size="icon" aria-label={`Copy URL for ${item.originalName}`} onClick={() => navigator.clipboard?.writeText(item.publicUrl)}>
+                  <Copy />
+                </Button>
+                <Button type="button" variant="ghost" size="icon" aria-label={`Delete ${item.originalName}`} onClick={() => onDelete(item)}>
+                  <Trash2 />
+                </Button>
+              </div>
+            </TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
   )
 }
 
@@ -381,12 +388,10 @@ export function MediaLibraryPage() {
   const [page, setPage] = useState(1)
   const [search, setSearch] = useState('')
   const [type, setType] = useState<'all' | MediaTypeFilter>('all')
-  const [folder, setFolder] = useState('all')
-  const [selectionMode, setSelectionMode] = useState(false)
   const [selectedIds, setSelectedIds] = useState<string[]>([])
   const [uploadOpen, setUploadOpen] = useState(false)
-  const [moveOpen, setMoveOpen] = useState(false)
   const [detailItem, setDetailItem] = useState<MediaItem | null>(null)
+  const [deleteItem, setDeleteItem] = useState<MediaItem | null>(null)
   const [bulkDeleteOpen, setBulkDeleteOpen] = useState(false)
   const bulkDelete = useBulkDeleteMedia()
   const limit = 24
@@ -395,11 +400,8 @@ export function MediaLibraryPage() {
     limit,
     search,
     type: type === 'all' ? undefined : type,
-    folder: folder === 'all' ? '' : folder,
   })
 
-  const folders = useMemo(() => data?.folders.map((entry) => entry.folder) ?? [], [data])
-  const selectedOnPage = data?.items.filter((item) => selectedIds.includes(item.id)) ?? []
   const allPageSelected = data?.items.length ? data.items.every((item) => selectedIds.includes(item.id)) : false
   const totalPages = data ? Math.max(1, Math.ceil(data.total / limit)) : 1
 
@@ -418,12 +420,6 @@ export function MediaLibraryPage() {
     setSelectedIds([])
   }
 
-  function updateFolder(next: string) {
-    setFolder(next)
-    setPage(1)
-    setSelectedIds([])
-  }
-
   async function handleBulkDelete() {
     await bulkDelete.mutateAsync({ fileIds: selectedIds })
     setSelectedIds([])
@@ -436,21 +432,15 @@ export function MediaLibraryPage() {
         title="Media"
         description="Browse and manage uploaded media files."
         actions={(
-          <div className="flex gap-2">
-            <Button type="button" variant={selectionMode ? 'secondary' : 'outline'} onClick={() => setSelectionMode((value) => !value)}>
-              {selectionMode ? <X /> : <CheckSquare />}
-              {selectionMode ? 'Exit selection' : 'Select'}
-            </Button>
-            <Button type="button" onClick={() => setUploadOpen(true)}>
-              <Upload />
-              Upload
-            </Button>
-          </div>
+          <Button type="button" onClick={() => setUploadOpen(true)}>
+            <Upload />
+            Upload
+          </Button>
         )}
       />
 
       <FilterBar
-        key={`${search}-${type}-${folder}`}
+        key={`${search}-${type}`}
         searchLabel="Search by filename, alt, or caption..."
         searchValue={search}
         onSubmit={(event) => {
@@ -468,43 +458,22 @@ export function MediaLibraryPage() {
             </SelectGroup>
           </SelectContent>
         </Select>
-        <Select value={folder} onValueChange={updateFolder}>
-          <SelectTrigger className="w-full sm:w-44"><SelectValue /></SelectTrigger>
-          <SelectContent>
-            <SelectGroup>
-              {folderOptions(folders).map((name) => (
-                <SelectItem key={name} value={name}>{name === 'all' ? 'All folders' : name}</SelectItem>
-              ))}
-            </SelectGroup>
-          </SelectContent>
-        </Select>
       </FilterBar>
 
       {data ? (
         <div className="flex flex-wrap items-center gap-3 text-sm text-muted-foreground">
           <span>{data.total} files</span>
           {data.types.map((entry) => <span key={entry.type}>{entry.type}: <strong className="text-foreground">{entry.count}</strong></span>)}
-          {data.folders.length ? <span>{data.folders.length} folders</span> : null}
         </div>
       ) : null}
 
-      {selectionMode ? (
+      {selectedIds.length > 0 ? (
         <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-border bg-card p-3">
-          <label className="flex items-center gap-2 text-sm">
-            <Checkbox checked={allPageSelected} onCheckedChange={(checked) => toggleAllPage(Boolean(checked))} />
-            Select current page
-          </label>
-          <div className="flex flex-wrap items-center gap-2">
-            <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
-            <Button type="button" variant="outline" size="sm" disabled={selectedIds.length === 0} onClick={() => setMoveOpen(true)}>
-              <FolderInput />
-              Move
-            </Button>
-            <Button type="button" variant="destructive" size="sm" disabled={selectedIds.length === 0} onClick={() => setBulkDeleteOpen(true)}>
-              <Trash2 />
-              Delete
-            </Button>
-          </div>
+          <span className="text-sm text-muted-foreground">{selectedIds.length} selected</span>
+          <Button type="button" variant="destructive" size="sm" onClick={() => setBulkDeleteOpen(true)}>
+            <Trash2 />
+            Delete selected
+          </Button>
         </div>
       ) : null}
 
@@ -519,18 +488,15 @@ export function MediaLibraryPage() {
 
       {data && data.items.length > 0 ? (
         <>
-          <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6">
-            {data.items.map((item) => (
-              <MediaCard
-                key={item.id}
-                item={item}
-                selected={selectedIds.includes(item.id)}
-                selectionMode={selectionMode}
-                onSelect={(checked) => toggleSelection(item.id, checked)}
-                onOpen={() => setDetailItem(item)}
-              />
-            ))}
-          </div>
+          <MediaTable
+            items={data.items}
+            selectedIds={selectedIds}
+            allPageSelected={allPageSelected}
+            onToggleAll={toggleAllPage}
+            onToggleItem={toggleSelection}
+            onOpen={setDetailItem}
+            onDelete={setDeleteItem}
+          />
 
           <Pagination
             page={page}
@@ -543,15 +509,9 @@ export function MediaLibraryPage() {
         </>
       ) : null}
 
-      <UploadDialog open={uploadOpen} folders={folders} onClose={() => setUploadOpen(false)} />
-      <MoveDialog
-        open={moveOpen}
-        folders={folders}
-        selectedIds={selectedIds}
-        onClose={() => setMoveOpen(false)}
-        onMoved={() => setSelectedIds([])}
-      />
+      <UploadDialog open={uploadOpen} onClose={() => setUploadOpen(false)} />
       <DetailDialog item={detailItem} onClose={() => setDetailItem(null)} />
+      <DeleteMediaDialog item={deleteItem} onClose={() => setDeleteItem(null)} />
       <ConfirmDialog
         open={bulkDeleteOpen}
         title="Delete selected media?"
@@ -567,7 +527,7 @@ export function MediaLibraryPage() {
             {mutationErrorMessage(bulkDelete.error, 'Delete failed.')}
           </Alert>
         ) : (
-          <>{selectedOnPage.length || selectedIds.length} selected files will be removed from the media library.</>
+          <>{selectedIds.length} selected files will be removed from the media library.</>
         )}
       </ConfirmDialog>
     </section>

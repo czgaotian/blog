@@ -16,9 +16,8 @@ const mediaRows = [
     size: 2048,
     width: 640,
     height: 480,
-    folder: 'uploads',
-    r2_key: 'uploads/media-1.png',
-    public_url: '/files/uploads/media-1.png',
+    r2_key: 'media-1.png',
+    public_url: '/files/media-1.png',
     thumbnail_url: null,
     alt: 'Hero',
     caption: null,
@@ -35,9 +34,8 @@ const mediaRows = [
     size: 4096,
     width: null,
     height: null,
-    folder: 'docs',
-    r2_key: 'docs/media-2.pdf',
-    public_url: '/files/docs/media-2.pdf',
+    r2_key: 'media-2.pdf',
+    public_url: '/files/media-2.pdf',
     thumbnail_url: null,
     alt: null,
     caption: null,
@@ -62,7 +60,6 @@ function createDb() {
         all: async () => {
           calls.push({ sql, args })
           if (sql.includes('SELECT * FROM media')) return { results: [mediaRows[0]] }
-          if (sql.includes('GROUP BY folder')) return { results: [{ folder: 'uploads', count: 1, totalSize: 2048 }] }
           if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }] }
           return { results: [] }
         },
@@ -73,7 +70,6 @@ function createDb() {
       }),
       all: async () => {
         calls.push({ sql, args: [] })
-        if (sql.includes('GROUP BY folder')) return { results: [{ folder: 'uploads', count: 1, totalSize: 2048 }] }
         if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }] }
         return { results: [] }
       },
@@ -107,41 +103,41 @@ function createEnv() {
 }
 
 describe('/api/media', () => {
-  it('lists media with search, type, folder, pagination, and stats', async () => {
+  it('lists media with search, type, pagination, and type stats', async () => {
     const app = createApp()
     const { env, calls } = createEnv()
-    const res = await app.request('/api/media?page=2&limit=10&type=images&folder=uploads&search=hero', {}, env)
+    const res = await app.request('/api/media?page=2&limit=10&type=images&search=hero', {}, env)
 
     expect(res.status).toBe(200)
     const json = await res.json() as any
     expect(json.items[0]).toMatchObject({
       id: 'media-1',
-      publicUrl: '/files/uploads/media-1.png',
+      publicUrl: '/files/media-1.png',
       tags: ['hero'],
       isImage: true,
     })
     expect(json.page).toBe(2)
     expect(json.limit).toBe(10)
-    expect(json.folders[0]).toEqual({ folder: 'uploads', count: 1, totalSize: 2048 })
+    expect(json.folders).toBeUndefined()
     expect(calls.some((call) => call.sql.includes('mime_type LIKE ?') && call.args.includes('image/%'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('folder'))).toBe(false)
     expect(calls.some((call) => call.args.includes(10) && call.args.includes(10))).toBe(true)
   })
 
-  it('uploads multiple files to the selected virtual folder', async () => {
+  it('uploads multiple files to flat R2 keys', async () => {
     const app = createApp()
     const { env, bucket, calls } = createEnv()
     const fd = new FormData()
     fd.append('files', new File(['img'], 'photo.png', { type: 'image/png' }))
-    fd.append('folder', 'gallery')
 
     const res = await app.request('/api/media/upload-multiple', { method: 'POST', body: fd }, env)
     const json = await res.json() as any
 
     expect(res.status).toBe(201)
     expect(json.summary.successful).toBe(1)
-    expect(json.uploaded[0].publicUrl).toContain('/files/gallery/')
-    expect(bucket.put).toHaveBeenCalledWith(expect.stringMatching(/^gallery\//), expect.any(ArrayBuffer), expect.any(Object))
-    expect(calls.some((call) => call.sql.includes('INSERT INTO media') && call.args.includes('gallery'))).toBe(true)
+    expect(json.uploaded[0].publicUrl).toMatch(/^\/files\/[^/]+\.png$/)
+    expect(bucket.put).toHaveBeenCalledWith(expect.not.stringContaining('/'), expect.any(ArrayBuffer), expect.any(Object))
+    expect(calls.some((call) => call.sql.includes('INSERT INTO media') && call.sql.includes('folder'))).toBe(false)
   })
 
   it('stores an ASCII-safe content disposition for unicode filenames', async () => {
@@ -167,7 +163,7 @@ describe('/api/media', () => {
     const res = await app.request('/api/media/media-1', {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ alt: 'New alt', caption: 'Caption', tags: ['hero', 'cover'], folder: 'ignored' }),
+      body: JSON.stringify({ alt: 'New alt', caption: 'Caption', tags: ['hero', 'cover'] }),
     }, env)
 
     expect(res.status).toBe(200)
@@ -175,25 +171,6 @@ describe('/api/media', () => {
     expect(update?.sql).toContain('alt = ?')
     expect(update?.sql).toContain('caption = ?')
     expect(update?.sql).toContain('tags = ?')
-    expect(update?.sql).not.toContain('folder = ?')
-  })
-
-  it('bulk moves media through R2 and database updates', async () => {
-    const app = createApp()
-    const { env, bucket, calls } = createEnv()
-    const res = await app.request('/api/media/bulk-move', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ fileIds: ['media-1'], folder: 'archive' }),
-    }, env)
-    const json = await res.json() as any
-
-    expect(res.status).toBe(200)
-    expect(json.summary.successful).toBe(1)
-    expect(bucket.get).toHaveBeenCalledWith('uploads/media-1.png')
-    expect(bucket.put).toHaveBeenCalledWith('archive/media-1.png', expect.any(ReadableStream), expect.any(Object))
-    expect(bucket.delete).toHaveBeenCalledWith('uploads/media-1.png')
-    expect(calls.some((call) => call.sql.includes('SET folder = ?') && call.args.includes('/files/archive/media-1.png'))).toBe(true)
   })
 
   it('single and bulk delete soft-delete records and delete R2 objects', async () => {
@@ -208,8 +185,8 @@ describe('/api/media', () => {
 
     expect(single.status).toBe(200)
     expect(bulk.status).toBe(200)
-    expect(bucket.delete).toHaveBeenCalledWith('uploads/media-1.png')
-    expect(bucket.delete).toHaveBeenCalledWith('docs/media-2.pdf')
+    expect(bucket.delete).toHaveBeenCalledWith('media-1.png')
+    expect(bucket.delete).toHaveBeenCalledWith('media-2.pdf')
     expect(calls.filter((call) => call.sql.includes('SET deleted_at = ?'))).toHaveLength(2)
   })
 })

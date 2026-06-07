@@ -19,7 +19,6 @@ vi.mock('./client', () => ({
 
 import {
   useBulkDeleteMedia,
-  useBulkMoveMedia,
   useMediaList,
   useUploadMedia,
   useUpdateMedia,
@@ -33,12 +32,11 @@ describe('media api hooks', () => {
   })
 
   it('constructs media list query strings from filters', async () => {
-    mocks.adminFetch.mockResolvedValue({ items: [], total: 0, page: 2, limit: 12, folders: [], types: [] })
+    mocks.adminFetch.mockResolvedValue({ items: [], total: 0, page: 2, limit: 12, types: [] })
 
     const query = useMediaList({
       page: 2,
       limit: 12,
-      folder: 'uploads',
       type: 'images',
       search: 'hero image',
     }) as any
@@ -48,11 +46,10 @@ describe('media api hooks', () => {
     expect(query.queryKey).toEqual(['admin', 'media', {
       page: 2,
       limit: 12,
-      folder: 'uploads',
       type: 'images',
       search: 'hero image',
     }])
-    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media?page=2&limit=12&folder=uploads&type=images&search=hero+image')
+    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media?page=2&limit=12&type=images&search=hero+image')
   })
 
   it('uploads FormData and invalidates media queries', async () => {
@@ -85,22 +82,16 @@ describe('media api hooks', () => {
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'media', 'media-1'] })
   })
 
-  it('posts bulk delete and move requests', async () => {
+  it('posts bulk delete requests', async () => {
     mocks.adminFetch.mockResolvedValue({ success: true, summary: { total: 1, successful: 1, failed: 0 } })
 
     const remove = useBulkDeleteMedia() as any
-    const move = useBulkMoveMedia() as any
 
     await remove.mutationFn({ fileIds: ['media-1'] })
-    await move.mutationFn({ fileIds: ['media-1'], folder: 'archive' })
 
     expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media/bulk-delete', {
       method: 'POST',
       body: JSON.stringify({ fileIds: ['media-1'] }),
-    })
-    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media/bulk-move', {
-      method: 'POST',
-      body: JSON.stringify({ fileIds: ['media-1'], folder: 'archive' }),
     })
   })
 })

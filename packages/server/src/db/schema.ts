@@ -130,7 +130,6 @@ export const media = sqliteTable('media', {
   size: integer('size').notNull(),
   width: integer('width'),
   height: integer('height'),
-  folder: text('folder').notNull().default('uploads'),
   r2Key: text('r2_key').notNull(), // R2 storage key
   publicUrl: text('public_url').notNull(), // CDN URL
   thumbnailUrl: text('thumbnail_url'),
@@ -145,7 +144,6 @@ export const media = sqliteTable('media', {
   archivedAt: integer('archived_at'),
   deletedAt: integer('deleted_at'),
 }, (table) => [
-  index('idx_media_folder').on(table.folder),
   index('idx_media_type').on(table.mimeType),
   index('idx_media_uploaded_by').on(table.uploadedBy),
   index('idx_media_uploaded_at').on(table.uploadedAt),
@@ -232,7 +230,6 @@ export const insertMediaSchema = createInsertSchema(media, {
   size: (schema: any) => schema.positive(),
   r2Key: (schema: any) => schema.min(1),
   publicUrl: (schema: any) => schema.url(),
-  folder: (schema: any) => schema.min(1),
 });
 
 export const selectMediaSchema = createSelectSchema(media);

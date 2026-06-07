@@ -3,10 +3,8 @@ import { z } from 'zod'
 import {
   mediaFileIdsSchema,
   mediaListFiltersSchema,
-  moveMediaSchema,
   updateMediaSchema,
   type BulkDeleteMediaResponse,
-  type BulkMoveMediaResponse,
   type MediaDetailResponse,
   type MediaItem,
   type MediaListResponse,
@@ -47,8 +45,6 @@ const fileValidationSchema = z.object({
   size: z.number().min(1).max(MAX_FILE_SIZE),
 })
 
-const folderSchema = moveMediaSchema.shape.folder.default('uploads')
-
 interface MediaRow {
   id: string
   filename: string
@@ -57,7 +53,6 @@ interface MediaRow {
   size: number
   width: number | null
   height: number | null
-  folder: string
   r2_key: string
   public_url: string | null
   thumbnail_url: string | null
@@ -133,7 +128,6 @@ function mapMediaRow(row: MediaRow): MediaItem {
     size: Number(row.size),
     width: row.width ?? null,
     height: row.height ?? null,
-    folder: row.folder,
     publicUrl,
     thumbnailUrl: row.thumbnail_url || (isImage ? publicUrl : null),
     alt: row.alt ?? null,
@@ -160,7 +154,6 @@ function canMutate(file: MediaRow, user: { userId: string; role: string }) {
 async function uploadOneFile(
   c: MediaContext,
   file: File,
-  folder: string,
 ): Promise<{ item?: MediaItem; error?: MediaMutationError }> {
   const user = c.get('user')!
   const validation = fileValidationSchema.safeParse({
@@ -182,7 +175,7 @@ async function uploadOneFile(
   const fileId = generateId()
   const extension = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
   const filename = `${fileId}.${extension}`
-  const r2Key = `${folder}/${filename}`
+  const r2Key = filename
   const arrayBuffer = await file.arrayBuffer()
 
   const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
@@ -220,8 +213,8 @@ async function uploadOneFile(
   await c.env.DB.prepare(`
     INSERT INTO media (
       id, filename, original_name, mime_type, size, width, height,
-      folder, r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+      r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
+    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `)
     .bind(
       fileId,
@@ -231,7 +224,6 @@ async function uploadOneFile(
       file.size,
       width,
       height,
-      folder,
       r2Key,
       publicUrl,
       thumbnailUrl,
@@ -249,7 +241,6 @@ async function uploadOneFile(
       size: file.size,
       width,
       height,
-      folder,
       r2_key: r2Key,
       public_url: publicUrl,
       thumbnail_url: thumbnailUrl,
@@ -267,7 +258,6 @@ apiMediaRoutes.get('/', async (c) => {
   const filters = mediaListFiltersSchema.safeParse({
     page: c.req.query('page'),
     limit: c.req.query('limit'),
-    folder: c.req.query('folder'),
     type: c.req.query('type') || undefined,
     search: c.req.query('search'),
   })
@@ -276,14 +266,9 @@ apiMediaRoutes.get('/', async (c) => {
     return c.json(validationPayload(filters.error), 422)
   }
 
-  const { page, limit, folder, type, search } = filters.data
+  const { page, limit, type, search } = filters.data
   const conditions = ['deleted_at IS NULL']
   const params: unknown[] = []
-
-  if (folder) {
-    conditions.push('folder = ?')
-    params.push(folder)
-  }
 
   if (type === 'images') {
     conditions.push('mime_type LIKE ?')
@@ -317,14 +302,6 @@ apiMediaRoutes.get('/', async (c) => {
       .bind(...params, limit, offset)
       .all<MediaRow>()
 
-    const { results: folderResults = [] } = await c.env.DB.prepare(`
-      SELECT folder, COUNT(*) as count, COALESCE(SUM(size), 0) as totalSize
-      FROM media
-      WHERE deleted_at IS NULL
-      GROUP BY folder
-      ORDER BY folder
-    `).all<{ folder: string; count: number; totalSize: number }>()
-
     const { results: typeResults = [] } = await c.env.DB.prepare(`
       SELECT
         CASE
@@ -343,11 +320,6 @@ apiMediaRoutes.get('/', async (c) => {
       total: Number(countRes?.count || 0),
       page,
       limit,
-      folders: folderResults.map((row) => ({
-        folder: row.folder,
-        count: Number(row.count),
-        totalSize: Number(row.totalSize),
-      })),
       types: typeResults.map((row) => ({
         type: row.type,
         count: Number(row.count),
@@ -384,13 +356,8 @@ apiMediaRoutes.post('/upload', async (c) => {
     return c.json({ error: 'No file provided' }, 400)
   }
 
-  const folder = folderSchema.safeParse(formData.get('folder') || undefined)
-  if (!folder.success) {
-    return c.json(validationPayload(folder.error), 422)
-  }
-
   try {
-    const result = await uploadOneFile(c, fileData as File, folder.data)
+    const result = await uploadOneFile(c, fileData as File)
     if (result.error || !result.item) {
       return c.json({ error: result.error?.error || 'Upload failed', details: result.error?.details }, 400)
     }
@@ -418,17 +385,12 @@ apiMediaRoutes.post('/upload-multiple', async (c) => {
     return c.json({ error: 'No files provided' }, 400)
   }
 
-  const folder = folderSchema.safeParse(formData.get('folder') || undefined)
-  if (!folder.success) {
-    return c.json(validationPayload(folder.error), 422)
-  }
-
   const uploaded: MediaItem[] = []
   const errors: MediaMutationError[] = []
 
   for (const file of files) {
     try {
-      const result = await uploadOneFile(c, file, folder.data)
+      const result = await uploadOneFile(c, file)
       if (result.item) uploaded.push(result.item)
       if (result.error) errors.push(result.error)
     } catch (error) {
@@ -521,100 +483,6 @@ apiMediaRoutes.post('/bulk-delete', async (c) => {
     summary: {
       total: body.data.fileIds.length,
       successful: deleted.length,
-      failed: errors.length,
-    },
-  }
-
-  return c.json(response)
-})
-
-apiMediaRoutes.post('/bulk-move', async (c) => {
-  const user = c.get('user')!
-  const body = moveMediaSchema.safeParse(await c.req.json().catch(() => null))
-  if (!body.success) {
-    return c.json(validationPayload(body.error), 422)
-  }
-
-  const moved: BulkMoveMediaResponse['moved'] = []
-  const errors: MediaMutationError[] = []
-  const now = Math.floor(Date.now() / 1000)
-
-  for (const fileId of body.data.fileIds) {
-    try {
-      const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-        .bind(fileId)
-        .first<MediaRow>()
-
-      if (!file) {
-        errors.push({ fileId, error: 'File not found' })
-        continue
-      }
-
-      if (!canMutate(file, user)) {
-        errors.push({ fileId, filename: file.original_name, error: 'Permission denied' })
-        continue
-      }
-
-      if (file.folder === body.data.folder) {
-        moved.push({ fileId, filename: file.original_name, success: true, skipped: true })
-        continue
-      }
-
-      const filename = file.r2_key.split('/').pop() || file.filename
-      const newR2Key = `${body.data.folder}/${filename}`
-      const object = await c.env.MEDIA_BUCKET.get(file.r2_key)
-
-      if (!object) {
-        errors.push({ fileId, filename: file.original_name, error: 'File not found in storage' })
-        continue
-      }
-
-      await c.env.MEDIA_BUCKET.put(newR2Key, object.body, {
-        httpMetadata: object.httpMetadata,
-        customMetadata: {
-          ...object.customMetadata,
-          movedBy: user.userId,
-          movedAt: new Date().toISOString(),
-        },
-      })
-      await c.env.MEDIA_BUCKET.delete(file.r2_key)
-
-      await c.env.DB.prepare(`
-        UPDATE media
-        SET folder = ?, r2_key = ?, public_url = ?, thumbnail_url = ?, updated_at = ?
-        WHERE id = ?
-      `)
-        .bind(
-          body.data.folder,
-          newR2Key,
-          publicUrlForKey(newR2Key),
-          file.mime_type.startsWith('image/') ? publicUrlForKey(newR2Key) : file.thumbnail_url,
-          now,
-          fileId,
-        )
-        .run()
-
-      moved.push({ fileId, filename: file.original_name, success: true, skipped: false })
-    } catch (error) {
-      errors.push({
-        fileId,
-        error: 'Move failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
-    }
-  }
-
-  if (moved.length > 0) {
-    await emitEvent('media.move', { count: moved.length, targetFolder: body.data.folder, ids: body.data.fileIds })
-  }
-
-  const response: BulkMoveMediaResponse = {
-    success: moved.length > 0,
-    moved,
-    errors,
-    summary: {
-      total: body.data.fileIds.length,
-      successful: moved.length,
       failed: errors.length,
     },
   }

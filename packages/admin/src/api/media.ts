@@ -1,12 +1,10 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import type {
   BulkDeleteMediaResponse,
-  BulkMoveMediaResponse,
   MediaFileIdsRequest,
   MediaListFilters,
   MediaListResponse,
   MediaDetailResponse,
-  MoveMediaRequest,
   UploadMediaResponse,
   MutateMediaResponse,
   UpdateMediaRequest,
@@ -19,7 +17,6 @@ export function useMediaList(filters: MediaFilters = {}) {
   const params = new URLSearchParams()
   if (filters.page) params.set('page', String(filters.page))
   if (filters.limit) params.set('limit', String(filters.limit))
-  if (filters.folder) params.set('folder', filters.folder)
   if (filters.type) params.set('type', filters.type)
   if (filters.search) params.set('search', filters.search)
   const qs = params.toString()
@@ -83,20 +80,6 @@ export function useBulkDeleteMedia() {
   return useMutation<BulkDeleteMediaResponse, Error, MediaFileIdsRequest>({
     mutationFn: (data) =>
       adminFetch<BulkDeleteMediaResponse>('/api/media/bulk-delete', {
-        method: 'POST',
-        body: JSON.stringify(data),
-      }),
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'media'] })
-    },
-  })
-}
-
-export function useBulkMoveMedia() {
-  const qc = useQueryClient()
-  return useMutation<BulkMoveMediaResponse, Error, MoveMediaRequest>({
-    mutationFn: (data) =>
-      adminFetch<BulkMoveMediaResponse>('/api/media/bulk-move', {
         method: 'POST',
         body: JSON.stringify(data),
       }),

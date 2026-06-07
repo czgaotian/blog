@@ -90,8 +90,6 @@ export const ROUTE_METADATA: Record<string, RouteMeta> = {
   'PATCH /api/media/:id': { description: 'Update media metadata', category: 'Media', authentication: true },
   'DELETE /api/media/:id': { description: 'Delete a media file', category: 'Media', authentication: true },
   'POST /api/media/bulk-delete': { description: 'Delete multiple media files', category: 'Media', authentication: true },
-  'POST /api/media/create-folder': { description: 'Create a media folder', category: 'Media', authentication: true },
-  'POST /api/media/bulk-move': { description: 'Move multiple media files', category: 'Media', authentication: true },
 
   'GET /api/admin/dashboard': { description: 'Get admin dashboard data', category: 'Admin', authentication: true },
   'GET /api/admin/contents': { description: 'List content for admin management', category: 'Admin', authentication: true },
