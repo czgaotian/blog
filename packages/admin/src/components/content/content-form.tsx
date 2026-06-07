@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SimpleEditor } from "@worker-blog/editor/react";
+import { SimpleEditor } from "@worker-blog/editor";
 import type { ContentStatus } from "@worker-blog/shared/admin-api";
 import { Plus } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -190,7 +190,9 @@ export function ContentForm({
                   </Field>
                   {status === "scheduled" || status === "published" ? (
                     <Field data-invalid={!!errors.publishedAt}>
-                      <FieldLabel htmlFor="publishedAt">Publish time</FieldLabel>
+                      <FieldLabel htmlFor="publishedAt">
+                        Publish time
+                      </FieldLabel>
                       <Input
                         id="publishedAt"
                         type="datetime-local"
@@ -239,7 +241,9 @@ export function ContentForm({
                             </SelectTrigger>
                             <SelectContent>
                               <SelectGroup>
-                                <SelectItem value="none">No category</SelectItem>
+                                <SelectItem value="none">
+                                  No category
+                                </SelectItem>
                                 {categories.data?.items.map((category) => (
                                   <SelectItem
                                     key={category.id}
@@ -333,10 +337,7 @@ export function ContentForm({
                 control={form.control}
                 name="bodyJson"
                 render={({ field }) => (
-                  <SimpleEditor
-                    value={field.value}
-                    onChange={field.onChange}
-                  />
+                  <SimpleEditor value={field.value} onChange={field.onChange} />
                 )}
               />
               <FieldError errors={[errors.bodyJson]} />

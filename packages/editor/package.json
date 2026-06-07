@@ -5,8 +5,8 @@
   "description": "Shared Tiptap editor package for Worker Blog",
   "type": "module",
   "exports": {
+    ".": "./src/index.tsx",
     "./schema": "./src/schema/index.ts",
-    "./react": "./src/react/index.ts",
     "./server": "./src/server/index.ts",
     "./styles/*": "./src/styles/*.scss"
   },

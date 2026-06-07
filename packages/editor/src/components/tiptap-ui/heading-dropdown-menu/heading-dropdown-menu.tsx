@@ -1,37 +1,37 @@
-import { forwardRef, useCallback, useState } from "react"
+import { forwardRef, useCallback, useState } from "react";
 
 // --- Icons ---
-import { ChevronDownIcon } from "../../tiptap-icons/chevron-down-icon"
+import { ChevronDownIcon } from "../../tiptap-icons/chevron-down-icon";
 
 // --- Hooks ---
-import { useTiptapEditor } from "../../../hooks/use-tiptap-editor"
+import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
 
 // --- Tiptap UI ---
-import { HeadingButton } from "../heading-button"
-import type { UseHeadingDropdownMenuConfig } from "./"
-import { useHeadingDropdownMenu } from "./"
+import { HeadingButton } from "../heading-button";
+import type { UseHeadingDropdownMenuConfig } from ".";
+import { useHeadingDropdownMenu } from ".";
 
 // --- UI Primitives ---
-import type { ButtonProps } from "../../tiptap-ui-primitive/button"
-import { Button } from "../../tiptap-ui-primitive/button"
+import type { ButtonProps } from "../../tiptap-ui-primitive/button";
+import { Button } from "../../tiptap-ui-primitive/button";
 import {
   DropdownMenu,
   DropdownMenuTrigger,
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuGroup,
-} from "../../tiptap-ui-primitive/dropdown-menu"
+} from "../../tiptap-ui-primitive/dropdown-menu";
 
 export interface HeadingDropdownMenuProps
   extends Omit<ButtonProps, "type">, UseHeadingDropdownMenuConfig {
   /**
    * Callback for when the dropdown opens or closes
    */
-  onOpenChange?: (isOpen: boolean) => void
+  onOpenChange?: (isOpen: boolean) => void;
   /**
    * Whether the dropdown should use a modal
    */
-  modal?: boolean
+  modal?: boolean;
 }
 
 /**
@@ -53,27 +53,27 @@ export const HeadingDropdownMenu = forwardRef<
       modal = true,
       ...buttonProps
     },
-    ref
+    ref,
   ) => {
-    const { editor } = useTiptapEditor(providedEditor)
-    const [isOpen, setIsOpen] = useState<boolean>(false)
+    const { editor } = useTiptapEditor(providedEditor);
+    const [isOpen, setIsOpen] = useState<boolean>(false);
     const { isVisible, isActive, canToggle, Icon } = useHeadingDropdownMenu({
       editor,
       levels,
       hideWhenUnavailable,
-    })
+    });
 
     const handleOpenChange = useCallback(
       (open: boolean) => {
-        if (!editor || !canToggle) return
-        setIsOpen(open)
-        onOpenChange?.(open)
+        if (!editor || !canToggle) return;
+        setIsOpen(open);
+        onOpenChange?.(open);
       },
-      [canToggle, editor, onOpenChange]
-    )
+      [canToggle, editor, onOpenChange],
+    );
 
     if (!isVisible) {
-      return null
+      return null;
     }
 
     return (
@@ -119,10 +119,10 @@ export const HeadingDropdownMenu = forwardRef<
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
-    )
-  }
-)
+    );
+  },
+);
 
-HeadingDropdownMenu.displayName = "HeadingDropdownMenu"
+HeadingDropdownMenu.displayName = "HeadingDropdownMenu";
 
-export default HeadingDropdownMenu
+export default HeadingDropdownMenu;
