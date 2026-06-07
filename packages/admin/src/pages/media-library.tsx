@@ -535,6 +535,8 @@ export function MediaLibraryPage() {
           <Pagination
             page={page}
             pageCount={totalPages}
+            hrefForPage={(pageNumber) => `?page=${pageNumber}`}
+            onPageChange={setPage}
             previousHref={page > 1 ? `?page=${page - 1}` : undefined}
             nextHref={page < totalPages ? `?page=${page + 1}` : undefined}
           />

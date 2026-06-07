@@ -161,6 +161,7 @@ export function ContentsListPage() {
           <Pagination
             page={filters.page}
             pageCount={totalPages}
+            hrefForPage={(pageNumber) => `?${writeContentListFilters({ ...filters, page: pageNumber })}`}
             previousHref={filters.page > 1 ? `?${writeContentListFilters({ ...filters, page: filters.page - 1 })}` : undefined}
             nextHref={filters.page < totalPages ? `?${writeContentListFilters({ ...filters, page: filters.page + 1 })}` : undefined}
           />

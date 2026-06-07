@@ -102,6 +102,8 @@ export function LogsListPage() {
             <Pagination
               page={page}
               pageCount={totalPages}
+              hrefForPage={buildPageHref}
+              onPageChange={setPage}
               previousHref={page > 1 ? buildPageHref(page - 1) : undefined}
               nextHref={page < totalPages ? buildPageHref(page + 1) : undefined}
             />
