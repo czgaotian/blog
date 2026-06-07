@@ -64,14 +64,22 @@ const navSections: Array<{ label: string; items: NavItem[] }> = [
 
 const navItems = navSections.flatMap((section) => section.items);
 
-function NavList({ onNavigate }: { onNavigate?: () => void }) {
+function NavList({
+  collapsed = false,
+  onNavigate,
+}: {
+  collapsed?: boolean;
+  onNavigate?: () => void;
+}) {
   return (
     <nav className="flex flex-1 flex-col gap-5 overflow-y-auto">
       {navSections.map((section) => (
         <div className="flex flex-col gap-1" key={section.label}>
-          <p className="px-3 text-xs font-medium uppercase text-muted-foreground">
-            {section.label}
-          </p>
+          {collapsed ? null : (
+            <p className="px-3 text-xs font-medium uppercase text-muted-foreground">
+              {section.label}
+            </p>
+          )}
           {section.items.map((item) => {
             const Icon = item.icon;
             const className =
@@ -85,13 +93,15 @@ function NavList({ onNavigate }: { onNavigate?: () => void }) {
                 className={({ isActive }) =>
                   cn(
                     className,
+                    collapsed && "justify-center px-0",
                     isActive &&
                       "bg-primary text-primary-foreground shadow-sm hover:bg-primary hover:text-primary-foreground",
                   )
                 }
+                title={collapsed ? item.label : undefined}
               >
                 <Icon className="size-4 shrink-0" />
-                <span className="truncate">{item.label}</span>
+                {collapsed ? null : <span className="truncate">{item.label}</span>}
               </NavLink>
             );
           })}
@@ -118,6 +128,7 @@ export function BaseLayout() {
     );
   });
   const [mobileNavOpen, setMobileNavOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   const appName = meQuery.data?.app.name || "Worker Blog";
   const appVersion = meQuery.data?.app.version;
@@ -147,28 +158,41 @@ export function BaseLayout() {
 
   return (
     <div className="min-h-screen bg-muted/30 text-foreground">
-      <aside className="fixed inset-y-0 left-0 hidden w-64 border-r border-border bg-background px-3 py-4 md:flex md:flex-col">
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 hidden border-r border-border bg-background px-3 py-4 transition-[width] md:flex md:flex-col",
+          sidebarCollapsed ? "w-20" : "w-64",
+        )}
+      >
         <Link
           to="/dashboard"
-          className="flex h-11 items-center gap-3 rounded-md px-3 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring"
+          className={cn(
+            "flex h-11 items-center gap-3 rounded-md px-3 outline-none hover:bg-accent focus-visible:ring-2 focus-visible:ring-ring",
+            sidebarCollapsed && "justify-center px-0",
+          )}
+          title={sidebarCollapsed ? appName : undefined}
         >
           <span className="flex size-8 shrink-0 items-center justify-center rounded-md bg-primary text-sm font-semibold text-primary-foreground">
             {appName.slice(0, 1).toUpperCase()}
           </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-sm font-semibold">{appName}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              Admin console
-            </span>
-          </span>
-          {appVersion ? <Badge className="shrink-0">{appVersion}</Badge> : null}
+          {sidebarCollapsed ? null : (
+            <>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-sm font-semibold">{appName}</span>
+                <span className="block truncate text-xs text-muted-foreground">
+                  Admin console
+                </span>
+              </span>
+              {appVersion ? <Badge className="shrink-0">{appVersion}</Badge> : null}
+            </>
+          )}
         </Link>
         <div className="mt-6 flex min-h-0 flex-1 flex-col">
-          <NavList />
+          <NavList collapsed={sidebarCollapsed} />
         </div>
       </aside>
 
-      <div className="md:pl-64">
+      <div className={cn("transition-[padding] md:pl-64", sidebarCollapsed && "md:pl-20")}>
         <header className="sticky top-0 flex h-14 items-center justify-between border-b border-border bg-background/95 px-4 backdrop-blur">
           <div className="flex min-w-0 items-center gap-3">
             <Button
@@ -182,7 +206,17 @@ export function BaseLayout() {
             >
               <Menu />
             </Button>
-            <PanelLeft className="hidden size-4 shrink-0 text-muted-foreground md:block" />
+            <Button
+              aria-label={sidebarCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+              aria-pressed={sidebarCollapsed}
+              className="hidden md:inline-flex"
+              size="icon"
+              type="button"
+              variant="ghost"
+              onClick={() => setSidebarCollapsed((collapsed) => !collapsed)}
+            >
+              <PanelLeft />
+            </Button>
             <div className="min-w-0">
               <p className="truncate text-sm font-semibold">{currentSection}</p>
               <p className="truncate text-xs text-muted-foreground">
