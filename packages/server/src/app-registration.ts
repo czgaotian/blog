@@ -23,6 +23,7 @@ import { securityAuditApiRoutes } from "./features/security-audit/routes/api";
 import securityAuditAdminApiRoutes from "./features/security-audit/routes/admin-api";
 import { eventsApiRoutes } from "./features/analytics/routes/api";
 import analyticsAdminApiRoutes from "./features/analytics/routes/admin-api";
+import { ensureAsciiContentDisposition } from "./utils/content-disposition";
 import type { WorkerBlogApp, WorkerBlogConfig } from "./app";
 
 export function registerCoreMiddleware(
@@ -133,7 +134,10 @@ export function registerAssetsAndFallbackRoutes(
       object.httpMetadata?.contentDisposition &&
         headers.set(
           "Content-Disposition",
-          object.httpMetadata.contentDisposition,
+          ensureAsciiContentDisposition(
+            object.httpMetadata.contentDisposition,
+            object.customMetadata?.originalName || objectKey,
+          ),
         );
       headers.set("Cache-Control", "public, max-age=31536000");
       headers.set("Access-Control-Allow-Origin", "*");

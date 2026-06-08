@@ -13,6 +13,7 @@ import {
 } from '@worker-blog/shared/admin-api'
 import { requireAuth } from '../middleware'
 import type { Bindings, Variables } from '../app'
+import { createContentDisposition } from '../utils/content-disposition'
 
 const MAX_FILE_SIZE = 50 * 1024 * 1024
 
@@ -88,28 +89,6 @@ apiMediaRoutes.use('*', requireAuth())
 
 function generateId(): string {
   return crypto.randomUUID().replace(/-/g, '').substring(0, 21)
-}
-
-function encodeRFC5987Value(value: string): string {
-  return encodeURIComponent(value).replace(/[!'()*]/g, (char) =>
-    `%${char.charCodeAt(0).toString(16).toUpperCase()}`,
-  )
-}
-
-function createContentDisposition(filename: string): string {
-  const extension = filename.match(/\.([A-Za-z0-9]{1,12})$/)?.[1]
-  const baseName = filename.replace(/\.[^.]*$/, '')
-  const asciiBaseName = baseName
-    .normalize('NFKD')
-    .replace(/[^\x20-\x7E]/g, '')
-    .replace(/["\\]/g, '')
-    .replace(/[^A-Za-z0-9._ -]/g, '-')
-    .replace(/[- ]+/g, '-')
-    .replace(/^[.-]+|[.-]+$/g, '')
-
-  const fallbackFilename = `${asciiBaseName || 'download'}${extension ? `.${extension}` : ''}`
-
-  return `inline; filename="${fallbackFilename}"; filename*=UTF-8''${encodeRFC5987Value(filename)}`
 }
 
 async function emitEvent(eventName: string, data: unknown) {

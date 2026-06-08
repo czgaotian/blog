@@ -97,4 +97,31 @@ describe("createWorkerBlogApp route smoke tests", () => {
     expect(await adminRes.text()).toContain("admin-root");
     expect(fileRes.status).toBe(404);
   });
+
+  it("serves R2 files with ASCII-safe content disposition headers", async () => {
+    const app = createWorkerBlogApp();
+    const env = createTestEnv({
+      MEDIA_BUCKET: {
+        get: vi.fn().mockResolvedValue({
+          body: new ReadableStream(),
+          httpMetadata: {
+            contentType: "image/png",
+            contentDisposition: 'inline; filename="截图 2026-05-28 22-38-40.png"',
+          },
+          customMetadata: {
+            originalName: "截图 2026-05-28 22-38-40.png",
+          },
+        }),
+      },
+    });
+
+    const res = await app.request("/files/media-1.png", {}, env);
+    const contentDisposition = res.headers.get("Content-Disposition");
+
+    expect(res.status).toBe(200);
+    expect(contentDisposition).toBe(
+      `inline; filename="2026-05-28-22-38-40.png"; filename*=UTF-8''${encodeURIComponent("截图 2026-05-28 22-38-40.png")}`,
+    );
+    expect(contentDisposition).toMatch(/^[\x00-\x7F]+$/);
+  });
 });
