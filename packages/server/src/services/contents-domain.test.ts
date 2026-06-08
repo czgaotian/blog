@@ -43,6 +43,73 @@ const existingContent = {
 }
 
 describe('content domain creation', () => {
+  it('creates body and cover media references without duplicate body entries', async () => {
+    const { db, calls } = createMockDb((sql, args) => {
+      if (sql.includes('SELECT id FROM media')) return { id: args[0] }
+      if (sql.includes('COUNT(*) as count FROM media')) return { count: args.length }
+      return null
+    })
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'admin-create',
+      input: {
+        title: 'Media post',
+        status: 'draft',
+        coverImageId: 'media-1',
+        bodyJson: {
+          type: 'doc',
+          content: [
+            { type: 'image', attrs: { src: '/files/media-1.png', mediaId: 'media-1' } },
+            { type: 'image', attrs: { src: '/files/media-1.png', mediaId: 'media-1' } },
+          ],
+        },
+      },
+      authorId: 'user-1',
+      id: 'content-1',
+      now: 123,
+    })
+
+    expect(result.created).toBe(true)
+    const referenceCalls = calls.filter((call) => call.sql.includes('INSERT INTO content_media_references'))
+    expect(referenceCalls).toHaveLength(2)
+    expect(referenceCalls.map((call) => call.args.slice(0, 3))).toEqual([
+      ['content-1', 'media-1', 'body'],
+      ['content-1', 'media-1', 'cover'],
+    ])
+  })
+
+  it('rejects missing body media without inserting content', async () => {
+    const { db, calls } = createMockDb((sql) => {
+      if (sql.includes('COUNT(*) as count FROM media')) return { count: 0 }
+      return null
+    })
+
+    const result = await createContent({
+      db: db as any,
+      mode: 'admin-create',
+      input: {
+        title: 'Broken media post',
+        status: 'draft',
+        bodyJson: {
+          type: 'doc',
+          content: [
+            { type: 'image', attrs: { src: '/files/missing.png', mediaId: 'missing-media' } },
+          ],
+        },
+      },
+      authorId: 'user-1',
+      id: 'content-1',
+      now: 123,
+    })
+
+    expect(result).toMatchObject({
+      created: false,
+      validationError: 'One or more body media items were not found',
+    })
+    expect(calls.some((call) => call.sql.includes('INSERT INTO contents'))).toBe(false)
+  })
+
   it('creates admin content with an initial snapshot version', async () => {
     const { db, calls } = createMockDb(() => null)
 
@@ -211,6 +278,7 @@ describe('content domain deletion', () => {
       mode: 'admin-soft',
     })
     expect(calls.some((call) => call.sql.includes("UPDATE contents SET status = 'deleted'"))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('DELETE FROM content_media_references'))).toBe(true)
   })
 
   it('returns not found without mutating content', async () => {
@@ -233,6 +301,37 @@ describe('content domain deletion', () => {
 })
 
 describe('content domain update', () => {
+  it('replaces media references when updating content', async () => {
+    const { db, calls } = createMockDb((sql, args) => {
+      if (sql.includes('SELECT * FROM contents')) return existingContent
+      if (sql.includes('SELECT id FROM contents WHERE slug = ?')) return null
+      if (sql.includes('COUNT(*) as count FROM media')) return { count: args.length }
+      if (sql.includes('SELECT MAX(version)')) return { max_version: 1 }
+      return null
+    })
+
+    const result = await updateContent({
+      db: db as any,
+      id: 'content-1',
+      mode: 'admin-update',
+      patch: {
+        bodyJson: {
+          type: 'doc',
+          content: [
+            { type: 'image', attrs: { src: '/files/media-2.png', mediaId: 'media-2' } },
+          ],
+        },
+      },
+      authorId: 'user-2',
+      now: 456,
+    })
+
+    expect(result.found).toBe(true)
+    expect(calls.some((call) => call.sql.includes('DELETE FROM content_media_references'))).toBe(true)
+    const referenceCall = calls.find((call) => call.sql.includes('INSERT INTO content_media_references'))
+    expect(referenceCall?.args.slice(0, 3)).toEqual(['content-1', 'media-2', 'body'])
+  })
+
   it('updates admin content and creates a snapshot version when fields change', async () => {
     const { db, calls } = createMockDb((sql) => {
       if (sql.includes('SELECT * FROM contents')) return existingContent
@@ -325,7 +424,12 @@ describe('content domain version restore', () => {
       title: 'Restored title',
       slug: 'restored-title',
       excerpt: null,
-      bodyJson: { type: 'doc', content: [] },
+      bodyJson: {
+        type: 'doc',
+        content: [
+          { type: 'image', attrs: { src: '/files/media-3.png', mediaId: 'media-3' } },
+        ],
+      },
       status: 'draft',
       categoryId: null,
       coverImageId: null,
@@ -339,6 +443,7 @@ describe('content domain version restore', () => {
     }
     const { db, calls } = createMockDb((sql) => {
       if (sql.includes('SELECT data FROM content_versions')) return { data: JSON.stringify(snapshot) }
+      if (sql.includes('COUNT(*) as count FROM media')) return { count: 1 }
       if (sql.includes('SELECT MAX(version)')) return { max_version: 2 }
       return null
     })
@@ -358,6 +463,8 @@ describe('content domain version restore', () => {
     })
     expect(calls.some((call) => call.sql.includes('UPDATE contents'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO content_versions'))).toBe(true)
+    const referenceCall = calls.find((call) => call.sql.includes('INSERT INTO content_media_references'))
+    expect(referenceCall?.args.slice(0, 3)).toEqual(['content-1', 'media-3', 'body'])
   })
 
   it('returns not restored for a missing version without mutation', async () => {

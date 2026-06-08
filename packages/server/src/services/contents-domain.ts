@@ -134,6 +134,8 @@ interface NormalizedContentInput {
   publishedAt: number | null;
 }
 
+type MediaUsageType = "body" | "cover";
+
 export async function createContent(
   options: CreateContentOptions,
 ): Promise<CreateContentResult> {
@@ -203,6 +205,13 @@ export async function createContent(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
+  await replaceContentMediaReferences(
+    db,
+    id,
+    value.bodyJson,
+    value.coverImageId,
+    now,
+  );
 
   if (options.mode === "admin-create") {
     await insertContentVersion(
@@ -324,6 +333,13 @@ export async function updateContent(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
+  await replaceContentMediaReferences(
+    db,
+    id,
+    value.bodyJson,
+    value.coverImageId,
+    now,
+  );
 
   const changed = hasContentChanged(existing, existingTagIds, value);
 
@@ -384,7 +400,9 @@ export async function deleteContent(
       )
       .bind(now, now, id)
       .run();
+    await deleteContentMediaReferences(db, id);
   } else {
+    await deleteContentMediaReferences(db, id);
     await db
       .prepare("DELETE FROM content_tags WHERE content_id = ?")
       .bind(id)
@@ -469,6 +487,13 @@ export async function restoreContentVersion(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
+  await replaceContentMediaReferences(
+    db,
+    id,
+    value.bodyJson,
+    value.coverImageId,
+    now,
+  );
 
   await insertContentVersion(
     db,
@@ -510,6 +535,8 @@ async function normalizeAndValidateContentInput(
   const tagIds = Array.from(new Set(input.tagIds.filter(Boolean)));
   const categoryId = input.categoryId || null;
   const coverImageId = input.coverImageId || null;
+  const bodyJson = input.bodyJson ?? cloneEmptyTiptapDocument();
+  const bodyMediaIds = extractBodyMediaIds(bodyJson);
 
   if (categoryId) {
     const category = await db
@@ -525,6 +552,19 @@ async function normalizeAndValidateContentInput(
       .bind(coverImageId)
       .first();
     if (!media) return { error: "Cover image not found" };
+  }
+
+  if (bodyMediaIds.length > 0) {
+    const placeholders = bodyMediaIds.map(() => "?").join(",");
+    const row = (await db
+      .prepare(
+        `SELECT COUNT(*) as count FROM media WHERE id IN (${placeholders}) AND deleted_at IS NULL`,
+      )
+      .bind(...bodyMediaIds)
+      .first()) as any;
+    if (Number(row?.count || 0) !== bodyMediaIds.length) {
+      return { error: "One or more body media items were not found" };
+    }
   }
 
   if (tagIds.length > 0) {
@@ -547,7 +587,7 @@ async function normalizeAndValidateContentInput(
       tagIds,
       metadata: input.metadata ?? {},
       excerpt: input.excerpt ?? null,
-      bodyJson: input.bodyJson ?? cloneEmptyTiptapDocument(),
+      bodyJson,
     },
   };
 }
@@ -570,6 +610,76 @@ async function replaceContentTags(
       .bind(contentId, tagId, now)
       .run();
   }
+}
+
+export function extractBodyMediaIds(bodyJson: JSONContent): string[] {
+  const ids = new Set<string>();
+
+  function walk(value: unknown): void {
+    if (!value || typeof value !== "object") return;
+
+    const node = value as {
+      type?: unknown;
+      attrs?: { mediaId?: unknown };
+      content?: unknown;
+    };
+
+    const mediaId = node.attrs?.mediaId;
+    if (node.type === "image" && typeof mediaId === "string" && mediaId.trim()) {
+      ids.add(mediaId.trim());
+    }
+
+    if (Array.isArray(node.content)) {
+      for (const child of node.content) walk(child);
+    }
+  }
+
+  walk(bodyJson);
+  return [...ids];
+}
+
+async function replaceContentMediaReferences(
+  db: D1Database,
+  contentId: string,
+  bodyJson: JSONContent,
+  coverImageId: string | null,
+  now: number,
+): Promise<void> {
+  await deleteContentMediaReferences(db, contentId);
+
+  const references: Array<{ mediaId: string; usageType: MediaUsageType }> = [
+    ...extractBodyMediaIds(bodyJson).map((mediaId) => ({
+      mediaId,
+      usageType: "body" as const,
+    })),
+  ];
+
+  if (coverImageId) {
+    references.push({ mediaId: coverImageId, usageType: "cover" });
+  }
+
+  for (const reference of references) {
+    await db
+      .prepare(
+        `
+        INSERT INTO content_media_references
+          (content_id, media_id, usage_type, created_at, updated_at)
+        VALUES (?, ?, ?, ?, ?)
+      `,
+      )
+      .bind(contentId, reference.mediaId, reference.usageType, now, now)
+      .run();
+  }
+}
+
+async function deleteContentMediaReferences(
+  db: D1Database,
+  contentId: string,
+): Promise<void> {
+  await db
+    .prepare("DELETE FROM content_media_references WHERE content_id = ?")
+    .bind(contentId)
+    .run();
 }
 
 async function getContentTagIds(

@@ -46,7 +46,7 @@ const mediaRows = [
   },
 ]
 
-function createDb() {
+function createDb(activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {}) {
   const calls: Array<{ sql: string; args: unknown[] }> = []
   const db = {
     prepare: (sql: string) => ({
@@ -59,6 +59,7 @@ function createDb() {
         },
         all: async () => {
           calls.push({ sql, args })
+          if (sql.includes('content_media_references')) return { results: activeReferences[String(args[0])] ?? [] }
           if (sql.includes('SELECT * FROM media')) return { results: [mediaRows[0]] }
           if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }, { type: 'audio', count: 1 }, { type: 'other', count: 1 }] }
           return { results: [] }
@@ -88,8 +89,8 @@ function createApp() {
   return app
 }
 
-function createEnv() {
-  const { db, calls } = createDb()
+function createEnv(activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {}) {
+  const { db, calls } = createDb(activeReferences)
   const bucket = {
     put: vi.fn().mockResolvedValue({}),
     get: vi.fn().mockResolvedValue({
@@ -208,5 +209,67 @@ describe('/api/media', () => {
     expect(bucket.delete).toHaveBeenCalledWith('media-1.png')
     expect(bucket.delete).toHaveBeenCalledWith('media-2.pdf')
     expect(calls.filter((call) => call.sql.includes('SET deleted_at = ?'))).toHaveLength(2)
+  })
+
+  it('blocks single delete when media is referenced by active content', async () => {
+    const app = createApp()
+    const { env, bucket } = createEnv({
+      'media-1': [{ content_id: 'content-1', title: 'Post title', usage_type: 'body' }],
+    })
+
+    const res = await app.request('/api/media/media-1', { method: 'DELETE' }, env)
+    const json = await res.json() as any
+
+    expect(res.status).toBe(409)
+    expect(json).toEqual({
+      error: 'Media is in use',
+      details: {
+        count: 1,
+        references: [{ contentId: 'content-1', title: 'Post title', usageType: 'body' }],
+      },
+    })
+    expect(bucket.delete).not.toHaveBeenCalled()
+  })
+
+  it('reports referenced media in bulk delete errors and deletes unreferenced media', async () => {
+    const app = createApp()
+    const { env, bucket, calls } = createEnv({
+      'media-1': [{ content_id: 'content-1', title: 'Post title', usage_type: 'cover' }],
+    })
+
+    const res = await app.request('/api/media/bulk-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ fileIds: ['media-1', 'media-2'] }),
+    }, env)
+    const json = await res.json() as any
+
+    expect(res.status).toBe(200)
+    expect(json.deleted).toEqual([{ fileId: 'media-2', filename: 'guide.pdf', success: true }])
+    expect(json.errors).toMatchObject([
+      {
+        fileId: 'media-1',
+        filename: 'hero.png',
+        error: 'Media is in use',
+        details: {
+          count: 1,
+          references: [{ contentId: 'content-1', title: 'Post title', usageType: 'cover' }],
+        },
+      },
+    ])
+    expect(bucket.delete).toHaveBeenCalledWith('media-2.pdf')
+    expect(bucket.delete).not.toHaveBeenCalledWith('media-1.png')
+    expect(calls.filter((call) => call.sql.includes('SET deleted_at = ?'))).toHaveLength(1)
+  })
+
+  it('does not block delete for references from soft-deleted content', async () => {
+    const app = createApp()
+    const { env, bucket, calls } = createEnv()
+
+    const res = await app.request('/api/media/media-1', { method: 'DELETE' }, env)
+
+    expect(res.status).toBe(200)
+    expect(bucket.delete).toHaveBeenCalledWith('media-1.png')
+    expect(calls.some((call) => call.sql.includes('content_media_references') && call.sql.includes('c.deleted_at IS NULL'))).toBe(true)
   })
 })

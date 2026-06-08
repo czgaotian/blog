@@ -71,6 +71,15 @@ interface MediaRow {
   deleted_at: number | string | null
 }
 
+interface MediaReferenceSummary {
+  count: number
+  references: Array<{
+    contentId: string
+    title: string
+    usageType: string
+  }>
+}
+
 type MediaContext = Context<{ Bindings: Bindings; Variables: Variables }>
 
 export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
@@ -160,6 +169,28 @@ function validationPayload(error: z.ZodError) {
 
 function canMutate(file: MediaRow, user: { userId: string; role: string }) {
   return file.uploaded_by === user.userId || user.role === 'admin'
+}
+
+async function getActiveMediaReferences(db: D1Database, mediaId: string): Promise<MediaReferenceSummary> {
+  const { results = [] } = await db.prepare(`
+    SELECT cmr.content_id, c.title, cmr.usage_type
+    FROM content_media_references cmr
+    INNER JOIN contents c ON c.id = cmr.content_id
+    WHERE cmr.media_id = ?
+      AND c.deleted_at IS NULL
+    ORDER BY c.updated_at DESC, c.title ASC
+  `)
+    .bind(mediaId)
+    .all<{ content_id: string; title: string; usage_type: string }>()
+
+  return {
+    count: results.length,
+    references: results.map((row) => ({
+      contentId: row.content_id,
+      title: row.title,
+      usageType: row.usage_type,
+    })),
+  }
 }
 
 async function uploadOneFile(
@@ -471,6 +502,17 @@ apiMediaRoutes.post('/bulk-delete', async (c) => {
         continue
       }
 
+      const references = await getActiveMediaReferences(c.env.DB, fileId)
+      if (references.count > 0) {
+        errors.push({
+          fileId,
+          filename: file.original_name,
+          error: 'Media is in use',
+          details: references,
+        })
+        continue
+      }
+
       try {
         await c.env.MEDIA_BUCKET.delete(file.r2_key)
       } catch (error) {
@@ -520,6 +562,11 @@ apiMediaRoutes.delete('/:id', async (c) => {
 
     if (!file) return c.json({ error: 'File not found' }, 404)
     if (!canMutate(file, user)) return c.json({ error: 'Permission denied' }, 403)
+
+    const references = await getActiveMediaReferences(c.env.DB, fileId)
+    if (references.count > 0) {
+      return c.json({ error: 'Media is in use', details: references }, 409)
+    }
 
     try {
       await c.env.MEDIA_BUCKET.delete(file.r2_key)

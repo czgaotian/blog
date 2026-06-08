@@ -1,5 +1,5 @@
 import { sql } from 'drizzle-orm';
-import { sqliteTable, text, integer, index, uniqueIndex } from 'drizzle-orm/sqlite-core';
+import { sqliteTable, text, integer, index, uniqueIndex, primaryKey } from 'drizzle-orm/sqlite-core';
 import { createInsertSchema, createSelectSchema } from './drizzle-zod-compat';
 
 // Users table for authentication and user management
@@ -119,6 +119,18 @@ export const contentVersions = sqliteTable('content_versions', {
 }, (table) => [
   index('idx_content_versions_content').on(table.contentId),
   index('idx_content_versions_version').on(table.version),
+]);
+
+export const contentMediaReferences = sqliteTable('content_media_references', {
+  contentId: text('content_id').notNull().references(() => contents.id),
+  mediaId: text('media_id').notNull().references(() => media.id),
+  usageType: text('usage_type').notNull(), // 'body' | 'cover'
+  createdAt: integer('created_at').notNull(),
+  updatedAt: integer('updated_at').notNull(),
+}, (table) => [
+  primaryKey({ columns: [table.contentId, table.mediaId, table.usageType] }),
+  index('idx_content_media_references_content').on(table.contentId),
+  index('idx_content_media_references_media').on(table.mediaId),
 ]);
 
 // Media/Files table
