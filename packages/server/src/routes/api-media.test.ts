@@ -60,7 +60,7 @@ function createDb() {
         all: async () => {
           calls.push({ sql, args })
           if (sql.includes('SELECT * FROM media')) return { results: [mediaRows[0]] }
-          if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }] }
+          if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }, { type: 'audio', count: 1 }, { type: 'other', count: 1 }] }
           return { results: [] }
         },
         run: async () => {
@@ -70,7 +70,7 @@ function createDb() {
       }),
       all: async () => {
         calls.push({ sql, args: [] })
-        if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }] }
+        if (sql.includes('GROUP BY type')) return { results: [{ type: 'images', count: 1 }, { type: 'audio', count: 1 }, { type: 'other', count: 1 }] }
         return { results: [] }
       },
     }),
@@ -115,13 +115,33 @@ describe('/api/media', () => {
       publicUrl: '/files/media-1.png',
       tags: ['hero'],
       isImage: true,
+      isAudio: false,
+      isOther: false,
     })
+    expect(json.types).toContainEqual({ type: 'audio', count: 1 })
+    expect(json.types).toContainEqual({ type: 'other', count: 1 })
     expect(json.page).toBe(2)
     expect(json.limit).toBe(10)
     expect(json.folders).toBeUndefined()
     expect(calls.some((call) => call.sql.includes('mime_type LIKE ?') && call.args.includes('image/%'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('folder'))).toBe(false)
     expect(calls.some((call) => call.args.includes(10) && call.args.includes(10))).toBe(true)
+  })
+
+  it('filters audio, documents, and other media separately', async () => {
+    const app = createApp()
+    const { env, calls } = createEnv()
+
+    const audio = await app.request('/api/media?type=audio', {}, env)
+    const documents = await app.request('/api/media?type=documents', {}, env)
+    const other = await app.request('/api/media?type=other', {}, env)
+
+    expect(audio.status).toBe(200)
+    expect(documents.status).toBe(200)
+    expect(other.status).toBe(200)
+    expect(calls.some((call) => call.sql.includes('mime_type LIKE ?') && call.args.includes('audio/%'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('mime_type IN') && call.args.includes('application/pdf'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('mime_type NOT IN') && call.args.includes('application/pdf'))).toBe(true)
   })
 
   it('uploads multiple files to flat R2 keys', async () => {

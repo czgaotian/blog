@@ -1,6 +1,6 @@
 import { z } from 'zod'
 
-export const MEDIA_TYPES = ['images', 'videos', 'documents'] as const
+export const MEDIA_TYPES = ['images', 'videos', 'audio', 'documents', 'other'] as const
 export type MediaTypeFilter = typeof MEDIA_TYPES[number]
 
 export interface MediaItem {
@@ -19,7 +19,9 @@ export interface MediaItem {
   uploadedAt: string
   isImage: boolean
   isVideo: boolean
+  isAudio: boolean
   isDocument: boolean
+  isOther: boolean
 }
 
 export interface TypeStats {

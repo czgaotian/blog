@@ -2,9 +2,11 @@ import { useState, type FormEvent } from 'react'
 import type { MediaItem, MediaTypeFilter, UploadMediaResponse } from '@worker-blog/shared/admin-api'
 import { toast } from 'sonner'
 import {
+  CircleHelp,
   Copy,
   FileText,
   ImageIcon,
+  Music,
   Pencil,
   Trash2,
   Upload,
@@ -39,7 +41,9 @@ const mediaTypes: Array<{ value: 'all' | MediaTypeFilter; label: string }> = [
   { value: 'all', label: 'All types' },
   { value: 'images', label: 'Images' },
   { value: 'videos', label: 'Videos' },
+  { value: 'audio', label: 'Audio' },
   { value: 'documents', label: 'Documents' },
+  { value: 'other', label: 'Other' },
 ]
 
 function formatFileSize(bytes: number): string {
@@ -75,13 +79,17 @@ async function copyMediaUrl(url: string) {
 function mediaKind(item: MediaItem): MediaTypeFilter {
   if (item.isVideo) return 'videos'
   if (item.isImage) return 'images'
-  return 'documents'
+  if (item.isAudio) return 'audio'
+  if (item.isDocument) return 'documents'
+  return 'other'
 }
 
 function MediaIcon({ item }: { item: MediaItem }) {
   if (item.isVideo) return <Video />
   if (item.isImage) return <ImageIcon />
-  return <FileText />
+  if (item.isAudio) return <Music />
+  if (item.isDocument) return <FileText />
+  return <CircleHelp />
 }
 
 function MediaPreview({ item, onOpen }: { item: MediaItem; onOpen: () => void }) {

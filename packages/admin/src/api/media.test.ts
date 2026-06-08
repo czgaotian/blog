@@ -52,6 +52,26 @@ describe('media api hooks', () => {
     expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media?page=2&limit=12&type=images&search=hero+image')
   })
 
+  it('supports audio media list filters', async () => {
+    mocks.adminFetch.mockResolvedValue({ items: [], total: 0, page: 1, limit: 24, types: [] })
+
+    const query = useMediaList({ type: 'audio' }) as any
+
+    await query.queryFn()
+
+    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media?type=audio')
+  })
+
+  it('supports other media list filters', async () => {
+    mocks.adminFetch.mockResolvedValue({ items: [], total: 0, page: 1, limit: 24, types: [] })
+
+    const query = useMediaList({ type: 'other' }) as any
+
+    await query.queryFn()
+
+    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media?type=other')
+  })
+
   it('uploads FormData and invalidates media queries', async () => {
     mocks.adminFetch.mockResolvedValue({ success: true, uploaded: [], errors: [], summary: { total: 0, successful: 0, failed: 0 } })
 

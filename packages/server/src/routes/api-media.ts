@@ -39,6 +39,13 @@ const allowedMimeTypes = new Set([
   'audio/m4a',
 ])
 
+const documentMimeTypes = [
+  'application/pdf',
+  'text/plain',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+]
+
 const fileValidationSchema = z.object({
   name: z.string().min(1).max(255),
   type: z.string().refine((type) => allowedMimeTypes.has(type), 'Unsupported file type'),
@@ -119,6 +126,8 @@ function mapMediaRow(row: MediaRow): MediaItem {
   const publicUrl = row.public_url || publicUrlForKey(row.r2_key)
   const isImage = row.mime_type.startsWith('image/')
   const isVideo = row.mime_type.startsWith('video/')
+  const isAudio = row.mime_type.startsWith('audio/')
+  const isDocument = documentMimeTypes.includes(row.mime_type)
 
   return {
     id: row.id,
@@ -136,7 +145,9 @@ function mapMediaRow(row: MediaRow): MediaItem {
     uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : '',
     isImage,
     isVideo,
-    isDocument: !isImage && !isVideo,
+    isAudio,
+    isDocument,
+    isOther: !isImage && !isVideo && !isAudio && !isDocument,
   }
 }
 
@@ -276,9 +287,15 @@ apiMediaRoutes.get('/', async (c) => {
   } else if (type === 'videos') {
     conditions.push('mime_type LIKE ?')
     params.push('video/%')
+  } else if (type === 'audio') {
+    conditions.push('mime_type LIKE ?')
+    params.push('audio/%')
   } else if (type === 'documents') {
-    conditions.push("mime_type NOT LIKE ? AND mime_type NOT LIKE ?")
-    params.push('image/%', 'video/%')
+    conditions.push(`mime_type IN (${documentMimeTypes.map(() => '?').join(', ')})`)
+    params.push(...documentMimeTypes)
+  } else if (type === 'other') {
+    conditions.push(`mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT IN (${documentMimeTypes.map(() => '?').join(', ')})`)
+    params.push('image/%', 'video/%', 'audio/%', ...documentMimeTypes)
   }
 
   if (search) {
@@ -307,13 +324,15 @@ apiMediaRoutes.get('/', async (c) => {
         CASE
           WHEN mime_type LIKE 'image/%' THEN 'images'
           WHEN mime_type LIKE 'video/%' THEN 'videos'
-          ELSE 'documents'
+          WHEN mime_type LIKE 'audio/%' THEN 'audio'
+          WHEN mime_type IN (${documentMimeTypes.map((type) => `'${type}'`).join(', ')}) THEN 'documents'
+          ELSE 'other'
         END as type,
         COUNT(*) as count
       FROM media
       WHERE deleted_at IS NULL
       GROUP BY type
-    `).all<{ type: 'images' | 'videos' | 'documents'; count: number }>()
+    `).all<{ type: 'images' | 'videos' | 'audio' | 'documents' | 'other'; count: number }>()
 
     const response: MediaListResponse = {
       items: results.map(mapMediaRow),
