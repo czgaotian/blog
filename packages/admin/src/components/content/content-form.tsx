@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useQueryClient } from "@tanstack/react-query";
-import { SimpleEditor, type UploadFunction } from "@worker-blog/editor";
+import { Editor, type UploadFunction } from "@worker-blog/editor";
 import type { ContentStatus } from "@worker-blog/shared/admin-api";
 import { Plus } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
@@ -366,7 +366,7 @@ export function ContentForm({
                 control={form.control}
                 name="bodyJson"
                 render={({ field }) => (
-                  <SimpleEditor
+                  <Editor
                     value={field.value}
                     onChange={field.onChange}
                     uploadImage={uploadEditorImage}
