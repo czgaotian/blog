@@ -26,8 +26,8 @@
     ],
     "skipLibCheck": true,
     "paths": {
-      "@worker-blog/editor/schema": [
-        "./src/schema/index.ts"
+      "@worker-blog/editor": [
+        "./src/index.ts"
       ],
       "@worker-blog/shared": [
         "../shared/src/index.ts"

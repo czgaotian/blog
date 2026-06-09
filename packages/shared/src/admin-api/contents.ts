@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { type JSONContent } from "@worker-blog/editor/schema";
+import { type JSONContent } from "@worker-blog/editor";
 
 export type ContentStatus =
   | "draft"

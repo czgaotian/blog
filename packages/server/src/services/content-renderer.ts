@@ -1,1 +1,1 @@
-export { renderTiptapJsonToHtml } from '@worker-blog/editor/server'
+export { renderTiptapJsonToHtml } from "@worker-blog/editor";

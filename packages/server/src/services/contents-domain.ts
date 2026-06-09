@@ -1,7 +1,4 @@
-import {
-  emptyTiptapDocument,
-  type JSONContent,
-} from "@worker-blog/editor/schema";
+import { emptyTiptapDocument, type JSONContent } from "@worker-blog/editor";
 import { CACHE_CONFIGS, getCacheService } from "./cache";
 import { contentsCacheKeys } from "./cache-keys";
 import { renderTiptapJsonToHtml } from "./content-renderer";
@@ -625,7 +622,11 @@ export function extractBodyMediaIds(bodyJson: JSONContent): string[] {
     };
 
     const mediaId = node.attrs?.mediaId;
-    if (node.type === "image" && typeof mediaId === "string" && mediaId.trim()) {
+    if (
+      node.type === "image" &&
+      typeof mediaId === "string" &&
+      mediaId.trim()
+    ) {
       ids.add(mediaId.trim());
     }
 

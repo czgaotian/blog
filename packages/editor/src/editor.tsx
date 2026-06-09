@@ -3,7 +3,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
-import { emptyTiptapDocument } from "@worker-blog/editor/schema";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -19,7 +18,7 @@ import { Selection } from "@tiptap/extensions";
 import { ImageUploadNode } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
 import { ImageNode } from "./components/tiptap-node/image-node/image-node-extension";
 import { NodeBackground } from "./components/tiptap-extension/node-background-extension";
-import { HorizontalRule } from "@worker-blog/editor/schema";
+import { HorizontalRule } from "./components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
 import "./components/tiptap-node/blockquote-node/blockquote-node.scss";
 import "./components/tiptap-node/code-block-node/code-block-node.scss";
 import "./components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss";
@@ -37,7 +36,11 @@ import { useCursorVisibility } from "./hooks/use-cursor-visibility";
 import { EditorToolbar } from "./components/editor-toolbar";
 
 // --- Lib ---
-import { handleImageUpload, MAX_FILE_SIZE } from "./lib/tiptap-utils";
+import {
+  handleImageUpload,
+  MAX_FILE_SIZE,
+  emptyTiptapDocument,
+} from "./lib/tiptap-utils";
 import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
 
 // code-block-lowlight
