@@ -20,6 +20,7 @@ vi.mock('./client', () => ({
 import {
   useBulkDeleteMedia,
   useMediaList,
+  uploadMediaFile,
   useUploadMedia,
   useUpdateMedia,
 } from './media'
@@ -85,6 +86,34 @@ describe('media api hooks', () => {
       body: formData,
     })
     expect(mocks.invalidateQueries).toHaveBeenCalledWith({ queryKey: ['admin', 'media'] })
+  })
+
+  it('uploads a single media file with progress and abort support', async () => {
+    const response = {
+      success: true,
+      uploaded: [],
+      errors: [],
+      summary: { total: 1, successful: 1, failed: 0 },
+    }
+    const onProgress = vi.fn()
+    const abortController = new AbortController()
+    const file = new File(['image'], 'image.png', { type: 'image/png' })
+    mocks.adminFetch.mockResolvedValue(response)
+
+    await expect(
+      uploadMediaFile(file, {
+        onProgress,
+        signal: abortController.signal,
+      }),
+    ).resolves.toBe(response)
+
+    expect(mocks.adminFetch).toHaveBeenCalledWith('/api/media/upload', {
+      method: 'POST',
+      body: expect.any(FormData),
+      signal: abortController.signal,
+    })
+    expect(onProgress).toHaveBeenCalledWith({ progress: 5 })
+    expect(onProgress).toHaveBeenCalledWith({ progress: 100 })
   })
 
   it('updates metadata and invalidates list plus detail queries', async () => {

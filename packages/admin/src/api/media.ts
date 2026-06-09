@@ -13,6 +13,11 @@ import { adminFetch } from './client'
 
 export type MediaFilters = Partial<MediaListFilters>
 
+export interface UploadMediaFileOptions {
+  onProgress?: (event: { progress: number }) => void
+  signal?: AbortSignal
+}
+
 export function useMediaList(filters: MediaFilters = {}) {
   const params = new URLSearchParams()
   if (filters.page) params.set('page', String(filters.page))
@@ -47,6 +52,24 @@ export function useUploadMedia() {
       qc.invalidateQueries({ queryKey: ['admin', 'media'] })
     },
   })
+}
+
+export async function uploadMediaFile(
+  file: File,
+  options: UploadMediaFileOptions = {},
+): Promise<UploadMediaResponse> {
+  const formData = new FormData()
+  formData.append('file', file)
+  options.onProgress?.({ progress: 5 })
+
+  const response = await adminFetch<UploadMediaResponse>('/api/media/upload', {
+    method: 'POST',
+    body: formData,
+    signal: options.signal,
+  })
+
+  options.onProgress?.({ progress: 100 })
+  return response
 }
 
 export function useUpdateMedia(id: string) {

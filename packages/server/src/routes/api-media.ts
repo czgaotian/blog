@@ -59,6 +59,7 @@ interface MediaRow {
   original_name: string
   mime_type: string
   size: number
+  sha256_hash?: string | null
   width: number | null
   height: number | null
   r2_key: string
@@ -172,10 +173,41 @@ async function getActiveMediaReferences(db: D1Database, mediaId: string): Promis
   }
 }
 
+async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
+  const digest = await crypto.subtle.digest('SHA-256', buffer)
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
+}
+
+function duplicateFileError(file: File, duplicate: MediaRow): MediaMutationError {
+  return {
+    fileId: duplicate.id,
+    filename: file.name,
+    error: 'Duplicate file',
+    details: {
+      existingFileId: duplicate.id,
+      existingFilename: duplicate.original_name,
+      existingPublicUrl: duplicate.public_url || publicUrlForKey(duplicate.r2_key),
+    },
+  }
+}
+
+async function findDuplicateByHash(db: D1Database, sha256Hash: string): Promise<MediaRow | null> {
+  return db.prepare(`
+    SELECT * FROM media
+    WHERE sha256_hash = ?
+      AND deleted_at IS NULL
+    LIMIT 1
+  `)
+    .bind(sha256Hash)
+    .first<MediaRow>()
+}
+
 async function uploadOneFile(
   c: MediaContext,
   file: File,
-): Promise<{ item?: MediaItem; error?: MediaMutationError }> {
+): Promise<{ item?: MediaItem; error?: MediaMutationError; status?: 400 | 409 }> {
   const user = c.get('user')!
   const validation = fileValidationSchema.safeParse({
     name: file.name,
@@ -193,11 +225,21 @@ async function uploadOneFile(
     }
   }
 
+  const arrayBuffer = await file.arrayBuffer()
+  const sha256Hash = await sha256Hex(arrayBuffer)
+  const duplicate = await findDuplicateByHash(c.env.DB, sha256Hash)
+
+  if (duplicate) {
+    return {
+      status: 409,
+      error: duplicateFileError(file, duplicate),
+    }
+  }
+
   const fileId = generateId()
   const extension = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
   const filename = `${fileId}.${extension}`
   const r2Key = filename
-  const arrayBuffer = await file.arrayBuffer()
 
   const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
     httpMetadata: {
@@ -231,27 +273,40 @@ async function uploadOneFile(
   const thumbnailUrl = file.type.startsWith('image/') ? publicUrl : null
   const uploadedAt = Math.floor(Date.now() / 1000)
 
-  await c.env.DB.prepare(`
-    INSERT INTO media (
-      id, filename, original_name, mime_type, size, width, height,
-      r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
-    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-  `)
-    .bind(
-      fileId,
-      filename,
-      file.name,
-      file.type,
-      file.size,
-      width,
-      height,
-      r2Key,
-      publicUrl,
-      thumbnailUrl,
-      user.userId,
-      uploadedAt,
-    )
-    .run()
+  try {
+    await c.env.DB.prepare(`
+      INSERT INTO media (
+        id, filename, original_name, mime_type, size, sha256_hash, width, height,
+        r2_key, public_url, thumbnail_url, uploaded_by, uploaded_at
+      ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    `)
+      .bind(
+        fileId,
+        filename,
+        file.name,
+        file.type,
+        file.size,
+        sha256Hash,
+        width,
+        height,
+        r2Key,
+        publicUrl,
+        thumbnailUrl,
+        user.userId,
+        uploadedAt,
+      )
+      .run()
+  } catch (error) {
+    const duplicateAfterRace = await findDuplicateByHash(c.env.DB, sha256Hash)
+    if (duplicateAfterRace) {
+      await c.env.MEDIA_BUCKET.delete(r2Key).catch(() => undefined)
+      return {
+        status: 409,
+        error: duplicateFileError(file, duplicateAfterRace),
+      }
+    }
+    throw error
+  }
 
   return {
     item: mapMediaRow({
@@ -260,6 +315,7 @@ async function uploadOneFile(
       original_name: file.name,
       mime_type: file.type,
       size: file.size,
+      sha256_hash: sha256Hash,
       width,
       height,
       r2_key: r2Key,
@@ -388,7 +444,7 @@ apiMediaRoutes.post('/upload', async (c) => {
   try {
     const result = await uploadOneFile(c, fileData as File)
     if (result.error || !result.item) {
-      return c.json({ error: result.error?.error || 'Upload failed', details: result.error?.details }, 400)
+      return c.json({ error: result.error?.error || 'Upload failed', details: result.error?.details }, result.status || 400)
     }
 
     await emitEvent('media.upload', { id: result.item.id, filename: result.item.filename })

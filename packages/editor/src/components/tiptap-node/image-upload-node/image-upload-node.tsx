@@ -27,6 +27,10 @@ export interface FileItem {
    * @default "uploading"
    */
   status: "uploading" | "success" | "error";
+  /**
+   * Error message shown when validation or upload fails.
+   */
+  error?: string;
 
   /**
    * Uploaded image metadata, available after successful upload
@@ -61,7 +65,7 @@ export interface UploadOptions {
    * @param {AbortSignal} signal - Signal that can be used to abort the upload
    * @returns Promise resolving to the uploaded image metadata
    */
-  upload: (
+  upload?: (
     file: File,
     onProgress: (event: { progress: number }) => void,
     signal: AbortSignal,
@@ -86,11 +90,54 @@ export interface UploadOptions {
 function useFileUpload(options: UploadOptions) {
   const [fileItems, setFileItems] = useState<FileItem[]>([]);
 
-  const uploadFile = async (file: File): Promise<UploadedImage | null> => {
-    if (file.size > options.maxSize) {
+  const matchesAccept = (file: File) => {
+    if (!options.accept || options.accept.trim() === "") return true;
+
+    const acceptedTypes = options.accept
+      .split(",")
+      .map((type) => type.trim().toLowerCase())
+      .filter(Boolean);
+
+    if (acceptedTypes.length === 0) return true;
+
+    const fileName = file.name.toLowerCase();
+    const fileType = file.type.toLowerCase();
+
+    return acceptedTypes.some((acceptedType) => {
+      if (acceptedType === "*/*") return true;
+      if (acceptedType.endsWith("/*")) {
+        return fileType.startsWith(acceptedType.slice(0, -1));
+      }
+      if (acceptedType.startsWith(".")) {
+        return fileName.endsWith(acceptedType);
+      }
+      return fileType === acceptedType;
+    });
+  };
+
+  const createErrorItem = (file: File, error: Error): FileItem => ({
+    id: crypto.randomUUID(),
+    file,
+    progress: 0,
+    status: "error",
+    error: error.message,
+  });
+
+  const uploadFile = async (
+    file: File,
+  ): Promise<{ file: File; image: UploadedImage } | null> => {
+    if (!matchesAccept(file)) {
+      const error = new Error(`File type is not allowed (${options.accept})`);
+      setFileItems((prev) => [...prev, createErrorItem(file, error)]);
+      options.onError?.(error);
+      return null;
+    }
+
+    if (options.maxSize > 0 && file.size > options.maxSize) {
       const error = new Error(
         `File size exceeds maximum allowed (${options.maxSize / 1024 / 1024}MB)`,
       );
+      setFileItems((prev) => [...prev, createErrorItem(file, error)]);
       options.onError?.(error);
       return null;
     }
@@ -138,7 +185,7 @@ function useFileUpload(options: UploadOptions) {
           ),
         );
         options.onSuccess?.(uploadedImage.src);
-        return uploadedImage;
+        return { file, image: uploadedImage };
       }
 
       return null;
@@ -147,7 +194,13 @@ function useFileUpload(options: UploadOptions) {
         setFileItems((prev) =>
           prev.map((item) =>
             item.id === fileId
-              ? { ...item, status: "error", progress: 0 }
+              ? {
+                  ...item,
+                  status: "error",
+                  progress: 0,
+                  error:
+                    error instanceof Error ? error.message : "Upload failed",
+                }
               : item,
           ),
         );
@@ -159,13 +212,18 @@ function useFileUpload(options: UploadOptions) {
     }
   };
 
-  const uploadFiles = async (files: File[]): Promise<UploadedImage[]> => {
+  const uploadFiles = async (
+    files: File[],
+  ): Promise<Array<{ file: File; image: UploadedImage }>> => {
     if (!files || files.length === 0) {
       options.onError?.(new Error("No files to upload"));
       return [];
     }
 
-    if (options.limit && files.length > options.limit) {
+    const remainingSlots = options.limit
+      ? options.limit - fileItems.length
+      : files.length;
+    if (options.limit && files.length > remainingSlots) {
       options.onError?.(
         new Error(
           `Maximum ${options.limit} file${options.limit === 1 ? "" : "s"} allowed`,
@@ -179,7 +237,10 @@ function useFileUpload(options: UploadOptions) {
     const results = await Promise.all(uploadPromises);
 
     // Filter out null results (failed uploads)
-    return results.filter((image): image is UploadedImage => image !== null);
+    return results.filter(
+      (result): result is { file: File; image: UploadedImage } =>
+        result !== null,
+    );
   };
 
   const removeFileItem = (fileId: string) => {
@@ -379,7 +440,7 @@ const ImageUploadPreview: React.FC<ImageUploadPreviewProps> = ({
               {fileItem.file.name}
             </span>
             <span className="tiptap-image-upload-subtext">
-              {formatFileSize(fileItem.file.size)}
+              {fileItem.error ?? formatFileSize(fileItem.file.size)}
             </span>
           </div>
         </div>
@@ -448,27 +509,28 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
     useFileUpload(uploadOptions);
 
   const handleUpload = async (files: File[]) => {
-    const uploadedImages = await uploadFiles(files);
+    const uploadedFiles = await uploadFiles(files);
 
-    if (uploadedImages.length > 0) {
+    if (uploadedFiles.length > 0) {
       const pos = props.getPos();
 
       if (isValidPosition(pos)) {
-        const imageNodes = uploadedImages.map((uploadedImage, index) => {
-          const filename =
-            files[index]?.name.replace(/\.[^/.]+$/, "") || "unknown";
-          return {
-            type: extension.options.type,
-            attrs: {
-              src: uploadedImage.src,
-              alt: uploadedImage.alt ?? filename,
-              title: uploadedImage.title ?? filename,
-              mediaId: uploadedImage.mediaId ?? null,
-              width: uploadedImage.width ?? null,
-              height: uploadedImage.height ?? null,
-            },
-          };
-        });
+        const imageNodes = uploadedFiles.map(
+          ({ file, image: uploadedImage }) => {
+            const filename = file.name.replace(/\.[^/.]+$/, "") || "unknown";
+            return {
+              type: extension.options.type,
+              attrs: {
+                src: uploadedImage.src,
+                alt: uploadedImage.alt ?? filename,
+                title: uploadedImage.title ?? filename,
+                mediaId: uploadedImage.mediaId ?? null,
+                width: uploadedImage.width ?? null,
+                height: uploadedImage.height ?? null,
+              },
+            };
+          },
+        );
 
         props.editor
           .chain()

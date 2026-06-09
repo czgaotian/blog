@@ -14,6 +14,7 @@ const mediaRows = [
     original_name: 'hero.png',
     mime_type: 'image/png',
     size: 2048,
+    sha256_hash: 'existing-image-hash',
     width: 640,
     height: 480,
     r2_key: 'media-1.png',
@@ -32,6 +33,7 @@ const mediaRows = [
     original_name: 'guide.pdf',
     mime_type: 'application/pdf',
     size: 4096,
+    sha256_hash: 'existing-pdf-hash',
     width: null,
     height: null,
     r2_key: 'media-2.pdf',
@@ -46,7 +48,10 @@ const mediaRows = [
   },
 ]
 
-function createDb(activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {}) {
+function createDb(
+  activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {},
+  duplicates: Record<string, typeof mediaRows[number]> = {},
+) {
   const calls: Array<{ sql: string; args: unknown[] }> = []
   const db = {
     prepare: (sql: string) => ({
@@ -54,6 +59,7 @@ function createDb(activeReferences: Record<string, Array<{ content_id: string; t
         first: async () => {
           calls.push({ sql, args })
           if (sql.includes('COUNT(*) as count FROM media')) return { count: 1 }
+          if (sql.includes('WHERE sha256_hash = ?')) return duplicates[String(args[0])] ?? null
           if (sql.includes('WHERE id = ?')) return mediaRows.find((row) => row.id === args[0]) ?? null
           return null
         },
@@ -89,8 +95,11 @@ function createApp() {
   return app
 }
 
-function createEnv(activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {}) {
-  const { db, calls } = createDb(activeReferences)
+function createEnv(
+  activeReferences: Record<string, Array<{ content_id: string; title: string; usage_type: string }>> = {},
+  duplicates: Record<string, typeof mediaRows[number]> = {},
+) {
+  const { db, calls } = createDb(activeReferences, duplicates)
   const bucket = {
     put: vi.fn().mockResolvedValue({}),
     get: vi.fn().mockResolvedValue({
@@ -101,6 +110,13 @@ function createEnv(activeReferences: Record<string, Array<{ content_id: string; 
     delete: vi.fn().mockResolvedValue(undefined),
   }
   return { env: { DB: db, MEDIA_BUCKET: bucket }, calls, bucket }
+}
+
+async function digestFixtureHex(value: string) {
+  const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(value))
+  return [...new Uint8Array(digest)]
+    .map((byte) => byte.toString(16).padStart(2, '0'))
+    .join('')
 }
 
 describe('/api/media', () => {
@@ -158,7 +174,60 @@ describe('/api/media', () => {
     expect(json.summary.successful).toBe(1)
     expect(json.uploaded[0].publicUrl).toMatch(/^\/files\/[^/]+\.png$/)
     expect(bucket.put).toHaveBeenCalledWith(expect.not.stringContaining('/'), expect.any(ArrayBuffer), expect.any(Object))
+    expect(calls.some((call) => call.sql.includes('WHERE sha256_hash = ?'))).toBe(true)
+    expect(calls.some((call) => call.sql.includes('INSERT INTO media') && call.sql.includes('sha256_hash'))).toBe(true)
     expect(calls.some((call) => call.sql.includes('INSERT INTO media') && call.sql.includes('folder'))).toBe(false)
+  })
+
+  it('rejects duplicate single-file uploads before writing to R2', async () => {
+    const app = createApp()
+    const hash = await digestFixtureHex('img')
+    const { env, bucket } = createEnv({}, { [hash]: mediaRows[0] })
+    const fd = new FormData()
+    fd.append('file', new File(['img'], 'photo-copy.png', { type: 'image/png' }))
+
+    const res = await app.request('/api/media/upload', { method: 'POST', body: fd }, env)
+    const json = await res.json() as any
+
+    expect(res.status).toBe(409)
+    expect(json).toEqual({
+      error: 'Duplicate file',
+      details: {
+        existingFileId: 'media-1',
+        existingFilename: 'hero.png',
+        existingPublicUrl: '/files/media-1.png',
+      },
+    })
+    expect(bucket.put).not.toHaveBeenCalled()
+  })
+
+  it('reports duplicate files in multi-upload errors without storing them', async () => {
+    const app = createApp()
+    const hash = await digestFixtureHex('img')
+    const { env, bucket } = createEnv({}, { [hash]: mediaRows[0] })
+    const fd = new FormData()
+    fd.append('files', new File(['img'], 'photo-copy.png', { type: 'image/png' }))
+
+    const res = await app.request('/api/media/upload-multiple', { method: 'POST', body: fd }, env)
+    const json = await res.json() as any
+
+    expect(res.status).toBe(400)
+    expect(json).toMatchObject({
+      success: false,
+      uploaded: [],
+      errors: [{
+        fileId: 'media-1',
+        filename: 'photo-copy.png',
+        error: 'Duplicate file',
+        details: {
+          existingFileId: 'media-1',
+          existingFilename: 'hero.png',
+          existingPublicUrl: '/files/media-1.png',
+        },
+      }],
+      summary: { total: 1, successful: 0, failed: 1 },
+    })
+    expect(bucket.put).not.toHaveBeenCalled()
   })
 
   it('stores an ASCII-safe content disposition for unicode filenames', async () => {

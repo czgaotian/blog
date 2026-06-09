@@ -140,6 +140,7 @@ export const media = sqliteTable('media', {
   originalName: text('original_name').notNull(),
   mimeType: text('mime_type').notNull(),
   size: integer('size').notNull(),
+  sha256Hash: text('sha256_hash'),
   width: integer('width'),
   height: integer('height'),
   r2Key: text('r2_key').notNull(), // R2 storage key
@@ -160,6 +161,7 @@ export const media = sqliteTable('media', {
   index('idx_media_uploaded_by').on(table.uploadedBy),
   index('idx_media_uploaded_at').on(table.uploadedAt),
   index('idx_media_deleted').on(table.deletedAt),
+  uniqueIndex('idx_media_sha256_hash_active').on(table.sha256Hash).where(sql`${table.deletedAt} IS NULL`),
 ]);
 
 // Site settings stored as JSON-encoded values.

@@ -73,6 +73,11 @@ import type { UploadFunction } from "./components/tiptap-node/image-upload-node/
 // --- Styles ---
 import "./index.scss";
 
+export type {
+  UploadedImage,
+  UploadFunction,
+} from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
+
 const MainToolbarContent = ({
   onHighlighterClick,
   onLinkClick,

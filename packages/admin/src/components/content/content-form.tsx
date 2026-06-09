@@ -1,10 +1,12 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { SimpleEditor } from "@worker-blog/editor";
+import { useQueryClient } from "@tanstack/react-query";
+import { SimpleEditor, type UploadFunction } from "@worker-blog/editor";
 import type { ContentStatus } from "@worker-blog/shared/admin-api";
 import { Plus } from "lucide-react";
 import { Controller, useForm } from "react-hook-form";
-import { useEffect } from "react";
+import { useCallback, useEffect } from "react";
 import { Link } from "react-router";
+import { uploadMediaFile } from "../../api/media";
 import { useCategoriesList, useTagsList } from "../../api/taxonomies";
 import {
   contentFormSchema,
@@ -74,6 +76,7 @@ export function ContentForm({
 }: ContentFormProps) {
   const categories = useCategoriesList();
   const tags = useTagsList();
+  const queryClient = useQueryClient();
   const form = useForm<ContentFormValues>({
     resolver: zodResolver(contentFormSchema) as any,
     defaultValues: values,
@@ -91,6 +94,32 @@ export function ContentForm({
   useEffect(() => {
     onDirtyChange?.(isDirty);
   }, [isDirty, onDirtyChange]);
+
+  const uploadEditorImage = useCallback<UploadFunction>(
+    async (file, onProgress, abortSignal) => {
+      const response = await uploadMediaFile(file, {
+        onProgress,
+        signal: abortSignal,
+      });
+      const uploaded = response.uploaded[0];
+
+      if (!uploaded) {
+        throw new Error(response.errors[0]?.error || "Image upload failed");
+      }
+
+      await queryClient.invalidateQueries({ queryKey: ["admin", "media"] });
+
+      return {
+        src: uploaded.publicUrl,
+        mediaId: uploaded.id,
+        alt: uploaded.alt ?? uploaded.originalName,
+        title: uploaded.originalName,
+        width: uploaded.width,
+        height: uploaded.height,
+      };
+    },
+    [queryClient],
+  );
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)}>
@@ -337,7 +366,11 @@ export function ContentForm({
                 control={form.control}
                 name="bodyJson"
                 render={({ field }) => (
-                  <SimpleEditor value={field.value} onChange={field.onChange} />
+                  <SimpleEditor
+                    value={field.value}
+                    onChange={field.onChange}
+                    uploadImage={uploadEditorImage}
+                  />
                 )}
               />
               <FieldError errors={[errors.bodyJson]} />
