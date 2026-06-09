@@ -1,0 +1,7 @@
+html:not(.dark) {
+  @import "highlight.js/styles/github.css";
+}
+
+html.dark {
+  @import "highlight.js/styles/github-dark.css";
+}

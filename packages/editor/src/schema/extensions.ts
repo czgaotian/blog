@@ -1,13 +1,15 @@
 import { mergeAttributes, Node, type Extensions } from "@tiptap/core";
-import { Image } from "@tiptap/extension-image";
 import TiptapHorizontalRule from "@tiptap/extension-horizontal-rule";
 import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { TextAlign } from "@tiptap/extension-text-align";
 import { Typography } from "@tiptap/extension-typography";
 import { Highlight } from "@tiptap/extension-highlight";
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
 import StarterKit from "@tiptap/starter-kit";
+import ImageNode from "../components/tiptap-node/image-node/image-node-extension";
+import { lowlight } from "../lib/code-highlighting";
 
 export const HorizontalRule = TiptapHorizontalRule.extend({
   renderHTML() {
@@ -16,36 +18,6 @@ export const HorizontalRule = TiptapHorizontalRule.extend({
       mergeAttributes(this.options.HTMLAttributes, { "data-type": this.name }),
       ["hr"],
     ];
-  },
-});
-
-export const BlogImage = Image.extend({
-  addAttributes() {
-    return {
-      ...this.parent?.(),
-      mediaId: {
-        default: null,
-        parseHTML: (element) => element.getAttribute("data-media-id"),
-      },
-      width: {
-        default: null,
-        parseHTML: (element) => {
-          const value = element.getAttribute("width");
-          return value ? Number(value) : null;
-        },
-        renderHTML: (attributes) =>
-          attributes.width ? { width: attributes.width } : {},
-      },
-      height: {
-        default: null,
-        parseHTML: (element) => {
-          const value = element.getAttribute("height");
-          return value ? Number(value) : null;
-        },
-        renderHTML: (attributes) =>
-          attributes.height ? { height: attributes.height } : {},
-      },
-    };
   },
 });
 
@@ -77,6 +49,7 @@ export function createContentRenderExtensions(): Extensions {
   return [
     StarterKit.configure({
       horizontalRule: false,
+      codeBlock: false,
       link: {
         openOnClick: false,
         enableClickSelection: true,
@@ -87,10 +60,13 @@ export function createContentRenderExtensions(): Extensions {
     TaskList,
     TaskItem.configure({ nested: true }),
     Highlight.configure({ multicolor: true }),
-    BlogImage,
+    ImageNode,
     Typography,
     Superscript,
     Subscript,
+    CodeBlockLowlight.configure({
+      lowlight,
+    }),
     ServerImageUploadNode,
   ];
 }

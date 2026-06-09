@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
-import { BlogImage, emptyTiptapDocument } from "@worker-blog/editor/schema";
+import { emptyTiptapDocument } from "@worker-blog/editor/schema";
 
 // --- Tiptap Core Extensions ---
 import { StarterKit } from "@tiptap/starter-kit";
@@ -17,6 +17,7 @@ import { Selection } from "@tiptap/extensions";
 
 // --- Tiptap Node ---
 import { ImageUploadNode } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { ImageNode } from "./components/tiptap-node/image-node/image-node-extension";
 import { NodeBackground } from "./components/tiptap-extension/node-background-extension";
 import { HorizontalRule } from "@worker-blog/editor/schema";
 import "./components/tiptap-node/blockquote-node/blockquote-node.scss";
@@ -39,8 +40,15 @@ import { EditorToolbar } from "./components/editor-toolbar";
 import { handleImageUpload, MAX_FILE_SIZE } from "./lib/tiptap-utils";
 import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
 
+// code-block-lowlight
+import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { lowlight } from "./lib/code-highlighting";
+
 // --- Styles ---
-import "./editor.scss";
+import "./styles/_keyframe-animations.scss";
+import "./styles/_variables.scss";
+import "./styles/editor.scss";
+import "./styles/hight-light.scss";
 
 export interface EditorProps {
   value?: JSONContent;
@@ -77,13 +85,14 @@ export function Editor({
             openOnClick: false,
             enableClickSelection: true,
           },
+          codeBlock: false,
         }),
         HorizontalRule,
         TextAlign.configure({ types: ["heading", "paragraph"] }),
         TaskList,
         TaskItem.configure({ nested: true }),
         Highlight.configure({ multicolor: true }),
-        BlogImage,
+        ImageNode,
         Typography,
         Superscript,
         Subscript,
@@ -95,6 +104,9 @@ export function Editor({
           limit: 3,
           upload: uploadImage,
           onError: (error) => console.error("Upload failed:", error),
+        }),
+        CodeBlockLowlight.configure({
+          lowlight,
         }),
       ],
       content: value as JSONContent,
