@@ -3,22 +3,6 @@
 import { useEffect, useMemo, useRef } from "react";
 import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
-
-// --- Tiptap Core Extensions ---
-import { StarterKit } from "@tiptap/starter-kit";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { TextAlign } from "@tiptap/extension-text-align";
-import { Typography } from "@tiptap/extension-typography";
-import { Highlight } from "@tiptap/extension-highlight";
-import { Subscript } from "@tiptap/extension-subscript";
-import { Superscript } from "@tiptap/extension-superscript";
-import { Selection } from "@tiptap/extensions";
-
-// --- Tiptap Node ---
-import { ImageUploadNode } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
-import { ImageNode } from "./components/tiptap-node/image-node/image-node-extension";
-import { NodeBackground } from "./components/tiptap-extension/node-background-extension";
-import { HorizontalRule } from "./components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
 import "./components/tiptap-node/blockquote-node/blockquote-node.scss";
 import "./components/tiptap-node/code-block-node/code-block-node.scss";
 import "./components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss";
@@ -36,16 +20,9 @@ import { useCursorVisibility } from "./hooks/use-cursor-visibility";
 import { EditorToolbar } from "./components/editor-toolbar";
 
 // --- Lib ---
-import {
-  handleImageUpload,
-  MAX_FILE_SIZE,
-  emptyTiptapDocument,
-} from "./lib/tiptap-utils";
+import { createEditorExtensions } from "./lib/extensions";
+import { handleImageUpload, emptyTiptapDocument } from "./lib/tiptap-utils";
 import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
-
-// code-block-lowlight
-import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
-import { lowlight } from "./lib/code-highlighting";
 
 // --- Styles ---
 import "./styles/_keyframe-animations.scss";
@@ -81,37 +58,7 @@ export function Editor({
           class: "simple-editor",
         },
       },
-      extensions: [
-        StarterKit.configure({
-          horizontalRule: false,
-          link: {
-            openOnClick: false,
-            enableClickSelection: true,
-          },
-          codeBlock: false,
-        }),
-        HorizontalRule,
-        TextAlign.configure({ types: ["heading", "paragraph"] }),
-        TaskList,
-        TaskItem.configure({ nested: true }),
-        Highlight.configure({ multicolor: true }),
-        ImageNode,
-        Typography,
-        Superscript,
-        Subscript,
-        Selection,
-        NodeBackground,
-        ImageUploadNode.configure({
-          accept: "image/*",
-          maxSize: MAX_FILE_SIZE,
-          limit: 3,
-          upload: uploadImage,
-          onError: (error) => console.error("Upload failed:", error),
-        }),
-        CodeBlockLowlight.configure({
-          lowlight,
-        }),
-      ],
+      extensions: createEditorExtensions({ uploadImage }),
       content: value as JSONContent,
       onUpdate: ({ editor }) => {
         onChange?.(editor.getJSON());
