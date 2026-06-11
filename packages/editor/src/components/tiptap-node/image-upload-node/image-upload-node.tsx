@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import type { NodeViewProps } from "@tiptap/react";
 import { NodeViewWrapper } from "@tiptap/react";
 import { Button } from "../../tiptap-ui-primitive/button";
@@ -8,6 +8,7 @@ import { CloseIcon } from "../../tiptap-icons/close-icon";
 import "./image-upload-node.scss";
 import { focusNextNode, isValidPosition } from "../../../lib/tiptap-utils";
 import type { UploadedImage } from "./image-upload-node-extension";
+import { consumePendingImageUpload } from "./pending-image-uploads";
 
 export interface FileItem {
   /**
@@ -492,8 +493,9 @@ const DropZoneContent: React.FC<{ maxSize: number; limit: number }> = ({
 );
 
 export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
-  const { accept, limit, maxSize } = props.node.attrs;
+  const { accept, limit, maxSize, uploadId } = props.node.attrs;
   const inputRef = useRef<HTMLInputElement>(null);
+  const consumedUploadIdRef = useRef<string | null>(null);
   const extension = props.extension;
 
   const uploadOptions: UploadOptions = {
@@ -543,6 +545,17 @@ export const ImageUploadNode: React.FC<NodeViewProps> = (props) => {
       }
     }
   };
+
+  useEffect(() => {
+    if (typeof uploadId !== "string" || uploadId.length === 0) return;
+    if (consumedUploadIdRef.current === uploadId) return;
+
+    const files = consumePendingImageUpload(uploadId);
+    if (!files || files.length === 0) return;
+
+    consumedUploadIdRef.current = uploadId;
+    void handleUpload(files);
+  }, [uploadId]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;

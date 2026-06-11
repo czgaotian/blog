@@ -12,6 +12,7 @@ import { ImageNode } from "../components/tiptap-node/image-node/image-node-exten
 import { HorizontalRule } from "../components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
 import { ImageUploadNode } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
 import type { UploadFunction } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { PasteImageUpload } from "../components/tiptap-node/image-upload-node/paste-image-upload-extension";
 import { NodeBackground } from "../components/tiptap-extension/node-background-extension";
 import { all, createLowlight } from "lowlight";
 import { MAX_FILE_SIZE } from "./tiptap-utils";
@@ -77,6 +78,11 @@ export function createEditorExtensions({
       limit: 3,
       upload: uploadImage,
       onError: (error) => console.error("Upload failed:", error),
+    }),
+    PasteImageUpload.configure({
+      accept: "image/*",
+      maxSize: MAX_FILE_SIZE,
+      limit: 3,
     }),
     CodeBlockLowlight.configure({
       lowlight,

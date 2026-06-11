@@ -17,3 +17,13 @@
 - Verification passed for shared tests, server focused tests, shared/server TypeScript, and `git diff --check`.
 - Re-ran server focused tests and server TypeScript after switching to Tiptap `generateHTML`; both passed.
 - Root `pnpm type-check` remains blocked by pre-existing missing `packages/editor/tsconfig.json`.
+
+## 2026-06-11
+
+- Started documentation architecture task.
+- Read existing planning files and preserved prior content-body migration context.
+- Added a new documentation task section to `task_plan.md`.
+- Inventoried server app registration, routes, DB schema, Cloudflare bindings, admin app/router/API client, editor exports/extensions, shared contracts, and Bruno usage.
+- Added AI-readable docs under `docs/`: README, AI context, project design, usage, architecture, backend, frontend, data model, API, and development guide.
+- Ran `git diff --check -- docs task_plan.md findings.md progress.md`; no whitespace errors.
+- Verified all README-linked generated docs exist and marked documentation task complete.

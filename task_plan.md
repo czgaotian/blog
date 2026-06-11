@@ -42,3 +42,15 @@ Evolve content storage so Tiptap JSON is the source of truth and cached HTML is 
 | Error | Attempt | Resolution |
 | --- | --- | --- |
 | Root `pnpm type-check` fails because `packages/editor/tsconfig.json` does not exist. | Ran root type-check after focused tests. | Verified this task's changed packages with direct shared/server TypeScript commands. |
+
+## Documentation Architecture Task
+
+Goal: Generate AI-readable project documentation under `docs/` covering complete design, usage, and architecture.
+
+Phases:
+
+1. Inventory repository structure, scripts, packages, and existing docs. Status: complete.
+2. Inventory server routes, features, database schema, middleware, and Cloudflare runtime resources. Status: complete.
+3. Inventory admin UI, editor package, shared contracts, and Bruno API collection. Status: complete.
+4. Write focused docs files under `docs/` with stable paths and concise architecture notes. Status: complete.
+5. Review generated docs for completeness, consistency, and AI readability. Status: complete.

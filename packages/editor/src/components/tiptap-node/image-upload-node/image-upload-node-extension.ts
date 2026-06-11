@@ -107,6 +107,9 @@ export const ImageUploadNode = Node.create<ImageUploadNodeOptions>({
       maxSize: {
         default: this.options.maxSize,
       },
+      uploadId: {
+        default: null,
+      },
     };
   },
 
