@@ -35,3 +35,12 @@
 - Auth flow: first `POST /api/auth/register` only works while users table is empty; `POST /api/auth/login` returns JWT and sets `auth_token` plus `csrf_token`; admin routes require authenticated admin by default, while content routes further allow admin/editor/author.
 - Public API includes OpenAPI-ish root, health, content list/detail, category/tag content lists, event tracking, and public file serving under `/files/*`.
 - Bruno collection under `bruno/` documents runnable local API requests and uses `authToken` for bearer requests.
+
+## WWW Public Frontend Plan Findings
+
+- `packages/www` currently contains only `docs/architecture.md`.
+- Existing public API already has `GET /api/contents`, `GET /api/category/:slug`, and `GET /api/tag/:slug`.
+- Existing public detail route is `GET /api/contents/:id`; architecture needs an additional slug route at `GET /api/contents/slug/:slug`.
+- `packages/server/src/routes/api-contents-crud.ts` already filters detail reads to `status = 'published'` and `deleted_at IS NULL`, and returns `bodyHtml` instead of `bodyJson`.
+- Public response contracts are reusable between server and www, so the plan places them under `packages/shared/src/public-api`.
+- Root `pnpm type-check` is still documented as blocked by the pre-existing editor tsconfig issue; www plan uses focused verification commands.

@@ -19,6 +19,8 @@
     "./utils/*": "./src/utils/*.ts",
     "./schemas": "./src/schemas/index.ts",
     "./schemas/*": "./src/schemas/*.ts",
+    "./public-api": "./src/public-api/index.ts",
+    "./public-api/*": "./src/public-api/*.ts",
     "./admin-api": "./src/admin-api/index.ts",
     "./admin-api/*": "./src/admin-api/*.ts"
   },
