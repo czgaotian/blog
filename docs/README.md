@@ -6,7 +6,7 @@
 
 1. [ai-context.md](./ai-context.md): 面向 AI agent 的高密度项目上下文。
 2. [project-design.md](./project-design.md): 产品目标、功能模块、核心设计原则。
-3. [usage.md](./usage.md): 本地运行、数据库迁移、测试、构建、Bruno API 使用。
+3. [usage.md](./usage.md): 本地运行、数据库迁移、测试、构建。
 4. [architecture.md](./architecture.md): monorepo、运行时、包边界、请求流。
 5. [backend.md](./backend.md): Hono Worker、路由、中间件、服务层、Cloudflare bindings。
 6. [frontend.md](./frontend.md): Admin UI、Editor、API client、路由和 UI 约定。
@@ -32,7 +32,6 @@ Worker Blog 是一个运行在 Cloudflare Workers 上的 headless CMS / blog adm
 | Editor export | `packages/editor/src/index.ts` |
 | Shared contracts | `packages/shared/src/admin-api/` |
 | Database schema | `packages/server/src/db/schema.ts` |
-| Bruno API collection | `bruno/` |
 
 ## Agent Rules
 

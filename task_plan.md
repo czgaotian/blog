@@ -51,6 +51,6 @@ Phases:
 
 1. Inventory repository structure, scripts, packages, and existing docs. Status: complete.
 2. Inventory server routes, features, database schema, middleware, and Cloudflare runtime resources. Status: complete.
-3. Inventory admin UI, editor package, shared contracts, and Bruno API collection. Status: complete.
+3. Inventory admin UI, editor package, and shared contracts. Status: complete.
 4. Write focused docs files under `docs/` with stable paths and concise architecture notes. Status: complete.
 5. Review generated docs for completeness, consistency, and AI readability. Status: complete.

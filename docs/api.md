@@ -8,8 +8,6 @@ Local Worker/Admin dev server serves:
 - API: `/api/*`
 - Public files: `/files/*`
 
-Bruno collection: `bruno/`.
-
 ## Authentication
 
 ### Register First Admin
@@ -157,7 +155,7 @@ Browser Admin UI:
 - Uses same-origin cookies.
 - Mutating requests include `X-CSRF-Token`.
 
-Bruno/API scripts:
+API scripts:
 
 - Use `Authorization: Bearer {{authToken}}`.
 - Do not need CSRF header.

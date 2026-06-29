@@ -34,8 +34,6 @@
 - Important content design: `bodyJson` is editable/source-of-truth Tiptap JSON; `bodyHtml` is generated sanitized HTML cache for published content.
 - Auth flow: first `POST /api/auth/register` only works while users table is empty; `POST /api/auth/login` returns JWT and sets `auth_token` plus `csrf_token`; admin routes require authenticated admin by default, while content routes further allow admin/editor/author.
 - Public API includes OpenAPI-ish root, health, content list/detail, category/tag content lists, event tracking, and public file serving under `/files/*`.
-- Bruno collection under `bruno/` documents runnable local API requests and uses `authToken` for bearer requests.
-
 ## WWW Public Frontend Plan Findings
 
 - `packages/www` currently contains only `docs/architecture.md`.

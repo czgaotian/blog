@@ -50,8 +50,7 @@ When changing content behavior:
 1. Prefer shared zod schemas and TypeScript interfaces in `packages/shared`.
 2. Import the same schema in server and admin.
 3. Update Admin API hooks.
-4. Update Bruno request if endpoint is part of the runnable API surface.
-5. Update `docs/api.md`.
+4. Update `docs/api.md`.
 
 ## Frontend Change Checklist
 

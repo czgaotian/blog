@@ -103,17 +103,3 @@ Dry-run check:
 ```bash
 pnpm --filter @worker-blog/admin check
 ```
-
-## Bruno API Collection
-
-Bruno requests live in `bruno/`.
-
-Recommended local flow:
-
-1. Select the `local` environment.
-2. On an empty DB, run `Auth/Register` once.
-3. Run `Auth/Login`.
-4. Ensure the returned JWT is saved into the `authToken` environment variable.
-5. Run Content, Media, Settings, Logs, Security Audit, or Analytics requests.
-
-Mutating Bruno admin requests use `Authorization: Bearer {{authToken}}`, so they do not need the browser CSRF header.

@@ -23,7 +23,7 @@
 - Started documentation architecture task.
 - Read existing planning files and preserved prior content-body migration context.
 - Added a new documentation task section to `task_plan.md`.
-- Inventoried server app registration, routes, DB schema, Cloudflare bindings, admin app/router/API client, editor exports/extensions, shared contracts, and Bruno usage.
+- Inventoried server app registration, routes, DB schema, Cloudflare bindings, admin app/router/API client, editor exports/extensions, and shared contracts.
 - Added AI-readable docs under `docs/`: README, AI context, project design, usage, architecture, backend, frontend, data model, API, and development guide.
 - Ran `git diff --check -- docs task_plan.md findings.md progress.md`; no whitespace errors.
 - Verified all README-linked generated docs exist and marked documentation task complete.
