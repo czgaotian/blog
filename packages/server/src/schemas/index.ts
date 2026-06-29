@@ -1,6 +1,6 @@
 export interface SchemaDefinition {
-  name: string
-  fields: any[]
+  name: string;
+  fields: any[];
 }
 
-export const schemaDefinitions: SchemaDefinition[] = []
+export const schemaDefinitions: SchemaDefinition[] = [];

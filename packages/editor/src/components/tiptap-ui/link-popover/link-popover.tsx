@@ -1,7 +1,7 @@
 "use client";
 
-import { forwardRef, useCallback, useEffect, useState } from "react";
 import type { Editor } from "@tiptap/react";
+import { forwardRef, useCallback, useEffect, useState } from "react";
 
 // --- Hooks ---
 import { useIsBreakpoint } from "../../../hooks/use-is-breakpoint";
@@ -12,23 +12,17 @@ import { CornerDownLeftIcon } from "../../tiptap-icons/corner-down-left-icon";
 import { ExternalLinkIcon } from "../../tiptap-icons/external-link-icon";
 import { LinkIcon } from "../../tiptap-icons/link-icon";
 import { TrashIcon } from "../../tiptap-icons/trash-icon";
-
-// --- Tiptap UI ---
-import type { UseLinkPopoverConfig } from ".";
-import { useLinkPopover } from ".";
-
 // --- UI Primitives ---
 import type { ButtonProps } from "../../tiptap-ui-primitive/button";
 import { Button } from "../../tiptap-ui-primitive/button";
-import {
-  Popover,
-  PopoverContent,
-  PopoverTrigger,
-} from "../../tiptap-ui-primitive/popover";
-import { Separator } from "../../tiptap-ui-primitive/separator";
+import { ButtonGroup } from "../../tiptap-ui-primitive/button-group";
 import { Card, CardBody, CardItemGroup } from "../../tiptap-ui-primitive/card";
 import { Input } from "../../tiptap-ui-primitive/input";
-import { ButtonGroup } from "../../tiptap-ui-primitive/button-group";
+import { Popover, PopoverContent, PopoverTrigger } from "../../tiptap-ui-primitive/popover";
+import { Separator } from "../../tiptap-ui-primitive/separator";
+// --- Tiptap UI ---
+import type { UseLinkPopoverConfig } from ".";
+import { useLinkPopover } from ".";
 
 import "./link-popover.scss";
 
@@ -59,8 +53,7 @@ export interface LinkMainProps {
   isActive: boolean;
 }
 
-export interface LinkPopoverProps
-  extends Omit<ButtonProps, "type">, UseLinkPopoverConfig {
+export interface LinkPopoverProps extends Omit<ButtonProps, "type">, UseLinkPopoverConfig {
   /**
    * Callback for when the popover opens or closes.
    */
@@ -222,22 +215,12 @@ export const LinkPopover = forwardRef<HTMLButtonElement, LinkPopoverProps>(
     const { editor } = useTiptapEditor(providedEditor);
     const [isOpen, setIsOpen] = useState(false);
 
-    const {
-      isVisible,
-      canSet,
-      isActive,
-      url,
-      setUrl,
-      setLink,
-      removeLink,
-      openLink,
-      label,
-      Icon,
-    } = useLinkPopover({
-      editor,
-      hideWhenUnavailable,
-      onSetLink,
-    });
+    const { isVisible, canSet, isActive, url, setUrl, setLink, removeLink, openLink, label, Icon } =
+      useLinkPopover({
+        editor,
+        hideWhenUnavailable,
+        onSetLink,
+      });
 
     const handleOnOpenChange = useCallback(
       (nextIsOpen: boolean) => {

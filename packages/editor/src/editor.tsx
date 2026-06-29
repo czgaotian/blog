@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef } from "react";
-import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
 import type { JSONContent } from "@tiptap/core";
+import { EditorContent, EditorContext, useEditor } from "@tiptap/react";
+import { useEffect, useMemo, useRef } from "react";
 import "./components/tiptap-node/blockquote-node/blockquote-node.scss";
 import "./components/tiptap-node/code-block-node/code-block-node.scss";
 import "./components/tiptap-node/horizontal-rule-node/horizontal-rule-node.scss";
@@ -11,18 +11,16 @@ import "./components/tiptap-node/image-node/image-node.scss";
 import "./components/tiptap-node/heading-node/heading-node.scss";
 import "./components/tiptap-node/paragraph-node/paragraph-node.scss";
 
+// --- Components ---
+import { EditorToolbar } from "./components/editor-toolbar";
+import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { useCursorVisibility } from "./hooks/use-cursor-visibility";
 // --- Hooks ---
 import { useIsBreakpoint } from "./hooks/use-is-breakpoint";
 import { useWindowSize } from "./hooks/use-window-size";
-import { useCursorVisibility } from "./hooks/use-cursor-visibility";
-
-// --- Components ---
-import { EditorToolbar } from "./components/editor-toolbar";
-
 // --- Lib ---
 import { createEditorExtensions } from "./lib/extensions";
-import { handleImageUpload, emptyTiptapDocument } from "./lib/tiptap-utils";
-import type { UploadFunction } from "./components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { emptyTiptapDocument, handleImageUpload } from "./lib/tiptap-utils";
 
 // --- Styles ---
 import "./styles/_keyframe-animations.scss";
@@ -93,11 +91,7 @@ export function Editor({
           }}
         />
 
-        <EditorContent
-          editor={editor}
-          role="presentation"
-          className="simple-editor-content"
-        />
+        <EditorContent editor={editor} role="presentation" className="simple-editor-content" />
       </EditorContext.Provider>
     </div>
   );

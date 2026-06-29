@@ -1,0 +1,91 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.5.1/schema.json",
+  "vcs": {
+    "enabled": true,
+    "clientKind": "git",
+    "useIgnoreFile": true
+  },
+  "files": {
+    "includes": [
+      "**/*.{js,jsx,ts,tsx,json,jsonc,css,html,svelte}",
+      "!packages/server/migrations",
+      "!packages/*/.svelte-kit",
+      "!packages/*/.vite",
+      "!packages/*/build",
+      "!packages/*/coverage",
+      "!packages/*/dist",
+      "!packages/*/node_modules"
+    ]
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "preset": "recommended",
+      "a11y": {
+        "noLabelWithoutControl": "off",
+        "noStaticElementInteractions": "off",
+        "noSvgWithoutTitle": "off",
+        "useKeyWithClickEvents": "off",
+        "useSemanticElements": "off"
+      },
+      "complexity": {
+        "noStaticOnlyClass": "off",
+        "noUselessConstructor": "off",
+        "useDateNow": "off",
+        "useLiteralKeys": "off",
+        "useOptionalChain": "off"
+      },
+      "correctness": {
+        "useExhaustiveDependencies": "off",
+        "useParseIntRadix": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "off",
+        "useNodejsImportProtocol": "off",
+        "useTemplate": "off"
+      },
+      "suspicious": {
+        "noArrayIndexKey": "off",
+        "noConfusingVoidType": "off",
+        "noControlCharactersInRegex": "off",
+        "noDuplicateProperties": "off",
+        "noExplicitAny": "off",
+        "noGlobalIsNan": "off"
+      }
+    }
+  },
+  "assist": {
+    "enabled": true,
+    "actions": {
+      "source": {
+        "organizeImports": "on"
+      }
+    }
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "double",
+      "semicolons": "always",
+      "trailingCommas": "all"
+    }
+  },
+  "json": {
+    "formatter": {
+      "trailingCommas": "none"
+    }
+  },
+  "html": {
+    "experimentalFullSupportEnabled": true
+  },
+  "css": {
+    "parser": {
+      "tailwindDirectives": true
+    }
+  }
+}

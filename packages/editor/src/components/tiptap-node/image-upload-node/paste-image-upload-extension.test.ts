@@ -1,8 +1,5 @@
 import { describe, expect, it } from "vitest";
-import {
-  chunkFiles,
-  getImageFilesFromClipboardData,
-} from "./paste-image-upload-extension";
+import { chunkFiles, getImageFilesFromClipboardData } from "./paste-image-upload-extension";
 
 function createFile(name: string, type: string) {
   return new File(["content"], name, { type });
@@ -23,18 +20,14 @@ describe("paste image upload helpers", () => {
   it("returns no files when the clipboard has no image files", () => {
     const textFile = createFile("notes.txt", "text/plain");
 
-    expect(getImageFilesFromClipboardData(createClipboardData([textFile]))).toEqual(
-      [],
-    );
+    expect(getImageFilesFromClipboardData(createClipboardData([textFile]))).toEqual([]);
   });
 
   it("extracts image files from clipboard items", () => {
     const image = createFile("screenshot.png", "image/png");
     const textFile = createFile("notes.txt", "text/plain");
 
-    expect(
-      getImageFilesFromClipboardData(createClipboardData([image, textFile])),
-    ).toEqual([image]);
+    expect(getImageFilesFromClipboardData(createClipboardData([image, textFile]))).toEqual([image]);
   });
 
   it("chunks pasted images by upload node limit", () => {
@@ -48,4 +41,3 @@ describe("paste image upload helpers", () => {
     expect(chunkFiles(files, 3)).toEqual([files.slice(0, 3), files.slice(3)]);
   });
 });
-

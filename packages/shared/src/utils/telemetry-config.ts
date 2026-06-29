@@ -4,7 +4,7 @@
  * Manages telemetry settings and opt-out mechanisms
  */
 
-import type { TelemetryConfig } from '../types/telemetry'
+import type { TelemetryConfig } from "../types/telemetry";
 
 /**
  * Safely get an environment variable
@@ -12,13 +12,13 @@ import type { TelemetryConfig } from '../types/telemetry'
  */
 function safeGetEnv(key: string): string | undefined {
   try {
-    if (typeof process !== 'undefined' && process.env) {
-      return process.env[key]
+    if (typeof process !== "undefined" && process.env) {
+      return process.env[key];
     }
   } catch {
     // process is not defined in this runtime (e.g., Cloudflare Workers)
   }
-  return undefined
+  return undefined;
 }
 
 /**
@@ -28,9 +28,9 @@ function safeGetEnv(key: string): string | undefined {
 export function getDefaultTelemetryConfig(): TelemetryConfig {
   return {
     enabled: true,
-    host: safeGetEnv('WORKER_BLOG_TELEMETRY_ENDPOINT') || 'https://stats.worker-blog.com',
-    debug: safeGetEnv('NODE_ENV') === 'development'
-  }
+    host: safeGetEnv("WORKER_BLOG_TELEMETRY_ENDPOINT") || "https://stats.worker-blog.com",
+    debug: safeGetEnv("NODE_ENV") === "development",
+  };
 }
 
 /**
@@ -38,19 +38,19 @@ export function getDefaultTelemetryConfig(): TelemetryConfig {
  */
 export function isTelemetryEnabled(): boolean {
   // Check for explicit opt-out
-  const telemetryEnv = safeGetEnv('WORKER_BLOG_TELEMETRY')
-  if (telemetryEnv === 'false' || telemetryEnv === '0' || telemetryEnv === 'disabled') {
-    return false
+  const telemetryEnv = safeGetEnv("WORKER_BLOG_TELEMETRY");
+  if (telemetryEnv === "false" || telemetryEnv === "0" || telemetryEnv === "disabled") {
+    return false;
   }
 
   // Check for DO_NOT_TRACK environment variable (common standard)
-  const doNotTrack = safeGetEnv('DO_NOT_TRACK')
-  if (doNotTrack === '1' || doNotTrack === 'true') {
-    return false
+  const doNotTrack = safeGetEnv("DO_NOT_TRACK");
+  if (doNotTrack === "1" || doNotTrack === "true") {
+    return false;
   }
 
   // Default to enabled (opt-out model)
-  return true
+  return true;
 }
 
 /**
@@ -59,8 +59,8 @@ export function isTelemetryEnabled(): boolean {
 export function getTelemetryConfig(): TelemetryConfig {
   return {
     ...getDefaultTelemetryConfig(),
-    enabled: isTelemetryEnabled()
-  }
+    enabled: isTelemetryEnabled(),
+  };
 }
 
 /**
@@ -68,15 +68,15 @@ export function getTelemetryConfig(): TelemetryConfig {
  * Used to implement sampling or rate limiting if needed
  */
 export function shouldSkipEvent(eventName: string, sampleRate: number = 1.0): boolean {
-  if (sampleRate >= 1.0) return false
-  if (sampleRate <= 0) return true
+  if (sampleRate >= 1.0) return false;
+  if (sampleRate <= 0) return true;
 
   // Use a consistent hash of the event name for deterministic sampling
-  let hash = 0
+  let hash = 0;
   for (let i = 0; i < eventName.length; i++) {
-    hash = ((hash << 5) - hash) + eventName.charCodeAt(i)
-    hash = hash & hash
+    hash = (hash << 5) - hash + eventName.charCodeAt(i);
+    hash = hash & hash;
   }
 
-  return Math.abs(hash % 100) / 100 > sampleRate
+  return Math.abs(hash % 100) / 100 > sampleRate;
 }

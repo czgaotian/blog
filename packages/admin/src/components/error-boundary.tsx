@@ -1,26 +1,26 @@
-import { Component, type ErrorInfo, type ReactNode } from 'react'
-import { Alert } from './ui/alert'
-import { Button } from './ui/button'
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { Alert } from "./ui/alert";
+import { Button } from "./ui/button";
 
 interface ErrorBoundaryProps {
-  children: ReactNode
+  children: ReactNode;
 }
 
 interface ErrorBoundaryState {
-  error: Error | null
+  error: Error | null;
 }
 
 export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   state: ErrorBoundaryState = {
     error: null,
-  }
+  };
 
   static getDerivedStateFromError(error: Error): ErrorBoundaryState {
-    return { error }
+    return { error };
   }
 
   componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
-    console.error('Admin SPA render error', error, errorInfo)
+    console.error("Admin SPA render error", error, errorInfo);
   }
 
   render() {
@@ -34,9 +34,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             </Button>
           </div>
         </Alert>
-      )
+      );
     }
 
-    return this.props.children
+    return this.props.children;
   }
 }

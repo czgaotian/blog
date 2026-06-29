@@ -25,4 +25,3 @@ export function consumePendingImageUpload(uploadId: string): File[] | null {
   pendingImageUploads.delete(uploadId);
   return pending.files;
 }
-

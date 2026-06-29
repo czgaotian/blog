@@ -1,18 +1,28 @@
-import type { FormHTMLAttributes, ReactNode } from 'react'
-import { Search } from 'lucide-react'
-import { cn } from '../../lib/utils'
+import { Search } from "lucide-react";
+import type { FormHTMLAttributes, ReactNode } from "react";
+import { cn } from "../../lib/utils";
 
 interface FilterBarProps extends FormHTMLAttributes<HTMLFormElement> {
-  searchLabel?: string
-  searchValue?: string
-  actions?: ReactNode
+  searchLabel?: string;
+  searchValue?: string;
+  actions?: ReactNode;
 }
 
-export function FilterBar({ searchLabel = 'Search', searchValue, actions, children, className, ...props }: FilterBarProps) {
+export function FilterBar({
+  searchLabel = "Search",
+  searchValue,
+  actions,
+  children,
+  className,
+  ...props
+}: FilterBarProps) {
   return (
     <form
       data-slot="filter-bar"
-      className={cn('flex flex-col gap-3 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-center', className)}
+      className={cn(
+        "flex flex-col gap-3 rounded-md border border-border bg-card p-3 sm:flex-row sm:items-center",
+        className,
+      )}
       {...props}
     >
       <label className="relative min-w-0 flex-1">
@@ -29,5 +39,5 @@ export function FilterBar({ searchLabel = 'Search', searchValue, actions, childr
       {children}
       {actions ? <div className="flex shrink-0 items-center gap-2">{actions}</div> : null}
     </form>
-  )
+  );
 }

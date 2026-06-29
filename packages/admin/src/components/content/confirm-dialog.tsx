@@ -1,18 +1,18 @@
-import type { ReactNode } from 'react'
-import { Button } from '../ui/button'
-import { Dialog } from '../ui/dialog'
-import { Spinner } from '../ui/spinner'
+import type { ReactNode } from "react";
+import { Button } from "../ui/button";
+import { Dialog } from "../ui/dialog";
+import { Spinner } from "../ui/spinner";
 
 interface ConfirmDialogProps {
-  open: boolean
-  title: string
-  children: ReactNode
-  confirmLabel: string
-  pendingLabel: string
-  destructive?: boolean
-  pending?: boolean
-  onCancel: () => void
-  onConfirm: () => void
+  open: boolean;
+  title: string;
+  children: ReactNode;
+  confirmLabel: string;
+  pendingLabel: string;
+  destructive?: boolean;
+  pending?: boolean;
+  onCancel: () => void;
+  onConfirm: () => void;
 }
 
 export function ConfirmDialog({
@@ -36,7 +36,7 @@ export function ConfirmDialog({
           </Button>
           <Button
             type="button"
-            variant={destructive ? 'destructive' : 'default'}
+            variant={destructive ? "destructive" : "default"}
             disabled={pending}
             onClick={onConfirm}
           >
@@ -46,5 +46,5 @@ export function ConfirmDialog({
         </div>
       </div>
     </Dialog>
-  )
+  );
 }

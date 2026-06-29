@@ -3,37 +3,18 @@ import { useQueryClient } from "@tanstack/react-query";
 import { Editor, type UploadFunction } from "@worker-blog/editor";
 import type { ContentStatus } from "@worker-blog/shared/admin-api";
 import { ChevronDown, Plus } from "lucide-react";
-import { Controller, type FieldErrors, useForm } from "react-hook-form";
 import { useCallback, useEffect, useState } from "react";
+import { Controller, type FieldErrors, useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { uploadMediaFile } from "../../api/media";
 import { useCategoriesList, useTagsList } from "../../api/taxonomies";
-import {
-  contentFormSchema,
-  type ContentFormValues,
-} from "../../lib/content-form";
+import { type ContentFormValues, contentFormSchema } from "../../lib/content-form";
 import { Alert } from "../ui/alert";
 import { Button } from "../ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "../ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "../ui/card";
 import { Checkbox } from "../ui/checkbox";
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "../ui/collapsible";
-import {
-  Field,
-  FieldDescription,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "../ui/field";
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "../ui/collapsible";
+import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from "../ui/field";
 import { Input } from "../ui/input";
 import {
   Select,
@@ -100,8 +81,7 @@ export function ContentForm({
   });
   const status = form.watch("status");
   const { errors, isDirty } = form.formState;
-  const hasNoCategories =
-    categories.isSuccess && categories.data.items.length === 0;
+  const hasNoCategories = categories.isSuccess && categories.data.items.length === 0;
   const hasNoTags = tags.isSuccess && tags.data.items.length === 0;
 
   useEffect(() => {
@@ -138,14 +118,11 @@ export function ContentForm({
     [queryClient],
   );
 
-  const openMetadataOnInvalid = useCallback(
-    (invalidErrors: FieldErrors<ContentFormValues>) => {
-      if (METADATA_FIELDS.some((field) => invalidErrors[field])) {
-        setMetadataOpen(true);
-      }
-    },
-    [],
-  );
+  const openMetadataOnInvalid = useCallback((invalidErrors: FieldErrors<ContentFormValues>) => {
+    if (METADATA_FIELDS.some((field) => invalidErrors[field])) {
+      setMetadataOpen(true);
+    }
+  }, []);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit, openMetadataOnInvalid)}>
@@ -190,31 +167,20 @@ export function ContentForm({
               <Card>
                 <CardHeader>
                   <CardTitle>Content details</CardTitle>
-                  <CardDescription>
-                    Configure the public title, URL, and summary.
-                  </CardDescription>
+                  <CardDescription>Configure the public title, URL, and summary.</CardDescription>
                 </CardHeader>
                 <CardContent>
                   <FieldGroup>
                     <Field data-invalid={!!errors.title}>
                       <FieldLabel htmlFor="title">Title</FieldLabel>
-                      <Input
-                        id="title"
-                        aria-invalid={!!errors.title}
-                        {...form.register("title")}
-                      />
+                      <Input id="title" aria-invalid={!!errors.title} {...form.register("title")} />
                       <FieldError errors={[errors.title]} />
                     </Field>
                     <Field data-invalid={!!errors.slug}>
                       <FieldLabel htmlFor="slug">Slug</FieldLabel>
-                      <Input
-                        id="slug"
-                        aria-invalid={!!errors.slug}
-                        {...form.register("slug")}
-                      />
+                      <Input id="slug" aria-invalid={!!errors.slug} {...form.register("slug")} />
                       <FieldDescription>
-                        Leave blank when creating content to generate it from
-                        the title.
+                        Leave blank when creating content to generate it from the title.
                       </FieldDescription>
                       <FieldError errors={[errors.slug]} />
                     </Field>
@@ -245,23 +211,14 @@ export function ContentForm({
                           control={form.control}
                           name="status"
                           render={({ field }) => (
-                            <Select
-                              value={field.value}
-                              onValueChange={field.onChange}
-                            >
-                              <SelectTrigger
-                                className="w-full"
-                                aria-invalid={!!errors.status}
-                              >
+                            <Select value={field.value} onValueChange={field.onChange}>
+                              <SelectTrigger className="w-full" aria-invalid={!!errors.status}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
                                 <SelectGroup>
                                   {STATUS_OPTIONS.map((option) => (
-                                    <SelectItem
-                                      key={option.value}
-                                      value={option.value}
-                                    >
+                                    <SelectItem key={option.value} value={option.value}>
                                       {option.label}
                                     </SelectItem>
                                   ))}
@@ -274,9 +231,7 @@ export function ContentForm({
                       </Field>
                       {status === "scheduled" || status === "published" ? (
                         <Field data-invalid={!!errors.publishedAt}>
-                          <FieldLabel htmlFor="publishedAt">
-                            Publish time
-                          </FieldLabel>
+                          <FieldLabel htmlFor="publishedAt">Publish time</FieldLabel>
                           <Input
                             id="publishedAt"
                             type="datetime-local"
@@ -313,9 +268,7 @@ export function ContentForm({
                               <Select
                                 value={field.value || "none"}
                                 onValueChange={(value) =>
-                                  field.onChange(
-                                    value === "none" ? "" : value,
-                                  )
+                                  field.onChange(value === "none" ? "" : value)
                                 }
                               >
                                 <SelectTrigger className="w-full">
@@ -323,14 +276,9 @@ export function ContentForm({
                                 </SelectTrigger>
                                 <SelectContent>
                                   <SelectGroup>
-                                    <SelectItem value="none">
-                                      No category
-                                    </SelectItem>
+                                    <SelectItem value="none">No category</SelectItem>
                                     {categories.data?.items.map((category) => (
-                                      <SelectItem
-                                        key={category.id}
-                                        value={category.id}
-                                      >
+                                      <SelectItem key={category.id} value={category.id}>
                                         {category.name}
                                       </SelectItem>
                                     ))}
@@ -359,19 +307,14 @@ export function ContentForm({
                                 {tags.data?.items.map((tag) => {
                                   const checked = field.value.includes(tag.id);
                                   return (
-                                    <label
-                                      key={tag.id}
-                                      className="flex items-center gap-2 text-sm"
-                                    >
+                                    <label key={tag.id} className="flex items-center gap-2 text-sm">
                                       <Checkbox
                                         checked={checked}
                                         onCheckedChange={(next) => {
                                           field.onChange(
                                             next
                                               ? [...field.value, tag.id]
-                                              : field.value.filter(
-                                                  (id) => id !== tag.id,
-                                                ),
+                                              : field.value.filter((id) => id !== tag.id),
                                           );
                                         }}
                                       />
@@ -397,10 +340,7 @@ export function ContentForm({
                       control={form.control}
                       name="coverImageId"
                       render={({ field }) => (
-                        <CoverImagePicker
-                          value={field.value}
-                          onChange={field.onChange}
-                        />
+                        <CoverImagePicker value={field.value} onChange={field.onChange} />
                       )}
                     />
                   </CardContent>

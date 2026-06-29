@@ -1,53 +1,66 @@
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import type {
   AdminApiResponse,
   SecurityAuditAdminDashboardData,
   SecurityAuditPurgeResponse,
-} from '@worker-blog/shared/admin-api'
-import { AdminApiError, adminFetch } from './client'
+} from "@worker-blog/shared/admin-api";
+import { AdminApiError, adminFetch } from "./client";
 
-const BASE_PATH = '/api/admin/security-audit'
+const BASE_PATH = "/api/admin/security-audit";
 
 function unwrapAdminResponse<T>(response: AdminApiResponse<T>): T {
   if (!response.success) {
-    throw new AdminApiError(response.error, 500, response)
+    throw new AdminApiError(response.error, 500, response);
   }
 
-  return response.data
+  return response.data;
 }
 
 export function useSecurityAuditAdmin() {
   return useQuery<SecurityAuditAdminDashboardData>({
-    queryKey: ['admin', 'security-audit'],
-    queryFn: async () => unwrapAdminResponse(await adminFetch<AdminApiResponse<SecurityAuditAdminDashboardData>>(BASE_PATH)),
-  })
+    queryKey: ["admin", "security-audit"],
+    queryFn: async () =>
+      unwrapAdminResponse(
+        await adminFetch<AdminApiResponse<SecurityAuditAdminDashboardData>>(BASE_PATH),
+      ),
+  });
 }
 
 export function useReleaseSecurityAuditLockout() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
 
   return useMutation<{ released: boolean }, Error, string>({
     mutationFn: async (key) =>
-      unwrapAdminResponse(await adminFetch<AdminApiResponse<{ released: boolean }>>(`${BASE_PATH}/lockouts/${encodeURIComponent(key)}`, {
-        method: 'DELETE',
-      })),
+      unwrapAdminResponse(
+        await adminFetch<AdminApiResponse<{ released: boolean }>>(
+          `${BASE_PATH}/lockouts/${encodeURIComponent(key)}`,
+          {
+            method: "DELETE",
+          },
+        ),
+      ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'security-audit'] })
+      qc.invalidateQueries({ queryKey: ["admin", "security-audit"] });
     },
-  })
+  });
 }
 
 export function usePurgeSecurityAuditEvents() {
-  const qc = useQueryClient()
+  const qc = useQueryClient();
 
   return useMutation<SecurityAuditPurgeResponse, Error, number | undefined>({
     mutationFn: async (daysToKeep) =>
-      unwrapAdminResponse(await adminFetch<AdminApiResponse<SecurityAuditPurgeResponse>>(`${BASE_PATH}/events/purge`, {
-        method: 'POST',
-        body: JSON.stringify({ daysToKeep }),
-      })),
+      unwrapAdminResponse(
+        await adminFetch<AdminApiResponse<SecurityAuditPurgeResponse>>(
+          `${BASE_PATH}/events/purge`,
+          {
+            method: "POST",
+            body: JSON.stringify({ daysToKeep }),
+          },
+        ),
+      ),
     onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ['admin', 'security-audit'] })
+      qc.invalidateQueries({ queryKey: ["admin", "security-audit"] });
     },
-  })
+  });
 }

@@ -2,22 +2,22 @@
  * Built-in security audit feature.
  */
 
-import { securityAuditApiRoutes } from './routes/api'
-import securityAuditAdminApiRoutes from './routes/admin-api'
+import securityAuditAdminApiRoutes from "./routes/admin-api";
+import { securityAuditApiRoutes } from "./routes/api";
 
 export const securityAuditFeature = {
   routes: [
     {
-      path: '/api/security-audit',
+      path: "/api/security-audit",
       handler: securityAuditApiRoutes as any,
     },
     {
-      path: '/api/admin/security-audit',
+      path: "/api/admin/security-audit",
       handler: securityAuditAdminApiRoutes as any,
     },
   ],
-}
+};
 
-export { SecurityAuditService } from './services/security-audit-service'
-export { BruteForceDetector } from './services/brute-force-detector'
-export { securityAuditMiddleware } from './middleware/audit-middleware'
+export { securityAuditMiddleware } from "./middleware/audit-middleware";
+export { BruteForceDetector } from "./services/brute-force-detector";
+export { SecurityAuditService } from "./services/security-audit-service";

@@ -8,9 +8,7 @@ export interface PasteImageUploadOptions {
   maxSize: number;
 }
 
-export function getImageFilesFromClipboardData(
-  clipboardData: DataTransfer | null,
-): File[] {
+export function getImageFilesFromClipboardData(clipboardData: DataTransfer | null): File[] {
   if (!clipboardData) return [];
 
   const itemFiles = Array.from(clipboardData.items)
@@ -20,9 +18,7 @@ export function getImageFilesFromClipboardData(
 
   if (itemFiles.length > 0) return itemFiles;
 
-  return Array.from(clipboardData.files).filter((file) =>
-    file.type.startsWith("image/"),
-  );
+  return Array.from(clipboardData.files).filter((file) => file.type.startsWith("image/"));
 }
 
 export function chunkFiles(files: File[], limit: number): File[][] {
@@ -55,17 +51,15 @@ export const PasteImageUpload = Extension.create<PasteImageUploadOptions>({
             const files = getImageFilesFromClipboardData(event.clipboardData);
             if (files.length === 0) return false;
 
-            const uploadNodes = chunkFiles(files, this.options.limit).map(
-              (chunk) => ({
-                type: "imageUpload",
-                attrs: {
-                  accept: this.options.accept,
-                  limit: this.options.limit,
-                  maxSize: this.options.maxSize,
-                  uploadId: registerPendingImageUpload(chunk),
-                },
-              }),
-            );
+            const uploadNodes = chunkFiles(files, this.options.limit).map((chunk) => ({
+              type: "imageUpload",
+              attrs: {
+                accept: this.options.accept,
+                limit: this.options.limit,
+                maxSize: this.options.maxSize,
+                uploadId: registerPendingImageUpload(chunk),
+              },
+            }));
 
             if (!this.editor.can().insertContent(uploadNodes)) {
               return false;
@@ -79,4 +73,3 @@ export const PasteImageUpload = Extension.create<PasteImageUploadOptions>({
     ];
   },
 });
-

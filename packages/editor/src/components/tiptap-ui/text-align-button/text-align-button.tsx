@@ -1,27 +1,22 @@
 "use client";
 
 import { forwardRef, useCallback } from "react";
-
-// --- Lib ---
-import { parseShortcutKeys } from "../../../lib/tiptap-utils";
-
 // --- Hooks ---
 import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
-
+// --- Lib ---
+import { parseShortcutKeys } from "../../../lib/tiptap-utils";
+import { Badge } from "../../tiptap-ui-primitive/badge";
+// --- UI Primitives ---
+import type { ButtonProps } from "../../tiptap-ui-primitive/button";
+import { Button } from "../../tiptap-ui-primitive/button";
 // --- Tiptap UI ---
 import type { TextAlign, UseTextAlignConfig } from ".";
 import { TEXT_ALIGN_SHORTCUT_KEYS, useTextAlign } from ".";
 
-// --- UI Primitives ---
-import type { ButtonProps } from "../../tiptap-ui-primitive/button";
-import { Button } from "../../tiptap-ui-primitive/button";
-import { Badge } from "../../tiptap-ui-primitive/badge";
-
 type IconProps = React.SVGProps<SVGSVGElement>;
 type IconComponent = ({ className, ...props }: IconProps) => React.ReactElement;
 
-export interface TextAlignButtonProps
-  extends Omit<ButtonProps, "type">, UseTextAlignConfig {
+export interface TextAlignButtonProps extends Omit<ButtonProps, "type">, UseTextAlignConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -52,10 +47,7 @@ export function TextAlignShortcutBadge({
  *
  * For custom button implementations, use the `useTextAlign` hook instead.
  */
-export const TextAlignButton = forwardRef<
-  HTMLButtonElement,
-  TextAlignButtonProps
->(
+export const TextAlignButton = forwardRef<HTMLButtonElement, TextAlignButtonProps>(
   (
     {
       editor: providedEditor,
@@ -72,20 +64,13 @@ export const TextAlignButton = forwardRef<
     ref,
   ) => {
     const { editor } = useTiptapEditor(providedEditor);
-    const {
-      isVisible,
-      handleTextAlign,
-      label,
-      canAlign,
-      isActive,
-      Icon,
-      shortcutKeys,
-    } = useTextAlign({
-      editor,
-      align,
-      hideWhenUnavailable,
-      onAligned,
-    });
+    const { isVisible, handleTextAlign, label, canAlign, isActive, Icon, shortcutKeys } =
+      useTextAlign({
+        editor,
+        align,
+        hideWhenUnavailable,
+        onAligned,
+      });
 
     const handleClick = useCallback(
       (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -122,12 +107,7 @@ export const TextAlignButton = forwardRef<
           <>
             <RenderIcon className="tiptap-button-icon" />
             {text && <span className="tiptap-button-text">{text}</span>}
-            {showShortcut && (
-              <TextAlignShortcutBadge
-                align={align}
-                shortcutKeys={shortcutKeys}
-              />
-            )}
+            {showShortcut && <TextAlignShortcutBadge align={align} shortcutKeys={shortcutKeys} />}
           </>
         )}
       </Button>

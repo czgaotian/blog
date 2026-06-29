@@ -1,7 +1,7 @@
-import { RouterProvider } from 'react-router'
-import { ErrorBoundary } from './components/error-boundary'
-import { Toaster } from './components/ui/sonner'
-import { router } from './router'
+import { RouterProvider } from "react-router";
+import { ErrorBoundary } from "./components/error-boundary";
+import { Toaster } from "./components/ui/sonner";
+import { router } from "./router";
 
 export function App() {
   return (
@@ -9,5 +9,5 @@ export function App() {
       <RouterProvider router={router} />
       <Toaster richColors position="top-right" />
     </ErrorBoundary>
-  )
+  );
 }

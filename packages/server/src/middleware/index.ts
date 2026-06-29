@@ -9,52 +9,47 @@
 // Auth middleware
 export {
   AuthManager,
-  requireAuth,
-  requireRole,
-  optionalAuth,
   getJwtExpirySeconds,
   getJwtExpirySecondsFromDb,
   getJwtRefreshGraceSecondsFromDb,
-} from './auth'
-
-// Metrics middleware
-export { metricsMiddleware } from './metrics'
-
-// Request context middleware
-export { requestContextMiddleware } from './request-context'
-
-// Opt-in durable request logging middleware
-export { requestLoggingMiddleware } from './request-logging'
-export type { RequestLoggingOptions } from './request-logging'
-
+  optionalAuth,
+  requireAuth,
+  requireRole,
+} from "./auth";
 // CSRF protection middleware
-export { csrfProtection, generateCsrfToken, validateCsrfToken } from './csrf'
-
+export { csrfProtection, generateCsrfToken, validateCsrfToken } from "./csrf";
+// Metrics middleware
+export { metricsMiddleware } from "./metrics";
 // Rate limiting middleware
-export { rateLimit } from './rate-limit'
+export { rateLimit } from "./rate-limit";
+// Request context middleware
+export { requestContextMiddleware } from "./request-context";
+export type { RequestLoggingOptions } from "./request-logging";
+// Opt-in durable request logging middleware
+export { requestLoggingMiddleware } from "./request-logging";
 
 // Initial setup guard
-export { setupGuardMiddleware } from './setup-guard'
+export { setupGuardMiddleware } from "./setup-guard";
 
 // Re-export types and functions that are referenced but implemented in monolith
 // These are placeholder exports to maintain API compatibility
-export type Permission = string
+export type Permission = string;
 export type UserPermissions = {
-  userId: string
-  permissions: Permission[]
-}
+  userId: string;
+  permissions: Permission[];
+};
 
 // Middleware stubs - these return pass-through middleware that call next()
-export const loggingMiddleware: any = () => async (_c: any, next: any) => await next()
-export const detailedLoggingMiddleware: any = () => async (_c: any, next: any) => await next()
-export const securityLoggingMiddleware: any = () => async (_c: any, next: any) => await next()
-export const performanceLoggingMiddleware: any = () => async (_c: any, next: any) => await next()
-export const cacheHeaders: any = () => async (_c: any, next: any) => await next()
-export const compressionMiddleware: any = async (_c: any, next: any) => await next()
-export { securityHeadersMiddleware as securityHeaders } from './security-headers'
+export const loggingMiddleware: any = () => async (_c: any, next: any) => await next();
+export const detailedLoggingMiddleware: any = () => async (_c: any, next: any) => await next();
+export const securityLoggingMiddleware: any = () => async (_c: any, next: any) => await next();
+export const performanceLoggingMiddleware: any = () => async (_c: any, next: any) => await next();
+export const cacheHeaders: any = () => async (_c: any, next: any) => await next();
+export const compressionMiddleware: any = async (_c: any, next: any) => await next();
+export { securityHeadersMiddleware as securityHeaders } from "./security-headers";
 
 // Other stubs
-export const PermissionManager: any = {}
-export const requirePermission: any = () => async (_c: any, next: any) => await next()
-export const requireAnyPermission: any = () => async (_c: any, next: any) => await next()
-export const logActivity: any = () => {}
+export const PermissionManager: any = {};
+export const requirePermission: any = () => async (_c: any, next: any) => await next();
+export const requireAnyPermission: any = () => async (_c: any, next: any) => await next();
+export const logActivity: any = () => {};

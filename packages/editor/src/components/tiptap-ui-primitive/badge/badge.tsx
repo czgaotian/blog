@@ -1,13 +1,13 @@
-import { forwardRef } from "react"
-import "./badge-colors.scss"
-import "./badge-group.scss"
-import "./badge.scss"
+import { forwardRef } from "react";
+import "./badge-colors.scss";
+import "./badge-group.scss";
+import "./badge.scss";
 
 export interface BadgeProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "ghost" | "white" | "gray" | "green" | "yellow" | "default"
-  size?: "default" | "small"
-  appearance?: "default" | "subdued" | "emphasized"
-  trimText?: boolean
+  variant?: "ghost" | "white" | "gray" | "green" | "yellow" | "default";
+  size?: "default" | "small";
+  appearance?: "default" | "subdued" | "emphasized";
+  trimText?: boolean;
 }
 
 export const Badge = forwardRef<HTMLDivElement, BadgeProps>(
@@ -21,7 +21,7 @@ export const Badge = forwardRef<HTMLDivElement, BadgeProps>(
       children,
       ...props
     },
-    ref
+    ref,
   ) => {
     return (
       <div
@@ -35,10 +35,10 @@ export const Badge = forwardRef<HTMLDivElement, BadgeProps>(
       >
         {children}
       </div>
-    )
-  }
-)
+    );
+  },
+);
 
-Badge.displayName = "Badge"
+Badge.displayName = "Badge";
 
-export default Badge
+export default Badge;

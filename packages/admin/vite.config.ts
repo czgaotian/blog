@@ -1,6 +1,6 @@
-import { defineConfig, type PluginOption } from "vite";
-import react from "@vitejs/plugin-react";
 import { cloudflare } from "@cloudflare/vite-plugin";
+import react from "@vitejs/plugin-react";
+import { defineConfig, type PluginOption } from "vite";
 
 export default defineConfig(({ mode }) => {
   const plugins: PluginOption[] = [react()];

@@ -14,11 +14,11 @@
  *   - Requests with no auth_token cookie (Bearer-only or API-key-only)
  */
 
-import type { Context, Next } from 'hono'
-import { getCookie, setCookie } from 'hono/cookie'
+import type { Context, Next } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 
 // Fallback secret — mirrors auth.ts behavior for local dev without wrangler secret
-const JWT_SECRET_FALLBACK = 'your-super-secret-jwt-key-change-in-production'
+const JWT_SECRET_FALLBACK = "your-super-secret-jwt-key-change-in-production";
 
 // ============================================================================
 // Helpers
@@ -26,24 +26,24 @@ const JWT_SECRET_FALLBACK = 'your-super-secret-jwt-key-change-in-production'
 
 /** Convert ArrayBuffer to URL-safe base64 (no padding). */
 export function arrayBufferToBase64Url(buffer: ArrayBuffer): string {
-  const bytes = new Uint8Array(buffer)
-  let binary = ''
+  const bytes = new Uint8Array(buffer);
+  let binary = "";
   for (let i = 0; i < bytes.length; i++) {
-    binary += String.fromCharCode(bytes[i]!)
+    binary += String.fromCharCode(bytes[i]!);
   }
-  return btoa(binary).replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
+  return btoa(binary).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
 /** Import a string key for HMAC-SHA256. */
 async function getHmacKey(secret: string): Promise<typeof CryptoKey.prototype> {
-  const encoder = new TextEncoder()
+  const encoder = new TextEncoder();
   return crypto.subtle.importKey(
-    'raw',
+    "raw",
     encoder.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
+    { name: "HMAC", hash: "SHA-256" },
     false,
-    ['sign', 'verify']
-  )
+    ["sign", "verify"],
+  );
 }
 
 // ============================================================================
@@ -56,16 +56,16 @@ async function getHmacKey(secret: string): Promise<typeof CryptoKey.prototype> {
  * - signature = HMAC-SHA256(nonce, secret), base64url-encoded
  */
 export async function generateCsrfToken(secret: string): Promise<string> {
-  const nonceBytes = new Uint8Array(32)
-  crypto.getRandomValues(nonceBytes)
-  const nonce = arrayBufferToBase64Url(nonceBytes.buffer)
+  const nonceBytes = new Uint8Array(32);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = arrayBufferToBase64Url(nonceBytes.buffer);
 
-  const key = await getHmacKey(secret)
-  const encoder = new TextEncoder()
-  const signatureBuffer = await crypto.subtle.sign('HMAC', key, encoder.encode(nonce))
-  const signature = arrayBufferToBase64Url(signatureBuffer)
+  const key = await getHmacKey(secret);
+  const encoder = new TextEncoder();
+  const signatureBuffer = await crypto.subtle.sign("HMAC", key, encoder.encode(nonce));
+  const signature = arrayBufferToBase64Url(signatureBuffer);
 
-  return `${nonce}.${signature}`
+  return `${nonce}.${signature}`;
 }
 
 /**
@@ -81,32 +81,32 @@ export async function generateCsrfToken(secret: string): Promise<string> {
  * handles expiry at the browser level.
  */
 export async function validateCsrfToken(token: string, secret: string): Promise<boolean> {
-  if (!token || typeof token !== 'string') return false
+  if (!token || typeof token !== "string") return false;
 
-  const dotIndex = token.indexOf('.')
-  if (dotIndex === -1) return false
+  const dotIndex = token.indexOf(".");
+  if (dotIndex === -1) return false;
 
-  const nonce = token.substring(0, dotIndex)
-  const signature = token.substring(dotIndex + 1)
+  const nonce = token.substring(0, dotIndex);
+  const signature = token.substring(dotIndex + 1);
 
-  if (!nonce || !signature) return false
+  if (!nonce || !signature) return false;
 
   try {
-    const key = await getHmacKey(secret)
-    const encoder = new TextEncoder()
+    const key = await getHmacKey(secret);
+    const encoder = new TextEncoder();
 
     // Decode the signature from base64url
-    const sigPadded = signature.replace(/-/g, '+').replace(/_/g, '/')
-    const sigBinary = atob(sigPadded)
-    const sigBytes = new Uint8Array(sigBinary.length)
+    const sigPadded = signature.replace(/-/g, "+").replace(/_/g, "/");
+    const sigBinary = atob(sigPadded);
+    const sigBytes = new Uint8Array(sigBinary.length);
     for (let i = 0; i < sigBinary.length; i++) {
-      sigBytes[i] = sigBinary.charCodeAt(i)
+      sigBytes[i] = sigBinary.charCodeAt(i);
     }
 
     // crypto.subtle.verify is constant-time
-    return await crypto.subtle.verify('HMAC', key, sigBytes.buffer, encoder.encode(nonce))
+    return await crypto.subtle.verify("HMAC", key, sigBytes.buffer, encoder.encode(nonce));
   } catch {
-    return false
+    return false;
   }
 }
 
@@ -115,11 +115,11 @@ export async function validateCsrfToken(token: string, secret: string): Promise<
 // ============================================================================
 
 const DEFAULT_EXEMPT_PATHS = [
-  '/api/auth/login',
-  '/api/auth/register',
-  '/api/auth/verify',
-  '/api/events',
-]
+  "/api/auth/login",
+  "/api/auth/register",
+  "/api/auth/verify",
+  "/api/events",
+];
 
 /**
  * Check whether a request path is exempt from CSRF validation.
@@ -128,18 +128,18 @@ const DEFAULT_EXEMPT_PATHS = [
  */
 function isExemptPath(path: string, extraExemptPaths: string[] = []): boolean {
   // Search API — read-only POST (includes /api/search/click, /api/search/facet-click)
-  if (path.startsWith('/api/search')) {
-    return true
+  if (path.startsWith("/api/search")) {
+    return true;
   }
 
-  const allExempt = [...DEFAULT_EXEMPT_PATHS, ...extraExemptPaths]
+  const allExempt = [...DEFAULT_EXEMPT_PATHS, ...extraExemptPaths];
   for (const exempt of allExempt) {
-    if (path === exempt || path.startsWith(exempt + '/')) {
-      return true
+    if (path === exempt || path.startsWith(exempt + "/")) {
+      return true;
     }
   }
 
-  return false
+  return false;
 }
 
 // ============================================================================
@@ -148,7 +148,7 @@ function isExemptPath(path: string, extraExemptPaths: string[] = []): boolean {
 
 export interface CsrfOptions {
   /** Additional paths to exempt from CSRF validation. */
-  exemptPaths?: string[]
+  exemptPaths?: string[];
 }
 
 /**
@@ -160,58 +160,61 @@ export interface CsrfOptions {
  */
 export function csrfProtection(options: CsrfOptions = {}) {
   return async (c: Context, next: Next): Promise<Response | void> => {
-    const method = c.req.method.toUpperCase()
-    const path = new URL(c.req.url).pathname
-    const secret = c.env?.JWT_SECRET || JWT_SECRET_FALLBACK
+    const method = c.req.method.toUpperCase();
+    const path = new URL(c.req.url).pathname;
+    const secret = c.env?.JWT_SECRET || JWT_SECRET_FALLBACK;
 
     // Warn if using fallback secret in production
-    if (c.env?.ENVIRONMENT === 'production' && !c.env?.JWT_SECRET) {
+    if (c.env?.ENVIRONMENT === "production" && !c.env?.JWT_SECRET) {
       console.warn(
-        '[CSRF] WARNING: JWT_SECRET is not set in production. ' +
-        'CSRF tokens are signed with the fallback key, which is insecure.'
-      )
+        "[CSRF] WARNING: JWT_SECRET is not set in production. " +
+          "CSRF tokens are signed with the fallback key, which is insecure.",
+      );
     }
 
     // Safe methods — just ensure cookie, then pass through
-    if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
-      await ensureCsrfCookie(c, secret)
-      await next()
-      return
+    if (method === "GET" || method === "HEAD" || method === "OPTIONS") {
+      await ensureCsrfCookie(c, secret);
+      await next();
+      return;
     }
 
     // Exempt paths — pass through without validation
     if (isExemptPath(path, options.exemptPaths)) {
-      await next()
-      return
+      await next();
+      return;
     }
 
     // Bearer-only or API-key-only requests (no auth_token cookie) — exempt
-    const authCookie = getCookie(c, 'auth_token')
+    const authCookie = getCookie(c, "auth_token");
     if (!authCookie) {
-      await next()
-      return
+      await next();
+      return;
     }
 
     // Requests with an Authorization header use token-based auth — the cookie
     // is incidental and CSRF protection is unnecessary (the attacker cannot
     // forge the Authorization header from a cross-origin page).
-    const authHeader = c.req.header('Authorization')
+    const authHeader = c.req.header("Authorization");
     if (authHeader) {
-      await next()
-      return
+      await next();
+      return;
     }
 
     // State-changing request with cookie auth — validate CSRF
-    const cookieToken = getCookie(c, 'csrf_token')
-    let headerToken = c.req.header('X-CSRF-Token')
+    const cookieToken = getCookie(c, "csrf_token");
+    let headerToken = c.req.header("X-CSRF-Token");
 
     // Fallback: check _csrf field in form-encoded body (regular HTML form submissions)
     if (!headerToken) {
-      const contentType = c.req.header('Content-Type') || ''
-      if (contentType.includes('application/x-www-form-urlencoded') || contentType.includes('multipart/form-data')) {
+      const contentType = c.req.header("Content-Type") || "";
+      if (
+        contentType.includes("application/x-www-form-urlencoded") ||
+        contentType.includes("multipart/form-data")
+      ) {
         try {
-          const body = await c.req.parseBody()
-          headerToken = body['_csrf'] as string | undefined
+          const body = await c.req.parseBody();
+          headerToken = body["_csrf"] as string | undefined;
         } catch {
           // Body not parseable — leave headerToken undefined
         }
@@ -219,20 +222,20 @@ export function csrfProtection(options: CsrfOptions = {}) {
     }
 
     if (!cookieToken || !headerToken) {
-      return csrfError(c, 'CSRF token missing')
+      return csrfError(c, "CSRF token missing");
     }
 
     if (cookieToken !== headerToken) {
-      return csrfError(c, 'CSRF token mismatch')
+      return csrfError(c, "CSRF token mismatch");
     }
 
-    const isValid = await validateCsrfToken(cookieToken, secret)
+    const isValid = await validateCsrfToken(cookieToken, secret);
     if (!isValid) {
-      return csrfError(c, 'CSRF token invalid')
+      return csrfError(c, "CSRF token invalid");
     }
 
-    await next()
-  }
+    await next();
+  };
 }
 
 /**
@@ -241,40 +244,40 @@ export function csrfProtection(options: CsrfOptions = {}) {
  * generate a fresh token when the cookie is missing or has an invalid signature.
  */
 async function ensureCsrfCookie(c: Context, secret: string): Promise<void> {
-  const existing = getCookie(c, 'csrf_token')
+  const existing = getCookie(c, "csrf_token");
 
   if (existing) {
-    const isValid = await validateCsrfToken(existing, secret)
+    const isValid = await validateCsrfToken(existing, secret);
     if (isValid) {
       // Reuse existing valid token — no Set-Cookie needed
-      c.set('csrfToken', existing)
-      return
+      c.set("csrfToken", existing);
+      return;
     }
   }
 
   // Generate fresh token
-  const token = await generateCsrfToken(secret)
-  c.set('csrfToken', token)
+  const token = await generateCsrfToken(secret);
+  c.set("csrfToken", token);
 
-  const isDev = c.env?.ENVIRONMENT === 'development' || !c.env?.ENVIRONMENT
-  setCookie(c, 'csrf_token', token, {
-    httpOnly: false,  // JS must read this cookie
+  const isDev = c.env?.ENVIRONMENT === "development" || !c.env?.ENVIRONMENT;
+  setCookie(c, "csrf_token", token, {
+    httpOnly: false, // JS must read this cookie
     secure: !isDev,
-    sameSite: 'Strict',
-    path: '/',
-    maxAge: 86400,    // 24 hours — browser-side expiry
-  })
+    sameSite: "Strict",
+    path: "/",
+    maxAge: 86400, // 24 hours — browser-side expiry
+  });
 }
 
 /** Return a 403 CSRF error — HTML for browser requests, JSON for API. */
 function csrfError(c: Context, message: string): Response {
-  const accept = c.req.header('Accept') || ''
-  if (accept.includes('text/html')) {
+  const accept = c.req.header("Accept") || "";
+  if (accept.includes("text/html")) {
     return c.html(
       `<!DOCTYPE html><html><head><title>403 Forbidden</title></head>` +
-      `<body><h1>403 Forbidden</h1><p>${message}</p></body></html>`,
-      403
-    )
+        `<body><h1>403 Forbidden</h1><p>${message}</p></body></html>`,
+      403,
+    );
   }
-  return c.json({ error: message, status: 403 }, 403)
+  return c.json({ error: message, status: 403 }, 403);
 }

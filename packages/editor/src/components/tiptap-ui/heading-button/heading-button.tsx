@@ -1,20 +1,17 @@
 import { forwardRef, useCallback } from "react";
-
+import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
 // --- Lib ---
 import { parseShortcutKeys } from "../../../lib/tiptap-utils";
-
-// --- Tiptap UI ---
-import type { Level, UseHeadingConfig } from ".";
-import { HEADING_SHORTCUT_KEYS, useHeading } from ".";
+import { Badge } from "../../tiptap-ui-primitive/badge";
 
 // --- UI Primitives ---
 import type { ButtonProps } from "../../tiptap-ui-primitive/button";
 import { Button } from "../../tiptap-ui-primitive/button";
-import { Badge } from "../../tiptap-ui-primitive/badge";
-import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
+// --- Tiptap UI ---
+import type { Level, UseHeadingConfig } from ".";
+import { HEADING_SHORTCUT_KEYS, useHeading } from ".";
 
-export interface HeadingButtonProps
-  extends Omit<ButtonProps, "type">, UseHeadingConfig {
+export interface HeadingButtonProps extends Omit<ButtonProps, "type">, UseHeadingConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -57,15 +54,7 @@ export const HeadingButton = forwardRef<HTMLButtonElement, HeadingButtonProps>(
     ref,
   ) => {
     const { editor } = useTiptapEditor(providedEditor);
-    const {
-      isVisible,
-      canToggle,
-      isActive,
-      handleToggle,
-      label,
-      Icon,
-      shortcutKeys,
-    } = useHeading({
+    const { isVisible, canToggle, isActive, handleToggle, label, Icon, shortcutKeys } = useHeading({
       editor,
       level,
       hideWhenUnavailable,
@@ -105,9 +94,7 @@ export const HeadingButton = forwardRef<HTMLButtonElement, HeadingButtonProps>(
           <>
             <Icon className="tiptap-button-icon" />
             {text && <span className="tiptap-button-text">{text}</span>}
-            {showShortcut && (
-              <HeadingShortcutBadge level={level} shortcutKeys={shortcutKeys} />
-            )}
+            {showShortcut && <HeadingShortcutBadge level={level} shortcutKeys={shortcutKeys} />}
           </>
         )}
       </Button>

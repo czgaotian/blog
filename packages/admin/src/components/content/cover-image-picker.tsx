@@ -1,19 +1,19 @@
-import { useState } from 'react'
-import { ImageIcon, X } from 'lucide-react'
-import { useMediaDetail, useMediaList } from '../../api/media'
-import { Button } from '../ui/button'
-import { Dialog } from '../ui/dialog'
-import { LoadingState } from '../ui/loading-state'
+import { ImageIcon, X } from "lucide-react";
+import { useState } from "react";
+import { useMediaDetail, useMediaList } from "../../api/media";
+import { Button } from "../ui/button";
+import { Dialog } from "../ui/dialog";
+import { LoadingState } from "../ui/loading-state";
 
 interface CoverImagePickerProps {
-  value: string
-  onChange: (value: string) => void
+  value: string;
+  onChange: (value: string) => void;
 }
 
 export function CoverImagePicker({ value, onChange }: CoverImagePickerProps) {
-  const [open, setOpen] = useState(false)
-  const media = useMediaList({ limit: 48, type: 'images' })
-  const selected = useMediaDetail(value)
+  const [open, setOpen] = useState(false);
+  const media = useMediaList({ limit: 48, type: "images" });
+  const selected = useMediaDetail(value);
 
   return (
     <>
@@ -41,10 +41,10 @@ export function CoverImagePicker({ value, onChange }: CoverImagePickerProps) {
         <div className="flex gap-2">
           <Button type="button" variant="outline" onClick={() => setOpen(true)}>
             <ImageIcon />
-            {value ? 'Change cover' : 'Choose cover'}
+            {value ? "Change cover" : "Choose cover"}
           </Button>
           {value ? (
-            <Button type="button" variant="ghost" onClick={() => onChange('')}>
+            <Button type="button" variant="ghost" onClick={() => onChange("")}>
               <X />
               Remove
             </Button>
@@ -52,7 +52,12 @@ export function CoverImagePicker({ value, onChange }: CoverImagePickerProps) {
         </div>
       </div>
 
-      <Dialog open={open} onClose={() => setOpen(false)} title="Choose cover image" className="max-w-4xl">
+      <Dialog
+        open={open}
+        onClose={() => setOpen(false)}
+        title="Choose cover image"
+        className="max-w-4xl"
+      >
         {media.isLoading ? <LoadingState label="Loading images" /> : null}
         {media.isError ? <p className="text-sm text-destructive">Could not load images.</p> : null}
         {media.data?.items.length === 0 ? (
@@ -66,8 +71,8 @@ export function CoverImagePicker({ value, onChange }: CoverImagePickerProps) {
                 type="button"
                 className="overflow-hidden rounded-md border border-border text-left outline-none hover:border-foreground focus-visible:ring-2 focus-visible:ring-ring"
                 onClick={() => {
-                  onChange(item.id)
-                  setOpen(false)
+                  onChange(item.id);
+                  setOpen(false);
                 }}
               >
                 <img
@@ -82,5 +87,5 @@ export function CoverImagePicker({ value, onChange }: CoverImagePickerProps) {
         ) : null}
       </Dialog>
     </>
-  )
+  );
 }

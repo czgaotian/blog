@@ -1,23 +1,29 @@
-import { zodResolver } from '@hookform/resolvers/zod'
-import type { CategoryListItem } from '@worker-blog/shared/admin-api'
-import { Edit, FolderTree, Plus, Trash2 } from 'lucide-react'
-import { useEffect, useMemo, useState } from 'react'
-import { Controller, useForm } from 'react-hook-form'
+import { zodResolver } from "@hookform/resolvers/zod";
+import type { CategoryListItem } from "@worker-blog/shared/admin-api";
+import { Edit, FolderTree, Plus, Trash2 } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { Controller, useForm } from "react-hook-form";
+import { AdminApiError } from "../api/client";
 import {
   useCategoriesList,
   useCreateCategory,
   useDeleteCategory,
   useUpdateCategory,
-} from '../api/taxonomies'
-import { AdminApiError } from '../api/client'
-import { PageHeader } from '../components/page-header'
-import { ConfirmDialog } from '../components/content/confirm-dialog'
-import { Alert } from '../components/ui/alert'
-import { Button } from '../components/ui/button'
-import { Dialog } from '../components/ui/dialog'
-import { Field, FieldDescription, FieldError, FieldGroup, FieldLabel } from '../components/ui/field'
-import { Input } from '../components/ui/input'
-import { LoadingState } from '../components/ui/loading-state'
+} from "../api/taxonomies";
+import { ConfirmDialog } from "../components/content/confirm-dialog";
+import { PageHeader } from "../components/page-header";
+import { Alert } from "../components/ui/alert";
+import { Button } from "../components/ui/button";
+import { Dialog } from "../components/ui/dialog";
+import {
+  Field,
+  FieldDescription,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "../components/ui/field";
+import { Input } from "../components/ui/input";
+import { LoadingState } from "../components/ui/loading-state";
 import {
   Select,
   SelectContent,
@@ -25,83 +31,94 @@ import {
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '../components/ui/select'
-import { Spinner } from '../components/ui/spinner'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
-import { Textarea } from '../components/ui/textarea'
+} from "../components/ui/select";
+import { Spinner } from "../components/ui/spinner";
 import {
-  EMPTY_CATEGORY_FORM_VALUES,
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
+import { Textarea } from "../components/ui/textarea";
+import {
+  type CategoryFormValues,
   categoryFormSchema,
   categoryFormToCreateRequest,
   categoryFormToUpdateRequest,
   detailToCategoryFormValues,
-  type CategoryFormValues,
-} from '../lib/category-form'
+  EMPTY_CATEGORY_FORM_VALUES,
+} from "../lib/category-form";
 
 export function CategoriesListPage() {
-  const categories = useCategoriesList()
-  const createMutation = useCreateCategory()
-  const [editing, setEditing] = useState<CategoryListItem | null>(null)
-  const [creating, setCreating] = useState(false)
-  const [deleting, setDeleting] = useState<CategoryListItem | null>(null)
-  const updateMutation = useUpdateCategory(editing?.id ?? '')
-  const deleteMutation = useDeleteCategory(deleting?.id ?? '')
+  const categories = useCategoriesList();
+  const createMutation = useCreateCategory();
+  const [editing, setEditing] = useState<CategoryListItem | null>(null);
+  const [creating, setCreating] = useState(false);
+  const [deleting, setDeleting] = useState<CategoryListItem | null>(null);
+  const updateMutation = useUpdateCategory(editing?.id ?? "");
+  const deleteMutation = useDeleteCategory(deleting?.id ?? "");
 
-  const formOpen = creating || Boolean(editing)
+  const formOpen = creating || Boolean(editing);
   const formValues = useMemo(
-    () => editing ? detailToCategoryFormValues(editing) : EMPTY_CATEGORY_FORM_VALUES,
+    () => (editing ? detailToCategoryFormValues(editing) : EMPTY_CATEGORY_FORM_VALUES),
     [editing],
-  )
+  );
   const categoryNames = useMemo(() => {
-    const names = new Map<string, string>()
+    const names = new Map<string, string>();
     for (const category of categories.data?.items ?? []) {
-      names.set(category.id, category.name)
+      names.set(category.id, category.name);
     }
-    return names
-  }, [categories.data?.items])
+    return names;
+  }, [categories.data?.items]);
 
   function closeForm() {
-    setCreating(false)
-    setEditing(null)
-    createMutation.reset()
-    updateMutation.reset()
+    setCreating(false);
+    setEditing(null);
+    createMutation.reset();
+    updateMutation.reset();
   }
 
   async function handleSubmit(values: CategoryFormValues) {
     if (editing) {
-      await updateMutation.mutateAsync(categoryFormToUpdateRequest(values))
+      await updateMutation.mutateAsync(categoryFormToUpdateRequest(values));
     } else {
-      await createMutation.mutateAsync(categoryFormToCreateRequest(values))
+      await createMutation.mutateAsync(categoryFormToCreateRequest(values));
     }
-    closeForm()
+    closeForm();
   }
 
   async function handleDelete() {
     try {
-      await deleteMutation.mutateAsync()
-      setDeleting(null)
+      await deleteMutation.mutateAsync();
+      setDeleting(null);
     } catch {
       // Mutation error is displayed in the dialog.
     }
   }
 
-  const formError = createMutation.error || updateMutation.error
+  const formError = createMutation.error || updateMutation.error;
 
   return (
     <section className="flex flex-col gap-6">
       <PageHeader
         title="Categories"
         description="Manage content categories and hierarchy."
-        actions={(
+        actions={
           <Button type="button" onClick={() => setCreating(true)}>
             <Plus />
             New category
           </Button>
-        )}
+        }
       />
 
       {categories.isLoading ? <LoadingState label="Loading categories" /> : null}
-      {categories.isError ? <Alert title="Failed to load categories" tone="danger">Could not fetch categories. Try refreshing the page.</Alert> : null}
+      {categories.isError ? (
+        <Alert title="Failed to load categories" tone="danger">
+          Could not fetch categories. Try refreshing the page.
+        </Alert>
+      ) : null}
 
       {categories.data ? (
         <Table>
@@ -118,62 +135,78 @@ export function CategoriesListPage() {
           </TableHeader>
           <TableBody>
             {categories.data.items.length === 0 ? (
-              <TableRow><TableCell className="text-center text-muted-foreground" colSpan={7}>No categories found.</TableCell></TableRow>
-            ) : categories.data.items.map((category) => (
-              <TableRow key={category.id}>
-                <TableCell>
-                  <div className="flex items-center gap-2 font-medium">
-                    <FolderTree className="size-4 text-muted-foreground" />
-                    {category.name}
-                  </div>
-                </TableCell>
-                <TableCell className="font-mono text-xs text-muted-foreground">{category.slug}</TableCell>
-                <TableCell className="text-sm">
-                  {category.parentId ? categoryNames.get(category.parentId) ?? 'Unknown category' : '—'}
-                </TableCell>
-                <TableCell className="text-sm">{category.sortOrder}</TableCell>
-                <TableCell className="max-w-80 truncate text-sm text-muted-foreground">
-                  {category.description || '—'}
-                </TableCell>
-                <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
-                  {new Date(category.updatedAt).toLocaleDateString()}
-                </TableCell>
-                <TableCell>
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      aria-label={`Edit ${category.name}`}
-                      onClick={() => setEditing(category)}
-                    >
-                      <Edit />
-                    </Button>
-                    <Button
-                      type="button"
-                      size="icon"
-                      variant="ghost"
-                      aria-label={`Delete ${category.name}`}
-                      onClick={() => setDeleting(category)}
-                    >
-                      <Trash2 />
-                    </Button>
-                  </div>
+              <TableRow>
+                <TableCell className="text-center text-muted-foreground" colSpan={7}>
+                  No categories found.
                 </TableCell>
               </TableRow>
-            ))}
+            ) : (
+              categories.data.items.map((category) => (
+                <TableRow key={category.id}>
+                  <TableCell>
+                    <div className="flex items-center gap-2 font-medium">
+                      <FolderTree className="size-4 text-muted-foreground" />
+                      {category.name}
+                    </div>
+                  </TableCell>
+                  <TableCell className="font-mono text-xs text-muted-foreground">
+                    {category.slug}
+                  </TableCell>
+                  <TableCell className="text-sm">
+                    {category.parentId
+                      ? (categoryNames.get(category.parentId) ?? "Unknown category")
+                      : "—"}
+                  </TableCell>
+                  <TableCell className="text-sm">{category.sortOrder}</TableCell>
+                  <TableCell className="max-w-80 truncate text-sm text-muted-foreground">
+                    {category.description || "—"}
+                  </TableCell>
+                  <TableCell className="whitespace-nowrap text-xs text-muted-foreground">
+                    {new Date(category.updatedAt).toLocaleDateString()}
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex justify-end gap-1">
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Edit ${category.name}`}
+                        onClick={() => setEditing(category)}
+                      >
+                        <Edit />
+                      </Button>
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="ghost"
+                        aria-label={`Delete ${category.name}`}
+                        onClick={() => setDeleting(category)}
+                      >
+                        <Trash2 />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       ) : null}
 
       <CategoryFormDialog
         open={formOpen}
-        title={editing ? 'Edit category' : 'New category'}
+        title={editing ? "Edit category" : "New category"}
         values={formValues}
         categories={categories.data?.items ?? []}
         editingId={editing?.id}
         pending={createMutation.isPending || updateMutation.isPending}
-        error={formError instanceof AdminApiError ? formError.message : formError ? 'Unexpected error' : undefined}
+        error={
+          formError instanceof AdminApiError
+            ? formError.message
+            : formError
+              ? "Unexpected error"
+              : undefined
+        }
         onClose={closeForm}
         onSubmit={handleSubmit}
       />
@@ -190,26 +223,28 @@ export function CategoriesListPage() {
       >
         {deleteMutation.isError ? (
           <Alert title="Could not delete category" tone="danger">
-            {deleteMutation.error instanceof AdminApiError ? deleteMutation.error.message : 'Unexpected error'}
+            {deleteMutation.error instanceof AdminApiError
+              ? deleteMutation.error.message
+              : "Unexpected error"}
           </Alert>
         ) : (
           <>“{deleting?.name}” will be removed from the category list.</>
         )}
       </ConfirmDialog>
     </section>
-  )
+  );
 }
 
 interface CategoryFormDialogProps {
-  open: boolean
-  title: string
-  values: CategoryFormValues
-  categories: CategoryListItem[]
-  editingId?: string
-  pending: boolean
-  error?: string
-  onClose: () => void
-  onSubmit: (values: CategoryFormValues) => Promise<void>
+  open: boolean;
+  title: string;
+  values: CategoryFormValues;
+  categories: CategoryListItem[];
+  editingId?: string;
+  pending: boolean;
+  error?: string;
+  onClose: () => void;
+  onSubmit: (values: CategoryFormValues) => Promise<void>;
 }
 
 function CategoryFormDialog({
@@ -226,30 +261,36 @@ function CategoryFormDialog({
   const form = useForm<CategoryFormValues>({
     resolver: zodResolver(categoryFormSchema),
     defaultValues: values,
-  })
-  const { errors } = form.formState
-  const parentOptions = categories.filter((category) => category.id !== editingId)
+  });
+  const { errors } = form.formState;
+  const parentOptions = categories.filter((category) => category.id !== editingId);
 
   useEffect(() => {
-    form.reset(values)
-  }, [form, values])
+    form.reset(values);
+  }, [form, values]);
 
   return (
     <Dialog open={open} onClose={onClose} title={title}>
       <form className="flex flex-col gap-5" onSubmit={form.handleSubmit(onSubmit)}>
-        {error ? <Alert title="Could not save category" tone="danger">{error}</Alert> : null}
+        {error ? (
+          <Alert title="Could not save category" tone="danger">
+            {error}
+          </Alert>
+        ) : null}
 
         <FieldGroup>
           <Field data-invalid={!!errors.name}>
             <FieldLabel htmlFor="category-name">Name</FieldLabel>
-            <Input id="category-name" aria-invalid={!!errors.name} {...form.register('name')} />
+            <Input id="category-name" aria-invalid={!!errors.name} {...form.register("name")} />
             <FieldError errors={[errors.name]} />
           </Field>
 
           <Field data-invalid={!!errors.slug}>
             <FieldLabel htmlFor="category-slug">Slug</FieldLabel>
-            <Input id="category-slug" aria-invalid={!!errors.slug} {...form.register('slug')} />
-            <FieldDescription>Leave blank when creating a category to generate it from the name.</FieldDescription>
+            <Input id="category-slug" aria-invalid={!!errors.slug} {...form.register("slug")} />
+            <FieldDescription>
+              Leave blank when creating a category to generate it from the name.
+            </FieldDescription>
             <FieldError errors={[errors.slug]} />
           </Field>
 
@@ -259,7 +300,10 @@ function CategoryFormDialog({
               control={form.control}
               name="parentId"
               render={({ field }) => (
-                <Select value={field.value || 'none'} onValueChange={(value) => field.onChange(value === 'none' ? '' : value)}>
+                <Select
+                  value={field.value || "none"}
+                  onValueChange={(value) => field.onChange(value === "none" ? "" : value)}
+                >
                   <SelectTrigger className="w-full" aria-invalid={!!errors.parentId}>
                     <SelectValue placeholder="No parent" />
                   </SelectTrigger>
@@ -267,7 +311,9 @@ function CategoryFormDialog({
                     <SelectGroup>
                       <SelectItem value="none">No parent</SelectItem>
                       {parentOptions.map((category) => (
-                        <SelectItem key={category.id} value={category.id}>{category.name}</SelectItem>
+                        <SelectItem key={category.id} value={category.id}>
+                          {category.name}
+                        </SelectItem>
                       ))}
                     </SelectGroup>
                   </SelectContent>
@@ -284,7 +330,7 @@ function CategoryFormDialog({
               type="number"
               inputMode="numeric"
               aria-invalid={!!errors.sortOrder}
-              {...form.register('sortOrder', { valueAsNumber: true })}
+              {...form.register("sortOrder", { valueAsNumber: true })}
             />
             <FieldError errors={[errors.sortOrder]} />
           </Field>
@@ -295,7 +341,7 @@ function CategoryFormDialog({
               id="category-description"
               rows={3}
               aria-invalid={!!errors.description}
-              {...form.register('description')}
+              {...form.register("description")}
             />
             <FieldError errors={[errors.description]} />
           </Field>
@@ -307,10 +353,10 @@ function CategoryFormDialog({
           </Button>
           <Button type="submit" disabled={pending}>
             {pending ? <Spinner /> : null}
-            {pending ? 'Saving...' : 'Save category'}
+            {pending ? "Saving..." : "Save category"}
           </Button>
         </div>
       </form>
     </Dialog>
-  )
+  );
 }

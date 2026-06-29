@@ -11,32 +11,30 @@
  *   PUT  /api/user-profiles/:userId    → Update custom data for a user (auth required)
  */
 
-import { Hono } from 'hono'
-import type { Bindings, Variables } from '../../app'
-import { requireAuth } from '../../middleware'
-import { getUserProfileConfig } from './user-profile-registry'
+import { Hono } from "hono";
+import type { Bindings, Variables } from "../../app";
+import { requireAuth } from "../../middleware";
+import { getUserProfileConfig } from "./user-profile-registry";
 import {
   getCustomData,
+  sanitizeCustomData,
   saveCustomData,
   validateCustomData,
-  sanitizeCustomData,
-  extractCustomFieldsFromForm,
-} from './user-profile-service'
-import { renderCustomProfileSection } from './user-profile-renderer'
+} from "./user-profile-service";
 
 export function createUserProfilesFeature() {
-  const api = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+  const api = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
   // GET /api/user-profiles/schema — public schema endpoint
-  api.get('/schema', (c) => {
-    const config = getUserProfileConfig()
+  api.get("/schema", (c) => {
+    const config = getUserProfileConfig();
     if (!config) {
-      return c.json({ fields: [], registrationFields: [] })
+      return c.json({ fields: [], registrationFields: [] });
     }
     return c.json({
       fields: config.fields
-        .filter(f => !f.hidden)
-        .map(f => ({
+        .filter((f) => !f.hidden)
+        .map((f) => ({
           name: f.name,
           label: f.label,
           type: f.type,
@@ -48,87 +46,87 @@ export function createUserProfilesFeature() {
           validation: f.validation,
         })),
       registrationFields: config.registrationFields || [],
-    })
-  })
+    });
+  });
 
   // GET /api/user-profiles/:userId — get custom data
-  api.get('/:userId', requireAuth(), async (c) => {
-    const db = (c.env as any)?.DB || (c as any).db
-    if (!db) return c.json({ error: 'Database not available' }, 500)
+  api.get("/:userId", requireAuth(), async (c) => {
+    const db = (c.env as any)?.DB || (c as any).db;
+    if (!db) return c.json({ error: "Database not available" }, 500);
 
-    const user = c.get('user') as { userId: string; role: string } | undefined
-    const userId = c.req.param('userId')
+    const user = c.get("user") as { userId: string; role: string } | undefined;
+    const userId = c.req.param("userId");
     if (!userId) {
-      return c.json({ error: 'User ID is required' }, 400)
+      return c.json({ error: "User ID is required" }, 400);
     }
 
-    if (!user || (user.role !== 'admin' && user.userId !== userId)) {
-      return c.json({ error: 'Access denied' }, 403)
+    if (!user || (user.role !== "admin" && user.userId !== userId)) {
+      return c.json({ error: "Access denied" }, 403);
     }
 
-    const data = await getCustomData(db, userId)
-    return c.json({ userId, customData: data })
-  })
+    const data = await getCustomData(db, userId);
+    return c.json({ userId, customData: data });
+  });
 
   // PUT /api/user-profiles/:userId — update custom data
-  api.put('/:userId', requireAuth(), async (c) => {
-    const db = (c.env as any)?.DB || (c as any).db
-    if (!db) return c.json({ error: 'Database not available' }, 500)
+  api.put("/:userId", requireAuth(), async (c) => {
+    const db = (c.env as any)?.DB || (c as any).db;
+    if (!db) return c.json({ error: "Database not available" }, 500);
 
-    const user = c.get('user') as { userId: string; role: string } | undefined
-    const userId = c.req.param('userId')
+    const user = c.get("user") as { userId: string; role: string } | undefined;
+    const userId = c.req.param("userId");
     if (!userId) {
-      return c.json({ error: 'User ID is required' }, 400)
+      return c.json({ error: "User ID is required" }, 400);
     }
 
-    if (!user || (user.role !== 'admin' && user.userId !== userId)) {
-      return c.json({ error: 'Access denied' }, 403)
+    if (!user || (user.role !== "admin" && user.userId !== userId)) {
+      return c.json({ error: "Access denied" }, 403);
     }
 
-    const config = getUserProfileConfig()
+    const config = getUserProfileConfig();
     if (!config) {
-      return c.json({ error: 'No profile schema configured' }, 400)
+      return c.json({ error: "No profile schema configured" }, 400);
     }
 
-    const body = await c.req.json()
-    const customData = body.customData || body
+    const body = await c.req.json();
+    const customData = body.customData || body;
 
-    const sanitized = sanitizeCustomData(customData, config)
-    const validation = validateCustomData(sanitized, config)
+    const sanitized = sanitizeCustomData(customData, config);
+    const validation = validateCustomData(sanitized, config);
     if (!validation.valid) {
-      return c.json({ error: 'Validation failed', errors: validation.errors }, 400)
+      return c.json({ error: "Validation failed", errors: validation.errors }, 400);
     }
 
-    await saveCustomData(db, userId, sanitized)
-    return c.json({ success: true })
-  })
+    await saveCustomData(db, userId, sanitized);
+    return c.json({ success: true });
+  });
 
   return {
-    routes: [{
-      path: '/api/user-profiles',
-      handler: api,
-    }],
-  }
+    routes: [
+      {
+        path: "/api/user-profiles",
+        handler: api,
+      },
+    ],
+  };
 }
 
-export const userProfilesFeature = createUserProfilesFeature()
+export const userProfilesFeature = createUserProfilesFeature();
 
 // Re-export public API
 export {
   defineUserProfile,
-  getUserProfileConfig,
   getProfileFieldDefaults,
   getRegistrationFields,
+  getUserProfileConfig,
   type ProfileFieldDefinition,
   type UserProfileConfig,
-} from './user-profile-registry'
-
+} from "./user-profile-registry";
+export { renderCustomProfileSection } from "./user-profile-renderer";
 export {
+  extractCustomFieldsFromForm,
   getCustomData,
+  sanitizeCustomData,
   saveCustomData,
   validateCustomData,
-  sanitizeCustomData,
-  extractCustomFieldsFromForm,
-} from './user-profile-service'
-
-export { renderCustomProfileSection } from './user-profile-renderer'
+} from "./user-profile-service";

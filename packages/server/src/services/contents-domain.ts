@@ -133,9 +133,7 @@ interface NormalizedContentInput {
 
 type MediaUsageType = "body" | "cover";
 
-export async function createContent(
-  options: CreateContentOptions,
-): Promise<CreateContentResult> {
+export async function createContent(options: CreateContentOptions): Promise<CreateContentResult> {
   const { db, input, authorId, cacheKv } = options;
   const normalized = await normalizeAndValidateContentInput(db, {
     slug: normalizeSlug(input.slug || input.title, {
@@ -172,8 +170,7 @@ export async function createContent(
 
   const id = options.id ?? crypto.randomUUID();
   const now = options.now ?? Date.now();
-  const bodyHtml =
-    value.status === "published" ? renderTiptapJsonToHtml(value.bodyJson) : "";
+  const bodyHtml = value.status === "published" ? renderTiptapJsonToHtml(value.bodyJson) : "";
 
   await db
     .prepare(
@@ -202,13 +199,7 @@ export async function createContent(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
-  await replaceContentMediaReferences(
-    db,
-    id,
-    value.bodyJson,
-    value.coverImageId,
-    now,
-  );
+  await replaceContentMediaReferences(db, id, value.bodyJson, value.coverImageId, now);
 
   if (options.mode === "admin-create") {
     await insertContentVersion(
@@ -233,9 +224,7 @@ export async function createContent(
   return { created: true, id, mode: options.mode };
 }
 
-export async function updateContent(
-  options: UpdateContentOptions,
-): Promise<UpdateContentResult> {
+export async function updateContent(options: UpdateContentOptions): Promise<UpdateContentResult> {
   const { db, id, patch, authorId, cacheKv } = options;
   const existing = (await db
     .prepare("SELECT * FROM contents WHERE id = ?")
@@ -257,12 +246,8 @@ export async function updateContent(
     excerpt: patch.excerpt !== undefined ? patch.excerpt : existing.excerpt,
     bodyJson: patch.bodyJson ?? parseJsonContent(existing.body_json),
     status: patch.status ?? existing.status,
-    categoryId:
-      patch.categoryId !== undefined ? patch.categoryId : existing.category_id,
-    coverImageId:
-      patch.coverImageId !== undefined
-        ? patch.coverImageId
-        : existing.cover_image_id,
+    categoryId: patch.categoryId !== undefined ? patch.categoryId : existing.category_id,
+    coverImageId: patch.coverImageId !== undefined ? patch.coverImageId : existing.cover_image_id,
     tagIds: patch.tagIds !== undefined ? patch.tagIds : existingTagIds,
     metadata: patch.metadata ?? parseJsonObject(existing.metadata),
     publishedAt:
@@ -283,9 +268,7 @@ export async function updateContent(
 
   if (value.slug !== existing.slug) {
     const duplicate = await db
-      .prepare(
-        "SELECT id FROM contents WHERE slug = ? AND id != ? AND deleted_at IS NULL",
-      )
+      .prepare("SELECT id FROM contents WHERE slug = ? AND id != ? AND deleted_at IS NULL")
       .bind(value.slug, id)
       .first();
 
@@ -297,9 +280,7 @@ export async function updateContent(
   const now = options.now ?? Date.now();
   const shouldRenderBodyHtml =
     value.status === "published" &&
-    (patch.status === "published" ||
-      patch.bodyJson !== undefined ||
-      !existing.body_html);
+    (patch.status === "published" || patch.bodyJson !== undefined || !existing.body_html);
   const bodyHtml = shouldRenderBodyHtml
     ? renderTiptapJsonToHtml(value.bodyJson)
     : (existing.body_html ?? "");
@@ -330,21 +311,13 @@ export async function updateContent(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
-  await replaceContentMediaReferences(
-    db,
-    id,
-    value.bodyJson,
-    value.coverImageId,
-    now,
-  );
+  await replaceContentMediaReferences(db, id, value.bodyJson, value.coverImageId, now);
 
   const changed = hasContentChanged(existing, existingTagIds, value);
 
   if (options.mode === "admin-update" && changed) {
     const versionRes = (await db
-      .prepare(
-        "SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?",
-      )
+      .prepare("SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?")
       .bind(id)
       .first()) as any;
     const nextVersion = (versionRes?.max_version || 0) + 1;
@@ -376,14 +349,11 @@ export async function updateContent(
   };
 }
 
-export async function deleteContent(
-  options: DeleteContentOptions,
-): Promise<DeleteContentResult> {
+export async function deleteContent(options: DeleteContentOptions): Promise<DeleteContentResult> {
   const { db, id, mode, cacheKv } = options;
-  const existing = (await db
-    .prepare("SELECT id FROM contents WHERE id = ?")
-    .bind(id)
-    .first()) as { id: string } | null;
+  const existing = (await db.prepare("SELECT id FROM contents WHERE id = ?").bind(id).first()) as {
+    id: string;
+  } | null;
 
   if (!existing) {
     return { found: false, id, mode };
@@ -400,10 +370,7 @@ export async function deleteContent(
     await deleteContentMediaReferences(db, id);
   } else {
     await deleteContentMediaReferences(db, id);
-    await db
-      .prepare("DELETE FROM content_tags WHERE content_id = ?")
-      .bind(id)
-      .run();
+    await db.prepare("DELETE FROM content_tags WHERE content_id = ?").bind(id).run();
     await db.prepare("DELETE FROM contents WHERE id = ?").bind(id).run();
   }
 
@@ -417,9 +384,7 @@ export async function restoreContentVersion(
 ): Promise<RestoreContentVersionResult> {
   const { db, id, version, authorId, cacheKv } = options;
   const versionRow = (await db
-    .prepare(
-      "SELECT data FROM content_versions WHERE content_id = ? AND version = ?",
-    )
+    .prepare("SELECT data FROM content_versions WHERE content_id = ? AND version = ?")
     .bind(id, version)
     .first()) as { data: string } | null;
 
@@ -448,14 +413,11 @@ export async function restoreContentVersion(
 
   const now = options.now ?? Date.now();
   const versionCountRes = (await db
-    .prepare(
-      "SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?",
-    )
+    .prepare("SELECT MAX(version) as max_version FROM content_versions WHERE content_id = ?")
     .bind(id)
     .first()) as any;
   const nextVersion = (versionCountRes?.max_version || 0) + 1;
-  const bodyHtml =
-    value.status === "published" ? renderTiptapJsonToHtml(value.bodyJson) : "";
+  const bodyHtml = value.status === "published" ? renderTiptapJsonToHtml(value.bodyJson) : "";
 
   await db
     .prepare(
@@ -484,13 +446,7 @@ export async function restoreContentVersion(
     .run();
 
   await replaceContentTags(db, id, value.tagIds, now);
-  await replaceContentMediaReferences(
-    db,
-    id,
-    value.bodyJson,
-    value.coverImageId,
-    now,
-  );
+  await replaceContentMediaReferences(db, id, value.bodyJson, value.coverImageId, now);
 
   await insertContentVersion(
     db,
@@ -513,10 +469,7 @@ export async function restoreContentVersion(
   return { restored: true, id, version };
 }
 
-export async function invalidateContentCache(
-  id: string,
-  cacheKv?: KVNamespace,
-): Promise<void> {
+export async function invalidateContentCache(id: string, cacheKv?: KVNamespace): Promise<void> {
   const cache = getCacheService(CACHE_CONFIGS.api!, cacheKv);
   await cache.delete(contentsCacheKeys.item(id));
   await cache.invalidate(contentsCacheKeys.filteredPattern());
@@ -525,10 +478,7 @@ export async function invalidateContentCache(
 async function normalizeAndValidateContentInput(
   db: D1Database,
   input: NormalizedContentInput,
-): Promise<
-  | { value: NormalizedContentInput; error?: never }
-  | { value?: never; error: string }
-> {
+): Promise<{ value: NormalizedContentInput; error?: never } | { value?: never; error: string }> {
   const tagIds = Array.from(new Set(input.tagIds.filter(Boolean)));
   const categoryId = input.categoryId || null;
   const coverImageId = input.coverImageId || null;
@@ -567,9 +517,7 @@ async function normalizeAndValidateContentInput(
   if (tagIds.length > 0) {
     const placeholders = tagIds.map(() => "?").join(",");
     const row = (await db
-      .prepare(
-        `SELECT COUNT(*) as count FROM tags WHERE id IN (${placeholders})`,
-      )
+      .prepare(`SELECT COUNT(*) as count FROM tags WHERE id IN (${placeholders})`)
       .bind(...tagIds)
       .first()) as any;
     if (Number(row?.count || 0) !== tagIds.length)
@@ -595,15 +543,10 @@ async function replaceContentTags(
   tagIds: string[],
   now: number,
 ): Promise<void> {
-  await db
-    .prepare("DELETE FROM content_tags WHERE content_id = ?")
-    .bind(contentId)
-    .run();
+  await db.prepare("DELETE FROM content_tags WHERE content_id = ?").bind(contentId).run();
   for (const tagId of tagIds) {
     await db
-      .prepare(
-        "INSERT INTO content_tags (content_id, tag_id, created_at) VALUES (?, ?, ?)",
-      )
+      .prepare("INSERT INTO content_tags (content_id, tag_id, created_at) VALUES (?, ?, ?)")
       .bind(contentId, tagId, now)
       .run();
   }
@@ -622,11 +565,7 @@ export function extractBodyMediaIds(bodyJson: JSONContent): string[] {
     };
 
     const mediaId = node.attrs?.mediaId;
-    if (
-      node.type === "image" &&
-      typeof mediaId === "string" &&
-      mediaId.trim()
-    ) {
+    if (node.type === "image" && typeof mediaId === "string" && mediaId.trim()) {
       ids.add(mediaId.trim());
     }
 
@@ -673,24 +612,16 @@ async function replaceContentMediaReferences(
   }
 }
 
-async function deleteContentMediaReferences(
-  db: D1Database,
-  contentId: string,
-): Promise<void> {
+async function deleteContentMediaReferences(db: D1Database, contentId: string): Promise<void> {
   await db
     .prepare("DELETE FROM content_media_references WHERE content_id = ?")
     .bind(contentId)
     .run();
 }
 
-async function getContentTagIds(
-  db: D1Database,
-  contentId: string,
-): Promise<string[]> {
+async function getContentTagIds(db: D1Database, contentId: string): Promise<string[]> {
   const { results } = await db
-    .prepare(
-      "SELECT tag_id FROM content_tags WHERE content_id = ? ORDER BY tag_id",
-    )
+    .prepare("SELECT tag_id FROM content_tags WHERE content_id = ? ORDER BY tag_id")
     .bind(contentId)
     .all();
   return (results || []).map((row: any) => String(row.tag_id));
@@ -708,14 +639,7 @@ async function insertContentVersion(
     .prepare(
       "INSERT INTO content_versions (id, content_id, version, data, author_id, created_at) VALUES (?, ?, ?, ?, ?, ?)",
     )
-    .bind(
-      crypto.randomUUID(),
-      contentId,
-      version,
-      JSON.stringify(snapshot),
-      authorId,
-      now,
-    )
+    .bind(crypto.randomUUID(), contentId, version, JSON.stringify(snapshot), authorId, now)
     .run();
 }
 
@@ -733,10 +657,8 @@ function createSnapshot(row: any): ContentSnapshot {
     metadata: row.metadata ?? {},
     publishedAt: toIsoString(row.publishedAt ?? row.published_at),
     authorId: row.authorId ?? row.author_id,
-    createdAt:
-      toIsoString(row.createdAt ?? row.created_at) ?? new Date(0).toISOString(),
-    updatedAt:
-      toIsoString(row.updatedAt ?? row.updated_at) ?? new Date(0).toISOString(),
+    createdAt: toIsoString(row.createdAt ?? row.created_at) ?? new Date(0).toISOString(),
+    updatedAt: toIsoString(row.updatedAt ?? row.updated_at) ?? new Date(0).toISOString(),
     deletedAt: toIsoString(row.deletedAt ?? row.deleted_at),
   };
 }
@@ -788,28 +710,22 @@ function hasContentChanged(
     next.title !== existing.title ||
     next.slug !== existing.slug ||
     (next.excerpt ?? null) !== (existing.excerpt ?? null) ||
-    JSON.stringify(next.bodyJson) !==
-      JSON.stringify(parseJsonContent(existing.body_json)) ||
+    JSON.stringify(next.bodyJson) !== JSON.stringify(parseJsonContent(existing.body_json)) ||
     next.status !== existing.status ||
     (next.categoryId ?? null) !== (existing.category_id ?? null) ||
     (next.coverImageId ?? null) !== (existing.cover_image_id ?? null) ||
     Number(next.publishedAt ?? 0) !== Number(existing.published_at ?? 0) ||
-    JSON.stringify(next.metadata) !==
-      JSON.stringify(parseJsonObject(existing.metadata)) ||
-    JSON.stringify([...next.tagIds].sort()) !==
-      JSON.stringify([...existingTagIds].sort())
+    JSON.stringify(next.metadata) !== JSON.stringify(parseJsonObject(existing.metadata)) ||
+    JSON.stringify([...next.tagIds].sort()) !== JSON.stringify([...existingTagIds].sort())
   );
 }
 
 function parseJsonObject(value: unknown): Record<string, unknown> {
-  if (value && typeof value === "object")
-    return value as Record<string, unknown>;
+  if (value && typeof value === "object") return value as Record<string, unknown>;
   if (!value) return {};
   try {
     const parsed = JSON.parse(String(value));
-    return parsed && typeof parsed === "object" && !Array.isArray(parsed)
-      ? parsed
-      : {};
+    return parsed && typeof parsed === "object" && !Array.isArray(parsed) ? parsed : {};
   } catch {
     return {};
   }
@@ -829,9 +745,7 @@ function parseJsonContent(value: unknown): JSONContent {
 
 function isJsonContent(value: unknown): value is JSONContent {
   return Boolean(
-    value &&
-    typeof value === "object" &&
-    (value as { type?: unknown }).type === "doc",
+    value && typeof value === "object" && (value as { type?: unknown }).type === "doc",
   );
 }
 

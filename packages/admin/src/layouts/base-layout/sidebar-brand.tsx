@@ -8,11 +8,7 @@ interface SidebarBrandProps {
   collapsed?: boolean;
 }
 
-export function SidebarBrand({
-  appName,
-  appVersion,
-  collapsed = false,
-}: SidebarBrandProps) {
+export function SidebarBrand({ appName, appVersion, collapsed = false }: SidebarBrandProps) {
   return (
     <Link
       to="/dashboard"
@@ -29,9 +25,7 @@ export function SidebarBrand({
         <>
           <span className="min-w-0 flex-1">
             <span className="block truncate text-sm font-semibold">{appName}</span>
-            <span className="block truncate text-xs text-muted-foreground">
-              Admin console
-            </span>
+            <span className="block truncate text-xs text-muted-foreground">Admin console</span>
           </span>
           {appVersion ? <Badge className="shrink-0">{appVersion}</Badge> : null}
         </>

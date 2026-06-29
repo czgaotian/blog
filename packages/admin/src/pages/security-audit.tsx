@@ -1,49 +1,57 @@
-import { useState } from 'react'
-import { ShieldCheck, Trash2 } from 'lucide-react'
-import type { SecurityAuditAdminDashboardData } from '@worker-blog/shared/admin-api'
+import type { SecurityAuditAdminDashboardData } from "@worker-blog/shared/admin-api";
+import { ShieldCheck, Trash2 } from "lucide-react";
+import { useState } from "react";
+import { AdminApiError } from "../api/client";
 import {
   usePurgeSecurityAuditEvents,
   useReleaseSecurityAuditLockout,
   useSecurityAuditAdmin,
-} from '../api/security-audit'
-import { AdminApiError } from '../api/client'
-import { PageHeader } from '../components/page-header'
-import { Alert } from '../components/ui/alert'
-import { Badge } from '../components/ui/badge'
-import { Button } from '../components/ui/button'
-import { LoadingState } from '../components/ui/loading-state'
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table'
+} from "../api/security-audit";
+import { PageHeader } from "../components/page-header";
+import { Alert } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
+import { Button } from "../components/ui/button";
+import { LoadingState } from "../components/ui/loading-state";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "../components/ui/table";
 
-type Tab = 'events' | 'ips' | 'lockouts' | 'settings'
+type Tab = "events" | "ips" | "lockouts" | "settings";
 
 function errorMessage(error: unknown): string {
-  return error instanceof AdminApiError ? error.message : 'Unexpected error'
+  return error instanceof AdminApiError ? error.message : "Unexpected error";
 }
 
 function formatTime(timestamp: number): string {
-  if (!timestamp) return '-'
-  const ms = timestamp < 10_000_000_000 ? timestamp * 1000 : timestamp
-  return new Date(ms).toLocaleString()
+  if (!timestamp) return "-";
+  const ms = timestamp < 10_000_000_000 ? timestamp * 1000 : timestamp;
+  return new Date(ms).toLocaleString();
 }
 
 function SeverityBadge({ severity }: { severity: string }) {
-  const classes = severity === 'critical'
-    ? 'border-destructive/30 bg-destructive/10 text-destructive'
-    : severity === 'warning'
-      ? 'border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300'
-      : ''
+  const classes =
+    severity === "critical"
+      ? "border-destructive/30 bg-destructive/10 text-destructive"
+      : severity === "warning"
+        ? "border-amber-500/30 bg-amber-500/10 text-amber-700 dark:text-amber-300"
+        : "";
 
-  return <Badge className={classes}>{severity}</Badge>
+  return <Badge className={classes}>{severity}</Badge>;
 }
 
 function SummaryCards({ data }: { data: SecurityAuditAdminDashboardData }) {
   return (
     <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
       {[
-        { label: 'Total events', value: data.stats.totalEvents },
-        { label: 'Failed logins 24h', value: data.stats.failedLogins24h },
-        { label: 'Active lockouts', value: data.stats.activeLockouts },
-        { label: 'Flagged IPs', value: data.stats.flaggedIPs },
+        { label: "Total events", value: data.stats.totalEvents },
+        { label: "Failed logins 24h", value: data.stats.failedLogins24h },
+        { label: "Active lockouts", value: data.stats.activeLockouts },
+        { label: "Flagged IPs", value: data.stats.flaggedIPs },
       ].map(({ label, value }) => (
         <div key={label} className="rounded-lg border border-border bg-card p-4">
           <p className="text-sm text-muted-foreground">{label}</p>
@@ -51,7 +59,7 @@ function SummaryCards({ data }: { data: SecurityAuditAdminDashboardData }) {
         </div>
       ))}
     </div>
-  )
+  );
 }
 
 function EventsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
@@ -70,23 +78,29 @@ function EventsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
       <TableBody>
         {data.events.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={6} className="text-center text-muted-foreground">No security events found.</TableCell>
+            <TableCell colSpan={6} className="text-center text-muted-foreground">
+              No security events found.
+            </TableCell>
           </TableRow>
         ) : (
           data.events.map((event) => (
             <TableRow key={event.id}>
-              <TableCell className="max-w-48 truncate">{event.eventType.replaceAll('_', ' ')}</TableCell>
-              <TableCell><SeverityBadge severity={event.severity} /></TableCell>
-              <TableCell className="max-w-48 truncate">{event.email || '-'}</TableCell>
-              <TableCell>{event.ipAddress || '-'}</TableCell>
-              <TableCell className="max-w-48 truncate">{event.requestPath || '-'}</TableCell>
+              <TableCell className="max-w-48 truncate">
+                {event.eventType.replaceAll("_", " ")}
+              </TableCell>
+              <TableCell>
+                <SeverityBadge severity={event.severity} />
+              </TableCell>
+              <TableCell className="max-w-48 truncate">{event.email || "-"}</TableCell>
+              <TableCell>{event.ipAddress || "-"}</TableCell>
+              <TableCell className="max-w-48 truncate">{event.requestPath || "-"}</TableCell>
               <TableCell>{formatTime(event.createdAt)}</TableCell>
             </TableRow>
           ))
         )}
       </TableBody>
     </Table>
-  )
+  );
 }
 
 function TopIPsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
@@ -105,19 +119,25 @@ function TopIPsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
         {data.topIPs.map((ip) => (
           <TableRow key={ip.ipAddress}>
             <TableCell>{ip.ipAddress}</TableCell>
-            <TableCell>{ip.countryCode || '-'}</TableCell>
+            <TableCell>{ip.countryCode || "-"}</TableCell>
             <TableCell>{ip.failedAttempts}</TableCell>
             <TableCell>{formatTime(ip.lastSeen)}</TableCell>
-            <TableCell>{ip.locked ? <Badge className="text-destructive">Locked</Badge> : <Badge>Watching</Badge>}</TableCell>
+            <TableCell>
+              {ip.locked ? (
+                <Badge className="text-destructive">Locked</Badge>
+              ) : (
+                <Badge>Watching</Badge>
+              )}
+            </TableCell>
           </TableRow>
         ))}
       </TableBody>
     </Table>
-  )
+  );
 }
 
 function LockoutsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
-  const mutation = useReleaseSecurityAuditLockout()
+  const mutation = useReleaseSecurityAuditLockout();
 
   return (
     <Table>
@@ -132,7 +152,9 @@ function LockoutsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
       <TableBody>
         {data.lockouts.length === 0 ? (
           <TableRow>
-            <TableCell colSpan={4} className="text-center text-muted-foreground">No active lockouts.</TableCell>
+            <TableCell colSpan={4} className="text-center text-muted-foreground">
+              No active lockouts.
+            </TableCell>
           </TableRow>
         ) : (
           data.lockouts.map((lockout) => (
@@ -141,7 +163,13 @@ function LockoutsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
               <TableCell>{lockout.value}</TableCell>
               <TableCell>{formatTime(lockout.lockedAt)}</TableCell>
               <TableCell className="text-right">
-                <Button type="button" size="sm" variant="outline" disabled={mutation.isPending} onClick={() => mutation.mutate(lockout.key)}>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  disabled={mutation.isPending}
+                  onClick={() => mutation.mutate(lockout.key)}
+                >
                   Release
                 </Button>
               </TableCell>
@@ -150,7 +178,7 @@ function LockoutsTable({ data }: { data: SecurityAuditAdminDashboardData }) {
         )}
       </TableBody>
     </Table>
-  )
+  );
 }
 
 function SettingsPanel({ data }: { data: SecurityAuditAdminDashboardData }) {
@@ -158,39 +186,56 @@ function SettingsPanel({ data }: { data: SecurityAuditAdminDashboardData }) {
     <div className="grid gap-4 lg:grid-cols-3">
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-medium">Retention</h2>
-        <p className="mt-3 text-sm text-muted-foreground">{data.settings.retention.daysToKeep} days retained</p>
-        <p className="text-sm text-muted-foreground">{data.settings.retention.maxEvents.toLocaleString()} max events</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {data.settings.retention.daysToKeep} days retained
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {data.settings.retention.maxEvents.toLocaleString()} max events
+        </p>
       </div>
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-medium">Brute force</h2>
-        <p className="mt-3 text-sm text-muted-foreground">{data.settings.bruteForce.maxFailedAttemptsPerEmail} failures per email</p>
-        <p className="text-sm text-muted-foreground">{data.settings.bruteForce.lockoutDurationMinutes} minute lockout</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          {data.settings.bruteForce.maxFailedAttemptsPerEmail} failures per email
+        </p>
+        <p className="text-sm text-muted-foreground">
+          {data.settings.bruteForce.lockoutDurationMinutes} minute lockout
+        </p>
       </div>
       <div className="rounded-lg border border-border bg-card p-4">
         <h2 className="text-sm font-medium">Logging</h2>
-        <p className="mt-3 text-sm text-muted-foreground">Successful logins: {data.settings.logging.logSuccessfulLogins ? 'On' : 'Off'}</p>
-        <p className="text-sm text-muted-foreground">Permission denied: {data.settings.logging.logPermissionDenied ? 'On' : 'Off'}</p>
+        <p className="mt-3 text-sm text-muted-foreground">
+          Successful logins: {data.settings.logging.logSuccessfulLogins ? "On" : "Off"}
+        </p>
+        <p className="text-sm text-muted-foreground">
+          Permission denied: {data.settings.logging.logPermissionDenied ? "On" : "Off"}
+        </p>
       </div>
     </div>
-  )
+  );
 }
 
 export function SecurityAuditPage() {
-  const { data, isLoading, isError, error } = useSecurityAuditAdmin()
-  const purgeMutation = usePurgeSecurityAuditEvents()
-  const [tab, setTab] = useState<Tab>('events')
+  const { data, isLoading, isError, error } = useSecurityAuditAdmin();
+  const purgeMutation = usePurgeSecurityAuditEvents();
+  const [tab, setTab] = useState<Tab>("events");
 
   return (
     <section className="space-y-6">
       <PageHeader
         title="Security Audit"
         description="Monitor authentication events, suspicious activity, and active lockouts."
-        actions={(
-          <Button type="button" variant="outline" disabled={purgeMutation.isPending} onClick={() => purgeMutation.mutate(undefined)}>
+        actions={
+          <Button
+            type="button"
+            variant="outline"
+            disabled={purgeMutation.isPending}
+            onClick={() => purgeMutation.mutate(undefined)}
+          >
             <Trash2 className="size-4" />
-            {purgeMutation.isPending ? 'Purging...' : 'Purge old'}
+            {purgeMutation.isPending ? "Purging..." : "Purge old"}
           </Button>
-        )}
+        }
       />
 
       {isLoading && <LoadingState label="Loading security audit" />}
@@ -217,7 +262,8 @@ export function SecurityAuditPage() {
         <>
           {data.recentCritical.length > 0 && (
             <Alert title="Critical activity" tone="danger">
-              {data.recentCritical.length} critical security event{data.recentCritical.length === 1 ? '' : 's'} need review.
+              {data.recentCritical.length} critical security event
+              {data.recentCritical.length === 1 ? "" : "s"} need review.
             </Alert>
           )}
 
@@ -241,29 +287,29 @@ export function SecurityAuditPage() {
           </div>
 
           <div className="flex gap-1 border-b border-border">
-            {(['events', 'ips', 'lockouts', 'settings'] as const).map((item) => (
+            {(["events", "ips", "lockouts", "settings"] as const).map((item) => (
               <button
                 key={item}
                 type="button"
                 onClick={() => setTab(item)}
                 className={[
-                  'px-4 py-2 text-sm font-medium capitalize transition-colors',
+                  "px-4 py-2 text-sm font-medium capitalize transition-colors",
                   tab === item
-                    ? 'border-b-2 border-primary text-foreground'
-                    : 'text-muted-foreground hover:text-foreground',
-                ].join(' ')}
+                    ? "border-b-2 border-primary text-foreground"
+                    : "text-muted-foreground hover:text-foreground",
+                ].join(" ")}
               >
                 {item}
               </button>
             ))}
           </div>
 
-          {tab === 'events' && <EventsTable data={data} />}
-          {tab === 'ips' && <TopIPsTable data={data} />}
-          {tab === 'lockouts' && <LockoutsTable data={data} />}
-          {tab === 'settings' && <SettingsPanel data={data} />}
+          {tab === "events" && <EventsTable data={data} />}
+          {tab === "ips" && <TopIPsTable data={data} />}
+          {tab === "lockouts" && <LockoutsTable data={data} />}
+          {tab === "settings" && <SettingsPanel data={data} />}
         </>
       )}
     </section>
-  )
+  );
 }

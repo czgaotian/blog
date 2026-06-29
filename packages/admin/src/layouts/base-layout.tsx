@@ -1,6 +1,6 @@
-import { Outlet, useLocation } from "react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { Outlet, useLocation } from "react-router";
 import { adminApi } from "../api/query";
 import { Alert } from "../components/ui/alert";
 import { getInitialTheme, setStoredTheme, type Theme } from "../lib/theme";
@@ -50,18 +50,9 @@ export function BaseLayout() {
 
   return (
     <div className="min-h-screen bg-muted/30 text-foreground">
-      <AdminSidebar
-        appName={appName}
-        appVersion={appVersion}
-        collapsed={sidebarCollapsed}
-      />
+      <AdminSidebar appName={appName} appVersion={appVersion} collapsed={sidebarCollapsed} />
 
-      <div
-        className={cn(
-          "transition-[padding] md:pl-64",
-          sidebarCollapsed && "md:pl-20",
-        )}
-      >
+      <div className={cn("transition-[padding] md:pl-64", sidebarCollapsed && "md:pl-20")}>
         <AdminHeader
           currentSection={currentSection}
           mobileNavOpen={mobileNavOpen}
@@ -70,17 +61,12 @@ export function BaseLayout() {
           sidebarCollapsed={sidebarCollapsed}
           theme={theme}
           onOpenMobileNav={() => setMobileNavOpen(true)}
-          onToggleSidebar={() =>
-            setSidebarCollapsed((collapsed) => !collapsed)
-          }
+          onToggleSidebar={() => setSidebarCollapsed((collapsed) => !collapsed)}
           onToggleTheme={() => setTheme(nextTheme)}
         />
         <main className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 sm:px-6 lg:px-8">
           {meQuery.isError ? (
-            <Alert
-              title="Could not load admin session"
-              tone="danger"
-            >
+            <Alert title="Could not load admin session" tone="danger">
               Refresh the page or sign in again.
             </Alert>
           ) : null}

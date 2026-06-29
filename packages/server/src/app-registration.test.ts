@@ -1,5 +1,5 @@
-import { beforeEach, describe, expect, it, vi } from "vitest";
 import { SETUP_REQUIRED_CODE } from "@worker-blog/shared/admin-api";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createWorkerBlogApp } from "./app";
 import { resetAdminExistsCache } from "./services/auth-validation";
 
@@ -69,11 +69,7 @@ describe("createWorkerBlogApp route smoke tests", () => {
   it("mounts admin content routes behind the admin auth guard", async () => {
     const app = createWorkerBlogApp();
 
-    const res = await app.request(
-      "/api/admin/contents",
-      {},
-      createTestEnv(),
-    );
+    const res = await app.request("/api/admin/contents", {}, createTestEnv());
     const json = (await res.json()) as { error: string };
 
     expect(res.status).toBe(401);

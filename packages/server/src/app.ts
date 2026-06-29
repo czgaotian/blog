@@ -5,19 +5,14 @@
  */
 
 import { Hono } from "hono";
-import type {
-  Bindings,
-  Variables,
-  WorkerBlogApp,
-  WorkerBlogConfig,
-} from "./types/app";
-import { getCoreVersion } from "./utils/version";
 import {
   registerAssetsAndFallbackRoutes,
   registerCoreApiRoutes,
   registerCoreMiddleware,
   registerFeatureRoutes,
 } from "./app-registration";
+import type { Bindings, Variables, WorkerBlogApp, WorkerBlogConfig } from "./types/app";
+import { getCoreVersion } from "./utils/version";
 
 export type {
   Bindings,
@@ -45,9 +40,7 @@ export type {
  * export default app
  * ```
  */
-export function createWorkerBlogApp(
-  config: WorkerBlogConfig = {},
-): WorkerBlogApp {
+export function createWorkerBlogApp(config: WorkerBlogConfig = {}): WorkerBlogApp {
   const app = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
   // Set app metadata

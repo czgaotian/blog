@@ -5,11 +5,11 @@ import {
   FolderTree,
   Gauge,
   Image,
+  type LucideIcon,
   Settings,
   ShieldCheck,
   Tags,
   User,
-  type LucideIcon,
 } from "lucide-react";
 
 export interface NavItem {
@@ -52,10 +52,7 @@ const navItems = navSections.flatMap((section) => section.items);
 export function getCurrentNavLabel(pathname: string) {
   return (
     navItems
-      .filter(
-        (item) =>
-          pathname === item.href || pathname.startsWith(`${item.href}/`),
-      )
+      .filter((item) => pathname === item.href || pathname.startsWith(`${item.href}/`))
       .sort((a, b) => b.href.length - a.href.length)[0]?.label ?? "Admin"
   );
 }

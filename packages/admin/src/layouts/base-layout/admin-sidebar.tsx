@@ -8,11 +8,7 @@ interface AdminSidebarProps {
   collapsed: boolean;
 }
 
-export function AdminSidebar({
-  appName,
-  appVersion,
-  collapsed,
-}: AdminSidebarProps) {
+export function AdminSidebar({ appName, appVersion, collapsed }: AdminSidebarProps) {
   return (
     <aside
       className={cn(
@@ -20,11 +16,7 @@ export function AdminSidebar({
         collapsed ? "w-20" : "w-64",
       )}
     >
-      <SidebarBrand
-        appName={appName}
-        appVersion={appVersion}
-        collapsed={collapsed}
-      />
+      <SidebarBrand appName={appName} appVersion={appVersion} collapsed={collapsed} />
       <div className="mt-6 flex min-h-0 flex-1 flex-col">
         <NavList collapsed={collapsed} />
       </div>

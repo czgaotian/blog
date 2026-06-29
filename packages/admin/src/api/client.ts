@@ -1,4 +1,4 @@
-import { SETUP_REQUIRED_CODE } from '@worker-blog/shared/admin-api'
+import { SETUP_REQUIRED_CODE } from "@worker-blog/shared/admin-api";
 
 export class AdminApiError extends Error {
   constructor(
@@ -6,64 +6,66 @@ export class AdminApiError extends Error {
     readonly status: number,
     readonly details?: unknown,
   ) {
-    super(message)
-    this.name = 'AdminApiError'
+    super(message);
+    this.name = "AdminApiError";
   }
 }
 
 function getCookie(name: string): string | null {
   const match = document.cookie
-    .split('; ')
-    .find((part) => part.startsWith(`${encodeURIComponent(name)}=`))
+    .split("; ")
+    .find((part) => part.startsWith(`${encodeURIComponent(name)}=`));
 
-  return match ? decodeURIComponent(match.split('=').slice(1).join('=')) : null
+  return match ? decodeURIComponent(match.split("=").slice(1).join("=")) : null;
 }
 
 function isMutatingMethod(method: string): boolean {
-  return !['GET', 'HEAD', 'OPTIONS'].includes(method.toUpperCase())
+  return !["GET", "HEAD", "OPTIONS"].includes(method.toUpperCase());
 }
 
 function isAuthPage(pathname: string): boolean {
-  return pathname === '/auth/login' || pathname === '/auth/register'
+  return pathname === "/auth/login" || pathname === "/auth/register";
 }
 
 function isAuthCredentialRequest(path: string): boolean {
-  return path === '/api/auth/login' || path === '/api/auth/register'
+  return path === "/api/auth/login" || path === "/api/auth/register";
 }
 
 export async function adminFetch<T>(path: string, init: RequestInit = {}): Promise<T> {
-  const method = init.method || 'GET'
-  const headers = new Headers(init.headers)
+  const method = init.method || "GET";
+  const headers = new Headers(init.headers);
 
-  if (!(init.body instanceof FormData) && init.body !== undefined && !headers.has('Content-Type')) {
-    headers.set('Content-Type', 'application/json')
+  if (!(init.body instanceof FormData) && init.body !== undefined && !headers.has("Content-Type")) {
+    headers.set("Content-Type", "application/json");
   }
 
-  const csrfToken = getCookie('csrf_token')
+  const csrfToken = getCookie("csrf_token");
   if (csrfToken && isMutatingMethod(method)) {
-    headers.set('X-CSRF-Token', csrfToken)
+    headers.set("X-CSRF-Token", csrfToken);
   }
 
   const response = await fetch(path, {
     ...init,
     method,
     headers,
-    credentials: 'same-origin',
-  })
+    credentials: "same-origin",
+  });
 
-  const contentType = response.headers.get('Content-Type') || ''
-  const payload = contentType.includes('application/json') ? await response.json() : await response.text()
+  const contentType = response.headers.get("Content-Type") || "";
+  const payload = contentType.includes("application/json")
+    ? await response.json()
+    : await response.text();
 
   if (!response.ok) {
     if (
       response.status === 428 &&
-      typeof payload === 'object' &&
+      typeof payload === "object" &&
       payload &&
-      'code' in payload &&
+      "code" in payload &&
       (payload as { code: unknown }).code === SETUP_REQUIRED_CODE &&
-      window.location.pathname !== '/auth/register'
+      window.location.pathname !== "/auth/register"
     ) {
-      window.location.href = '/auth/register?setup=true'
+      window.location.href = "/auth/register?setup=true";
     }
 
     if (
@@ -71,14 +73,15 @@ export async function adminFetch<T>(path: string, init: RequestInit = {}): Promi
       !isAuthPage(window.location.pathname) &&
       !isAuthCredentialRequest(path)
     ) {
-      window.location.href = '/auth/login'
+      window.location.href = "/auth/login";
     }
 
-    const message = typeof payload === 'object' && payload && 'error' in payload
-      ? String((payload as { error: unknown }).error)
-      : response.statusText
-    throw new AdminApiError(message, response.status, payload)
+    const message =
+      typeof payload === "object" && payload && "error" in payload
+        ? String((payload as { error: unknown }).error)
+        : response.statusText;
+    throw new AdminApiError(message, response.status, payload);
   }
 
-  return payload as T
+  return payload as T;
 }

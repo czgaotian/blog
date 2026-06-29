@@ -1,122 +1,124 @@
-import { Hono, type Context } from 'hono'
-import { z } from 'zod'
 import {
-  mediaFileIdsSchema,
-  mediaListFiltersSchema,
-  updateMediaSchema,
   type BulkDeleteMediaResponse,
   type MediaDetailResponse,
   type MediaItem,
   type MediaListResponse,
   type MediaMutationError,
+  mediaFileIdsSchema,
+  mediaListFiltersSchema,
   type UploadMediaResponse,
-} from '@worker-blog/shared/admin-api'
-import { requireAuth } from '../middleware'
-import type { Bindings, Variables } from '../app'
-import { createContentDisposition } from '../utils/content-disposition'
+  updateMediaSchema,
+} from "@worker-blog/shared/admin-api";
+import { type Context, Hono } from "hono";
+import { z } from "zod";
+import type { Bindings, Variables } from "../app";
+import { requireAuth } from "../middleware";
+import { createContentDisposition } from "../utils/content-disposition";
 
-const MAX_FILE_SIZE = 50 * 1024 * 1024
+const MAX_FILE_SIZE = 50 * 1024 * 1024;
 
 const allowedMimeTypes = new Set([
-  'image/jpeg',
-  'image/jpg',
-  'image/png',
-  'image/gif',
-  'image/webp',
-  'image/svg+xml',
-  'application/pdf',
-  'text/plain',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'video/mp4',
-  'video/webm',
-  'video/ogg',
-  'video/avi',
-  'video/mov',
-  'audio/mp3',
-  'audio/mpeg',
-  'audio/wav',
-  'audio/ogg',
-  'audio/m4a',
-])
+  "image/jpeg",
+  "image/jpg",
+  "image/png",
+  "image/gif",
+  "image/webp",
+  "image/svg+xml",
+  "application/pdf",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  "video/mp4",
+  "video/webm",
+  "video/ogg",
+  "video/avi",
+  "video/mov",
+  "audio/mp3",
+  "audio/mpeg",
+  "audio/wav",
+  "audio/ogg",
+  "audio/m4a",
+]);
 
 const documentMimeTypes = [
-  'application/pdf',
-  'text/plain',
-  'application/msword',
-  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-]
+  "application/pdf",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 const fileValidationSchema = z.object({
   name: z.string().min(1).max(255),
-  type: z.string().refine((type) => allowedMimeTypes.has(type), 'Unsupported file type'),
+  type: z.string().refine((type) => allowedMimeTypes.has(type), "Unsupported file type"),
   size: z.number().min(1).max(MAX_FILE_SIZE),
-})
+});
 
 interface MediaRow {
-  id: string
-  filename: string
-  original_name: string
-  mime_type: string
-  size: number
-  sha256_hash?: string | null
-  width: number | null
-  height: number | null
-  r2_key: string
-  public_url: string | null
-  thumbnail_url: string | null
-  alt: string | null
-  caption: string | null
-  tags: string | string[] | null
-  uploaded_by: string
-  uploaded_at: number | string | null
-  deleted_at: number | string | null
+  id: string;
+  filename: string;
+  original_name: string;
+  mime_type: string;
+  size: number;
+  sha256_hash?: string | null;
+  width: number | null;
+  height: number | null;
+  r2_key: string;
+  public_url: string | null;
+  thumbnail_url: string | null;
+  alt: string | null;
+  caption: string | null;
+  tags: string | string[] | null;
+  uploaded_by: string;
+  uploaded_at: number | string | null;
+  deleted_at: number | string | null;
 }
 
 interface MediaReferenceSummary {
-  count: number
+  count: number;
   references: Array<{
-    contentId: string
-    title: string
-    usageType: string
-  }>
+    contentId: string;
+    title: string;
+    usageType: string;
+  }>;
 }
 
-type MediaContext = Context<{ Bindings: Bindings; Variables: Variables }>
+type MediaContext = Context<{ Bindings: Bindings; Variables: Variables }>;
 
-export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+export const apiMediaRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
-apiMediaRoutes.use('*', requireAuth())
+apiMediaRoutes.use("*", requireAuth());
 
 function generateId(): string {
-  return crypto.randomUUID().replace(/-/g, '').substring(0, 21)
+  return crypto.randomUUID().replace(/-/g, "").substring(0, 21);
 }
 
 async function emitEvent(eventName: string, data: unknown) {
-  console.log(`[Event] ${eventName}:`, data)
+  console.log(`[Event] ${eventName}:`, data);
 }
 
 function publicUrlForKey(r2Key: string): string {
-  return `/files/${r2Key}`
+  return `/files/${r2Key}`;
 }
 
-function parseTags(value: MediaRow['tags']): string[] {
-  if (!value) return []
-  if (Array.isArray(value)) return value.filter((tag): tag is string => typeof tag === 'string')
+function parseTags(value: MediaRow["tags"]): string[] {
+  if (!value) return [];
+  if (Array.isArray(value)) return value.filter((tag): tag is string => typeof tag === "string");
   try {
-    const parsed = JSON.parse(value)
-    return Array.isArray(parsed) ? parsed.filter((tag): tag is string => typeof tag === 'string') : []
+    const parsed = JSON.parse(value);
+    return Array.isArray(parsed)
+      ? parsed.filter((tag): tag is string => typeof tag === "string")
+      : [];
   } catch {
-    return []
+    return [];
   }
 }
 
 function mapMediaRow(row: MediaRow): MediaItem {
-  const publicUrl = row.public_url || publicUrlForKey(row.r2_key)
-  const isImage = row.mime_type.startsWith('image/')
-  const isVideo = row.mime_type.startsWith('video/')
-  const isAudio = row.mime_type.startsWith('audio/')
-  const isDocument = documentMimeTypes.includes(row.mime_type)
+  const publicUrl = row.public_url || publicUrlForKey(row.r2_key);
+  const isImage = row.mime_type.startsWith("image/");
+  const isVideo = row.mime_type.startsWith("video/");
+  const isAudio = row.mime_type.startsWith("audio/");
+  const isDocument = documentMimeTypes.includes(row.mime_type);
 
   return {
     id: row.id,
@@ -131,28 +133,32 @@ function mapMediaRow(row: MediaRow): MediaItem {
     alt: row.alt ?? null,
     caption: row.caption ?? null,
     tags: parseTags(row.tags),
-    uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : '',
+    uploadedAt: row.uploaded_at ? new Date(Number(row.uploaded_at) * 1000).toISOString() : "",
     isImage,
     isVideo,
     isAudio,
     isDocument,
     isOther: !isImage && !isVideo && !isAudio && !isDocument,
-  }
+  };
 }
 
 function validationPayload(error: z.ZodError) {
   return {
-    error: 'Validation failed',
+    error: "Validation failed",
     details: error.issues,
-  }
+  };
 }
 
 function canMutate(file: MediaRow, user: { userId: string; role: string }) {
-  return file.uploaded_by === user.userId || user.role === 'admin'
+  return file.uploaded_by === user.userId || user.role === "admin";
 }
 
-async function getActiveMediaReferences(db: D1Database, mediaId: string): Promise<MediaReferenceSummary> {
-  const { results = [] } = await db.prepare(`
+async function getActiveMediaReferences(
+  db: D1Database,
+  mediaId: string,
+): Promise<MediaReferenceSummary> {
+  const { results = [] } = await db
+    .prepare(`
     SELECT cmr.content_id, c.title, cmr.usage_type
     FROM content_media_references cmr
     INNER JOIN contents c ON c.id = cmr.content_id
@@ -161,7 +167,7 @@ async function getActiveMediaReferences(db: D1Database, mediaId: string): Promis
     ORDER BY c.updated_at DESC, c.title ASC
   `)
     .bind(mediaId)
-    .all<{ content_id: string; title: string; usage_type: string }>()
+    .all<{ content_id: string; title: string; usage_type: string }>();
 
   return {
     count: results.length,
@@ -170,76 +176,75 @@ async function getActiveMediaReferences(db: D1Database, mediaId: string): Promis
       title: row.title,
       usageType: row.usage_type,
     })),
-  }
+  };
 }
 
 async function sha256Hex(buffer: ArrayBuffer): Promise<string> {
-  const digest = await crypto.subtle.digest('SHA-256', buffer)
-  return [...new Uint8Array(digest)]
-    .map((byte) => byte.toString(16).padStart(2, '0'))
-    .join('')
+  const digest = await crypto.subtle.digest("SHA-256", buffer);
+  return [...new Uint8Array(digest)].map((byte) => byte.toString(16).padStart(2, "0")).join("");
 }
 
 function duplicateFileError(file: File, duplicate: MediaRow): MediaMutationError {
   return {
     fileId: duplicate.id,
     filename: file.name,
-    error: 'Duplicate file',
+    error: "Duplicate file",
     details: {
       existingFileId: duplicate.id,
       existingFilename: duplicate.original_name,
       existingPublicUrl: duplicate.public_url || publicUrlForKey(duplicate.r2_key),
     },
-  }
+  };
 }
 
 async function findDuplicateByHash(db: D1Database, sha256Hash: string): Promise<MediaRow | null> {
-  return db.prepare(`
+  return db
+    .prepare(`
     SELECT * FROM media
     WHERE sha256_hash = ?
       AND deleted_at IS NULL
     LIMIT 1
   `)
     .bind(sha256Hash)
-    .first<MediaRow>()
+    .first<MediaRow>();
 }
 
 async function uploadOneFile(
   c: MediaContext,
   file: File,
 ): Promise<{ item?: MediaItem; error?: MediaMutationError; status?: 400 | 409 }> {
-  const user = c.get('user')!
+  const user = c.get("user")!;
   const validation = fileValidationSchema.safeParse({
     name: file.name,
     type: file.type,
     size: file.size,
-  })
+  });
 
   if (!validation.success) {
     return {
       error: {
         filename: file.name,
-        error: 'Validation failed',
+        error: "Validation failed",
         details: validation.error.issues,
       },
-    }
+    };
   }
 
-  const arrayBuffer = await file.arrayBuffer()
-  const sha256Hash = await sha256Hex(arrayBuffer)
-  const duplicate = await findDuplicateByHash(c.env.DB, sha256Hash)
+  const arrayBuffer = await file.arrayBuffer();
+  const sha256Hash = await sha256Hex(arrayBuffer);
+  const duplicate = await findDuplicateByHash(c.env.DB, sha256Hash);
 
   if (duplicate) {
     return {
       status: 409,
       error: duplicateFileError(file, duplicate),
-    }
+    };
   }
 
-  const fileId = generateId()
-  const extension = file.name.includes('.') ? file.name.split('.').pop() || 'bin' : 'bin'
-  const filename = `${fileId}.${extension}`
-  const r2Key = filename
+  const fileId = generateId();
+  const extension = file.name.includes(".") ? file.name.split(".").pop() || "bin" : "bin";
+  const filename = `${fileId}.${extension}`;
+  const r2Key = filename;
 
   const uploadResult = await c.env.MEDIA_BUCKET.put(r2Key, arrayBuffer, {
     httpMetadata: {
@@ -251,27 +256,27 @@ async function uploadOneFile(
       uploadedBy: user.userId,
       uploadedAt: new Date().toISOString(),
     },
-  })
+  });
 
   if (!uploadResult) {
-    return { error: { filename: file.name, error: 'Failed to upload to storage' } }
+    return { error: { filename: file.name, error: "Failed to upload to storage" } };
   }
 
-  let width: number | null = null
-  let height: number | null = null
-  if (file.type.startsWith('image/') && file.type !== 'image/svg+xml') {
+  let width: number | null = null;
+  let height: number | null = null;
+  if (file.type.startsWith("image/") && file.type !== "image/svg+xml") {
     try {
-      const dimensions = await getImageDimensions(arrayBuffer)
-      width = dimensions.width || null
-      height = dimensions.height || null
+      const dimensions = await getImageDimensions(arrayBuffer);
+      width = dimensions.width || null;
+      height = dimensions.height || null;
     } catch (error) {
-      console.warn('Failed to extract image dimensions:', error)
+      console.warn("Failed to extract image dimensions:", error);
     }
   }
 
-  const publicUrl = publicUrlForKey(r2Key)
-  const thumbnailUrl = file.type.startsWith('image/') ? publicUrl : null
-  const uploadedAt = Math.floor(Date.now() / 1000)
+  const publicUrl = publicUrlForKey(r2Key);
+  const thumbnailUrl = file.type.startsWith("image/") ? publicUrl : null;
+  const uploadedAt = Math.floor(Date.now() / 1000);
 
   try {
     await c.env.DB.prepare(`
@@ -295,17 +300,17 @@ async function uploadOneFile(
         user.userId,
         uploadedAt,
       )
-      .run()
+      .run();
   } catch (error) {
-    const duplicateAfterRace = await findDuplicateByHash(c.env.DB, sha256Hash)
+    const duplicateAfterRace = await findDuplicateByHash(c.env.DB, sha256Hash);
     if (duplicateAfterRace) {
-      await c.env.MEDIA_BUCKET.delete(r2Key).catch(() => undefined)
+      await c.env.MEDIA_BUCKET.delete(r2Key).catch(() => undefined);
       return {
         status: 409,
         error: duplicateFileError(file, duplicateAfterRace),
-      }
+      };
     }
-    throw error
+    throw error;
   }
 
   return {
@@ -328,54 +333,56 @@ async function uploadOneFile(
       uploaded_at: uploadedAt,
       deleted_at: null,
     }),
-  }
+  };
 }
 
-apiMediaRoutes.get('/', async (c) => {
+apiMediaRoutes.get("/", async (c) => {
   const filters = mediaListFiltersSchema.safeParse({
-    page: c.req.query('page'),
-    limit: c.req.query('limit'),
-    type: c.req.query('type') || undefined,
-    search: c.req.query('search'),
-  })
+    page: c.req.query("page"),
+    limit: c.req.query("limit"),
+    type: c.req.query("type") || undefined,
+    search: c.req.query("search"),
+  });
 
   if (!filters.success) {
-    return c.json(validationPayload(filters.error), 422)
+    return c.json(validationPayload(filters.error), 422);
   }
 
-  const { page, limit, type, search } = filters.data
-  const conditions = ['deleted_at IS NULL']
-  const params: unknown[] = []
+  const { page, limit, type, search } = filters.data;
+  const conditions = ["deleted_at IS NULL"];
+  const params: unknown[] = [];
 
-  if (type === 'images') {
-    conditions.push('mime_type LIKE ?')
-    params.push('image/%')
-  } else if (type === 'videos') {
-    conditions.push('mime_type LIKE ?')
-    params.push('video/%')
-  } else if (type === 'audio') {
-    conditions.push('mime_type LIKE ?')
-    params.push('audio/%')
-  } else if (type === 'documents') {
-    conditions.push(`mime_type IN (${documentMimeTypes.map(() => '?').join(', ')})`)
-    params.push(...documentMimeTypes)
-  } else if (type === 'other') {
-    conditions.push(`mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT IN (${documentMimeTypes.map(() => '?').join(', ')})`)
-    params.push('image/%', 'video/%', 'audio/%', ...documentMimeTypes)
+  if (type === "images") {
+    conditions.push("mime_type LIKE ?");
+    params.push("image/%");
+  } else if (type === "videos") {
+    conditions.push("mime_type LIKE ?");
+    params.push("video/%");
+  } else if (type === "audio") {
+    conditions.push("mime_type LIKE ?");
+    params.push("audio/%");
+  } else if (type === "documents") {
+    conditions.push(`mime_type IN (${documentMimeTypes.map(() => "?").join(", ")})`);
+    params.push(...documentMimeTypes);
+  } else if (type === "other") {
+    conditions.push(
+      `mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT LIKE ? AND mime_type NOT IN (${documentMimeTypes.map(() => "?").join(", ")})`,
+    );
+    params.push("image/%", "video/%", "audio/%", ...documentMimeTypes);
   }
 
   if (search) {
-    conditions.push('(filename LIKE ? OR original_name LIKE ? OR alt LIKE ? OR caption LIKE ?)')
-    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`)
+    conditions.push("(filename LIKE ? OR original_name LIKE ? OR alt LIKE ? OR caption LIKE ?)");
+    params.push(`%${search}%`, `%${search}%`, `%${search}%`, `%${search}%`);
   }
 
-  const where = `WHERE ${conditions.join(' AND ')}`
-  const offset = (page - 1) * limit
+  const where = `WHERE ${conditions.join(" AND ")}`;
+  const offset = (page - 1) * limit;
 
   try {
-    const countRes = await c.env.DB.prepare(`SELECT COUNT(*) as count FROM media ${where}`)
+    const countRes = (await c.env.DB.prepare(`SELECT COUNT(*) as count FROM media ${where}`)
       .bind(...params)
-      .first() as { count?: number } | null
+      .first()) as { count?: number } | null;
 
     const { results = [] } = await c.env.DB.prepare(`
       SELECT * FROM media ${where}
@@ -383,7 +390,7 @@ apiMediaRoutes.get('/', async (c) => {
       LIMIT ? OFFSET ?
     `)
       .bind(...params, limit, offset)
-      .all<MediaRow>()
+      .all<MediaRow>();
 
     const { results: typeResults = [] } = await c.env.DB.prepare(`
       SELECT
@@ -391,14 +398,14 @@ apiMediaRoutes.get('/', async (c) => {
           WHEN mime_type LIKE 'image/%' THEN 'images'
           WHEN mime_type LIKE 'video/%' THEN 'videos'
           WHEN mime_type LIKE 'audio/%' THEN 'audio'
-          WHEN mime_type IN (${documentMimeTypes.map((type) => `'${type}'`).join(', ')}) THEN 'documents'
+          WHEN mime_type IN (${documentMimeTypes.map((type) => `'${type}'`).join(", ")}) THEN 'documents'
           ELSE 'other'
         END as type,
         COUNT(*) as count
       FROM media
       WHERE deleted_at IS NULL
       GROUP BY type
-    `).all<{ type: 'images' | 'videos' | 'audio' | 'documents' | 'other'; count: number }>()
+    `).all<{ type: "images" | "videos" | "audio" | "documents" | "other"; count: number }>();
 
     const response: MediaListResponse = {
       items: results.map(mapMediaRow),
@@ -409,86 +416,89 @@ apiMediaRoutes.get('/', async (c) => {
         type: row.type,
         count: Number(row.count),
       })),
-    }
+    };
 
-    return c.json(response)
+    return c.json(response);
   } catch (error) {
-    console.error('[api-media] Error fetching media:', error)
-    return c.json({ error: 'Failed to fetch media' }, 500)
+    console.error("[api-media] Error fetching media:", error);
+    return c.json({ error: "Failed to fetch media" }, 500);
   }
-})
+});
 
-apiMediaRoutes.get('/:id', async (c) => {
+apiMediaRoutes.get("/:id", async (c) => {
   try {
-    const row = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
-      .bind(c.req.param('id'))
-      .first<MediaRow>()
+    const row = await c.env.DB.prepare("SELECT * FROM media WHERE id = ? AND deleted_at IS NULL")
+      .bind(c.req.param("id"))
+      .first<MediaRow>();
 
-    if (!row) return c.json({ error: 'Media item not found' }, 404)
+    if (!row) return c.json({ error: "Media item not found" }, 404);
 
-    const response: MediaDetailResponse = { item: mapMediaRow(row) }
-    return c.json(response)
+    const response: MediaDetailResponse = { item: mapMediaRow(row) };
+    return c.json(response);
   } catch (error) {
-    console.error('[api-media] Error fetching media item:', error)
-    return c.json({ error: 'Failed to fetch media item' }, 500)
+    console.error("[api-media] Error fetching media item:", error);
+    return c.json({ error: "Failed to fetch media item" }, 500);
   }
-})
+});
 
-apiMediaRoutes.post('/upload', async (c) => {
-  const formData = await c.req.formData()
-  const fileData = formData.get('file')
-  if (!fileData || typeof fileData === 'string') {
-    return c.json({ error: 'No file provided' }, 400)
+apiMediaRoutes.post("/upload", async (c) => {
+  const formData = await c.req.formData();
+  const fileData = formData.get("file");
+  if (!fileData || typeof fileData === "string") {
+    return c.json({ error: "No file provided" }, 400);
   }
 
   try {
-    const result = await uploadOneFile(c, fileData as File)
+    const result = await uploadOneFile(c, fileData as File);
     if (result.error || !result.item) {
-      return c.json({ error: result.error?.error || 'Upload failed', details: result.error?.details }, result.status || 400)
+      return c.json(
+        { error: result.error?.error || "Upload failed", details: result.error?.details },
+        result.status || 400,
+      );
     }
 
-    await emitEvent('media.upload', { id: result.item.id, filename: result.item.filename })
+    await emitEvent("media.upload", { id: result.item.id, filename: result.item.filename });
     const response: UploadMediaResponse & { file: MediaItem } = {
       success: true,
       file: result.item,
       uploaded: [result.item],
       errors: [],
       summary: { total: 1, successful: 1, failed: 0 },
-    }
-    return c.json(response, 201)
+    };
+    return c.json(response, 201);
   } catch (error) {
-    console.error('[api-media] Upload error:', error)
-    return c.json({ error: 'Upload failed' }, 500)
+    console.error("[api-media] Upload error:", error);
+    return c.json({ error: "Upload failed" }, 500);
   }
-})
+});
 
-apiMediaRoutes.post('/upload-multiple', async (c) => {
-  const formData = await c.req.formData()
-  const files = formData.getAll('files').filter((file): file is File => typeof file !== 'string')
+apiMediaRoutes.post("/upload-multiple", async (c) => {
+  const formData = await c.req.formData();
+  const files = formData.getAll("files").filter((file): file is File => typeof file !== "string");
 
   if (files.length === 0) {
-    return c.json({ error: 'No files provided' }, 400)
+    return c.json({ error: "No files provided" }, 400);
   }
 
-  const uploaded: MediaItem[] = []
-  const errors: MediaMutationError[] = []
+  const uploaded: MediaItem[] = [];
+  const errors: MediaMutationError[] = [];
 
   for (const file of files) {
     try {
-      const result = await uploadOneFile(c, file)
-      if (result.item) uploaded.push(result.item)
-      if (result.error) errors.push(result.error)
+      const result = await uploadOneFile(c, file);
+      if (result.item) uploaded.push(result.item);
+      if (result.error) errors.push(result.error);
     } catch (error) {
       errors.push({
         filename: file.name,
-        error: 'Upload failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
+        error: "Upload failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 
   if (uploaded.length > 0) {
-    await emitEvent('media.upload', { count: uploaded.length })
+    await emitEvent("media.upload", { count: uploaded.length });
   }
 
   const response: UploadMediaResponse = {
@@ -500,76 +510,76 @@ apiMediaRoutes.post('/upload-multiple', async (c) => {
       successful: uploaded.length,
       failed: errors.length,
     },
-  }
+  };
 
-  return c.json(response, uploaded.length > 0 ? 201 : 400)
-})
+  return c.json(response, uploaded.length > 0 ? 201 : 400);
+});
 
-apiMediaRoutes.post('/bulk-delete', async (c) => {
-  const user = c.get('user')!
-  const body = mediaFileIdsSchema.safeParse(await c.req.json().catch(() => null))
+apiMediaRoutes.post("/bulk-delete", async (c) => {
+  const user = c.get("user")!;
+  const body = mediaFileIdsSchema.safeParse(await c.req.json().catch(() => null));
   if (!body.success) {
-    return c.json(validationPayload(body.error), 422)
+    return c.json(validationPayload(body.error), 422);
   }
 
-  const deleted: BulkDeleteMediaResponse['deleted'] = []
-  const errors: MediaMutationError[] = []
-  const now = Math.floor(Date.now() / 1000)
+  const deleted: BulkDeleteMediaResponse["deleted"] = [];
+  const errors: MediaMutationError[] = [];
+  const now = Math.floor(Date.now() / 1000);
 
   for (const fileId of body.data.fileIds) {
     try {
-      const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ?')
+      const file = await c.env.DB.prepare("SELECT * FROM media WHERE id = ?")
         .bind(fileId)
-        .first<MediaRow>()
+        .first<MediaRow>();
 
       if (!file) {
-        errors.push({ fileId, error: 'File not found' })
-        continue
+        errors.push({ fileId, error: "File not found" });
+        continue;
       }
 
       if (!canMutate(file, user)) {
-        errors.push({ fileId, filename: file.original_name, error: 'Permission denied' })
-        continue
+        errors.push({ fileId, filename: file.original_name, error: "Permission denied" });
+        continue;
       }
 
       if (file.deleted_at !== null) {
-        deleted.push({ fileId, filename: file.original_name, success: true, alreadyDeleted: true })
-        continue
+        deleted.push({ fileId, filename: file.original_name, success: true, alreadyDeleted: true });
+        continue;
       }
 
-      const references = await getActiveMediaReferences(c.env.DB, fileId)
+      const references = await getActiveMediaReferences(c.env.DB, fileId);
       if (references.count > 0) {
         errors.push({
           fileId,
           filename: file.original_name,
-          error: 'Media is in use',
+          error: "Media is in use",
           details: references,
-        })
-        continue
+        });
+        continue;
       }
 
       try {
-        await c.env.MEDIA_BUCKET.delete(file.r2_key)
+        await c.env.MEDIA_BUCKET.delete(file.r2_key);
       } catch (error) {
-        console.warn(`Failed to delete R2 object for media ${fileId}:`, error)
+        console.warn(`Failed to delete R2 object for media ${fileId}:`, error);
       }
 
-      await c.env.DB.prepare('UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?')
+      await c.env.DB.prepare("UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?")
         .bind(now, now, fileId)
-        .run()
+        .run();
 
-      deleted.push({ fileId, filename: file.original_name, success: true })
+      deleted.push({ fileId, filename: file.original_name, success: true });
     } catch (error) {
       errors.push({
         fileId,
-        error: 'Delete failed',
-        details: error instanceof Error ? error.message : 'Unknown error',
-      })
+        error: "Delete failed",
+        details: error instanceof Error ? error.message : "Unknown error",
+      });
     }
   }
 
   if (deleted.length > 0) {
-    await emitEvent('media.delete', { count: deleted.length, ids: body.data.fileIds })
+    await emitEvent("media.delete", { count: deleted.length, ids: body.data.fileIds });
   }
 
   const response: BulkDeleteMediaResponse = {
@@ -581,129 +591,131 @@ apiMediaRoutes.post('/bulk-delete', async (c) => {
       successful: deleted.length,
       failed: errors.length,
     },
-  }
+  };
 
-  return c.json(response)
-})
+  return c.json(response);
+});
 
-apiMediaRoutes.delete('/:id', async (c) => {
-  const user = c.get('user')!
-  const fileId = c.req.param('id')
+apiMediaRoutes.delete("/:id", async (c) => {
+  const user = c.get("user")!;
+  const fileId = c.req.param("id");
 
   try {
-    const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+    const file = await c.env.DB.prepare("SELECT * FROM media WHERE id = ? AND deleted_at IS NULL")
       .bind(fileId)
-      .first<MediaRow>()
+      .first<MediaRow>();
 
-    if (!file) return c.json({ error: 'File not found' }, 404)
-    if (!canMutate(file, user)) return c.json({ error: 'Permission denied' }, 403)
+    if (!file) return c.json({ error: "File not found" }, 404);
+    if (!canMutate(file, user)) return c.json({ error: "Permission denied" }, 403);
 
-    const references = await getActiveMediaReferences(c.env.DB, fileId)
+    const references = await getActiveMediaReferences(c.env.DB, fileId);
     if (references.count > 0) {
-      return c.json({ error: 'Media is in use', details: references }, 409)
+      return c.json({ error: "Media is in use", details: references }, 409);
     }
 
     try {
-      await c.env.MEDIA_BUCKET.delete(file.r2_key)
+      await c.env.MEDIA_BUCKET.delete(file.r2_key);
     } catch (error) {
-      console.warn(`Failed to delete R2 object for media ${fileId}:`, error)
+      console.warn(`Failed to delete R2 object for media ${fileId}:`, error);
     }
 
-    const now = Math.floor(Date.now() / 1000)
-    await c.env.DB.prepare('UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?')
+    const now = Math.floor(Date.now() / 1000);
+    await c.env.DB.prepare("UPDATE media SET deleted_at = ?, updated_at = ? WHERE id = ?")
       .bind(now, now, fileId)
-      .run()
+      .run();
 
-    await emitEvent('media.delete', { id: fileId })
-    return c.json({ success: true, message: 'File deleted successfully' })
+    await emitEvent("media.delete", { id: fileId });
+    return c.json({ success: true, message: "File deleted successfully" });
   } catch (error) {
-    console.error('[api-media] Delete error:', error)
-    return c.json({ error: 'Delete failed' }, 500)
+    console.error("[api-media] Delete error:", error);
+    return c.json({ error: "Delete failed" }, 500);
   }
-})
+});
 
-apiMediaRoutes.patch('/:id', async (c) => {
-  const user = c.get('user')!
-  const fileId = c.req.param('id')
-  const body = updateMediaSchema.safeParse(await c.req.json().catch(() => null))
+apiMediaRoutes.patch("/:id", async (c) => {
+  const user = c.get("user")!;
+  const fileId = c.req.param("id");
+  const body = updateMediaSchema.safeParse(await c.req.json().catch(() => null));
 
   if (!body.success) {
-    return c.json(validationPayload(body.error), 422)
+    return c.json(validationPayload(body.error), 422);
   }
 
-  const entries = Object.entries(body.data).filter(([, value]) => value !== undefined)
+  const entries = Object.entries(body.data).filter(([, value]) => value !== undefined);
   if (entries.length === 0) {
-    return c.json({ error: 'No valid fields to update' }, 400)
+    return c.json({ error: "No valid fields to update" }, 400);
   }
 
   try {
-    const file = await c.env.DB.prepare('SELECT * FROM media WHERE id = ? AND deleted_at IS NULL')
+    const file = await c.env.DB.prepare("SELECT * FROM media WHERE id = ? AND deleted_at IS NULL")
       .bind(fileId)
-      .first<MediaRow>()
+      .first<MediaRow>();
 
-    if (!file) return c.json({ error: 'File not found' }, 404)
-    if (!canMutate(file, user)) return c.json({ error: 'Permission denied' }, 403)
+    if (!file) return c.json({ error: "File not found" }, 404);
+    if (!canMutate(file, user)) return c.json({ error: "Permission denied" }, 403);
 
-    const updates: string[] = []
-    const values: unknown[] = []
+    const updates: string[] = [];
+    const values: unknown[] = [];
 
     for (const [key, value] of entries) {
-      updates.push(`${key} = ?`)
-      values.push(key === 'tags' ? JSON.stringify(value) : value)
+      updates.push(`${key} = ?`);
+      values.push(key === "tags" ? JSON.stringify(value) : value);
     }
 
-    updates.push('updated_at = ?')
-    values.push(Math.floor(Date.now() / 1000), fileId)
+    updates.push("updated_at = ?");
+    values.push(Math.floor(Date.now() / 1000), fileId);
 
-    await c.env.DB.prepare(`UPDATE media SET ${updates.join(', ')} WHERE id = ?`)
+    await c.env.DB.prepare(`UPDATE media SET ${updates.join(", ")} WHERE id = ?`)
       .bind(...values)
-      .run()
+      .run();
 
-    await emitEvent('media.update', { id: fileId })
-    return c.json({ success: true, message: 'File updated successfully' })
+    await emitEvent("media.update", { id: fileId });
+    return c.json({ success: true, message: "File updated successfully" });
   } catch (error) {
-    console.error('[api-media] Update error:', error)
-    return c.json({ error: 'Update failed' }, 500)
+    console.error("[api-media] Update error:", error);
+    return c.json({ error: "Update failed" }, 500);
   }
-})
+});
 
-async function getImageDimensions(arrayBuffer: ArrayBuffer): Promise<{ width: number; height: number }> {
-  const bytes = new Uint8Array(arrayBuffer)
+async function getImageDimensions(
+  arrayBuffer: ArrayBuffer,
+): Promise<{ width: number; height: number }> {
+  const bytes = new Uint8Array(arrayBuffer);
 
   if (bytes[0] === 0xff && bytes[1] === 0xd8) {
-    return getJPEGDimensions(bytes)
+    return getJPEGDimensions(bytes);
   }
 
   if (bytes[0] === 0x89 && bytes[1] === 0x50 && bytes[2] === 0x4e && bytes[3] === 0x47) {
-    return getPNGDimensions(bytes)
+    return getPNGDimensions(bytes);
   }
 
-  return { width: 0, height: 0 }
+  return { width: 0, height: 0 };
 }
 
 function getJPEGDimensions(bytes: Uint8Array): { width: number; height: number } {
-  let i = 2
+  let i = 2;
   while (i < bytes.length) {
-    if (i + 8 >= bytes.length) break
-    const marker = bytes[i + 1]
+    if (i + 8 >= bytes.length) break;
+    const marker = bytes[i + 1];
     if (bytes[i] === 0xff && marker && marker >= 0xc0 && marker <= 0xc3) {
       return {
         height: (bytes[i + 5]! << 8) | bytes[i + 6]!,
         width: (bytes[i + 7]! << 8) | bytes[i + 8]!,
-      }
+      };
     }
-    if (i + 3 >= bytes.length) break
-    i += 2 + ((bytes[i + 2]! << 8) | bytes[i + 3]!)
+    if (i + 3 >= bytes.length) break;
+    i += 2 + ((bytes[i + 2]! << 8) | bytes[i + 3]!);
   }
-  return { width: 0, height: 0 }
+  return { width: 0, height: 0 };
 }
 
 function getPNGDimensions(bytes: Uint8Array): { width: number; height: number } {
-  if (bytes.length < 24) return { width: 0, height: 0 }
+  if (bytes.length < 24) return { width: 0, height: 0 };
   return {
     width: (bytes[16]! << 24) | (bytes[17]! << 16) | (bytes[18]! << 8) | bytes[19]!,
     height: (bytes[20]! << 24) | (bytes[21]! << 16) | (bytes[22]! << 8) | bytes[23]!,
-  }
+  };
 }
 
-export default apiMediaRoutes
+export default apiMediaRoutes;

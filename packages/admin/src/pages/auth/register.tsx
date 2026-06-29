@@ -1,21 +1,15 @@
-import { useState } from "react";
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  registerSchema,
-  type RegisterRequest,
-} from "@worker-blog/shared/admin-api";
+import { type RegisterRequest, registerSchema } from "@worker-blog/shared/admin-api";
 import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { Link } from "react-router";
 import { z } from "zod";
 import { useRegister } from "../../api/auth";
+import { AdminApiError } from "../../api/client";
+import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "../../components/ui/field";
+import { Field, FieldError, FieldGroup, FieldLabel } from "../../components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
@@ -23,14 +17,10 @@ import {
   InputGroupInput,
 } from "../../components/ui/input-group";
 import { Spinner } from "../../components/ui/spinner";
-import { Alert } from "../../components/ui/alert";
-import { AdminApiError } from "../../api/client";
 
 const registerFormSchema = registerSchema
   .extend({
-    confirmPassword: z
-      .string({ error: "Confirm your password" })
-      .min(1, "Confirm your password"),
+    confirmPassword: z.string({ error: "Confirm your password" }).min(1, "Confirm your password"),
   })
   .refine((data) => data.password === data.confirmPassword, {
     message: "Passwords do not match",
@@ -82,12 +72,8 @@ export function RegisterPage() {
   return (
     <div className="flex w-full max-w-sm flex-col gap-8">
       <div className="flex flex-col gap-2 text-center">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Create account
-        </h1>
-        <p className="text-sm text-muted-foreground">
-          Get started with Worker Blog
-        </p>
+        <h1 className="text-2xl font-semibold tracking-tight">Create account</h1>
+        <p className="text-sm text-muted-foreground">Get started with Worker Blog</p>
       </div>
 
       {done ? (
@@ -176,9 +162,7 @@ export function RegisterPage() {
                 />
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
-                    aria-label={
-                      showPassword ? "Hide passwords" : "Show passwords"
-                    }
+                    aria-label={showPassword ? "Hide passwords" : "Show passwords"}
                     size="icon-xs"
                     onClick={() => setShowPassword((value) => !value)}
                   >
@@ -190,9 +174,7 @@ export function RegisterPage() {
             </Field>
 
             <Field data-invalid={!!errors.confirmPassword}>
-              <FieldLabel htmlFor="confirmPassword">
-                Confirm password
-              </FieldLabel>
+              <FieldLabel htmlFor="confirmPassword">Confirm password</FieldLabel>
               <InputGroup>
                 <InputGroupInput
                   id="confirmPassword"
@@ -203,9 +185,7 @@ export function RegisterPage() {
                 />
                 <InputGroupAddon align="inline-end">
                   <InputGroupButton
-                    aria-label={
-                      showConfirmPassword ? "Hide passwords" : "Show passwords"
-                    }
+                    aria-label={showConfirmPassword ? "Hide passwords" : "Show passwords"}
                     size="icon-xs"
                     onClick={() => setShowConfirmPassword((value) => !value)}
                   >
@@ -216,11 +196,7 @@ export function RegisterPage() {
               <FieldError errors={[errors.confirmPassword]} />
             </Field>
 
-            <Button
-              type="submit"
-              className="w-full"
-              disabled={registerMutation.isPending}
-            >
+            <Button type="submit" className="w-full" disabled={registerMutation.isPending}>
               {registerMutation.isPending ? (
                 <>
                   <Spinner />
@@ -236,10 +212,7 @@ export function RegisterPage() {
 
       <div className="text-center text-sm text-muted-foreground">
         Already have an account?{" "}
-        <Link
-          to="/auth/login"
-          className="hover:text-foreground underline underline-offset-4"
-        >
+        <Link to="/auth/login" className="hover:text-foreground underline underline-offset-4">
           Sign in
         </Link>
       </div>

@@ -5,9 +5,9 @@
  */
 
 export interface SchemaDefinition {
-  name: string
-  fields: any[]
+  name: string;
+  fields: any[];
 }
 
 // Empty array for now - schemas will be migrated incrementally
-export const schemaDefinitions: SchemaDefinition[] = []
+export const schemaDefinitions: SchemaDefinition[] = [];

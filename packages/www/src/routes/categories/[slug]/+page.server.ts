@@ -1,6 +1,6 @@
-import { fetchCategoryContents } from '$lib/server/api'
-import type { PageServerLoad } from './$types'
+import { fetchCategoryContents } from "$lib/server/api";
+import type { PageServerLoad } from "./$types";
 
 export const load: PageServerLoad = async ({ fetch, params }) => {
-  return fetchCategoryContents(fetch, params.slug)
-}
+  return fetchCategoryContents(fetch, params.slug);
+};

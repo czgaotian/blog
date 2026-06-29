@@ -1,29 +1,29 @@
-import { adminFetch } from './client'
+import { adminFetch } from "./client";
 
 interface SessionResponse {
   user: {
-    id: string
-    email: string
-    role: string
-  }
+    id: string;
+    email: string;
+    role: string;
+  };
 }
 
 interface AdminSessionResponse {
   user: {
-    id: string
-    email: string
-    role: string
-  }
-  permissions: string[]
+    id: string;
+    email: string;
+    role: string;
+  };
+  permissions: string[];
   app: {
-    name: string
-    version: string
-  }
+    name: string;
+    version: string;
+  };
 }
 
 export const adminApi = {
   session: async (): Promise<AdminSessionResponse> => {
-    const res = await adminFetch<SessionResponse>('/api/auth/session')
+    const res = await adminFetch<SessionResponse>("/api/auth/session");
     return {
       user: {
         id: res.user.id,
@@ -32,9 +32,9 @@ export const adminApi = {
       },
       permissions: [res.user.role],
       app: {
-        name: 'Worker Blog',
-        version: '0.0.0',
+        name: "Worker Blog",
+        version: "0.0.0",
       },
-    }
+    };
   },
-}
+};

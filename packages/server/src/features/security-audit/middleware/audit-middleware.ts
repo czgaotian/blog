@@ -1,83 +1,85 @@
-import type { Context, Next } from 'hono'
-import type { Bindings, Variables } from '../../../app'
-import { SecurityAuditService } from '../services/security-audit-service'
-import { BruteForceDetector } from '../services/brute-force-detector'
-import type { SecurityAuditSettings, SecurityEventType } from '../types'
-import { DEFAULT_SETTINGS } from '../types'
+import type { Context, Next } from "hono";
+import type { Bindings, Variables } from "../../../app";
+import { BruteForceDetector } from "../services/brute-force-detector";
+import { SecurityAuditService } from "../services/security-audit-service";
+import type { SecurityAuditSettings } from "../types";
+import { DEFAULT_SETTINGS } from "../types";
 
 function extractRequestInfo(c: Context<{ Bindings: Bindings; Variables: Variables }>) {
-  const ip = c.req.header('cf-connecting-ip')
-    || c.req.header('x-forwarded-for')?.split(',')[0]?.trim()
-    || 'unknown'
-  const userAgent = c.req.header('user-agent') || 'unknown'
-  const countryCode = c.req.header('cf-ipcountry') || null
-  const path = new URL(c.req.url).pathname
-  const method = c.req.method
+  const ip =
+    c.req.header("cf-connecting-ip") ||
+    c.req.header("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "unknown";
+  const userAgent = c.req.header("user-agent") || "unknown";
+  const countryCode = c.req.header("cf-ipcountry") || null;
+  const path = new URL(c.req.url).pathname;
+  const method = c.req.method;
 
-  return { ip, userAgent, countryCode, path, method }
+  return { ip, userAgent, countryCode, path, method };
 }
 
 function generateFingerprint(ip: string, userAgent: string): string {
   // Simple fingerprint from IP + UA - using a basic hash
-  const str = `${ip}:${userAgent}`
-  let hash = 0
+  const str = `${ip}:${userAgent}`;
+  let hash = 0;
   for (let i = 0; i < str.length; i++) {
-    const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
-    hash |= 0
+    const char = str.charCodeAt(i);
+    hash = (hash << 5) - hash + char;
+    hash |= 0;
   }
-  return Math.abs(hash).toString(36)
+  return Math.abs(hash).toString(36);
 }
 
 async function getPluginSettings(_db: any): Promise<SecurityAuditSettings> {
-  return DEFAULT_SETTINGS
+  return DEFAULT_SETTINGS;
 }
 
 export function securityAuditMiddleware() {
   return async (c: Context<{ Bindings: Bindings; Variables: Variables }>, next: Next) => {
-    const path = new URL(c.req.url).pathname
+    const path = new URL(c.req.url).pathname;
 
     // Only intercept auth-related routes
-    if (!path.startsWith('/api/auth/')) {
-      return next()
+    if (!path.startsWith("/api/auth/")) {
+      return next();
     }
 
-    const db = c.env.DB
+    const db = c.env.DB;
 
-    const settings = await getPluginSettings(db)
-    const { ip, userAgent, countryCode, method } = extractRequestInfo(c)
-    const fingerprint = generateFingerprint(ip, userAgent)
+    const settings = await getPluginSettings(db);
+    const { ip, userAgent, countryCode, method } = extractRequestInfo(c);
+    const fingerprint = generateFingerprint(ip, userAgent);
 
     // For login POST, extract email and check lockout before proceeding
-    const isLoginPost = (path === '/api/auth/login' || path === '/api/auth/login/form') && method === 'POST'
-    let preExtractedEmail = ''
+    const isLoginPost =
+      (path === "/api/auth/login" || path === "/api/auth/login/form") && method === "POST";
+    let preExtractedEmail = "";
 
     if (isLoginPost) {
       try {
-        if (path === '/api/auth/login/form') {
+        if (path === "/api/auth/login/form") {
           // Form-based login: clone request to read formData without consuming it
-          const clonedReq = c.req.raw.clone()
-          const formData = await clonedReq.formData()
-          preExtractedEmail = (formData.get('email') as string || '').toLowerCase()
+          const clonedReq = c.req.raw.clone();
+          const formData = await clonedReq.formData();
+          preExtractedEmail = ((formData.get("email") as string) || "").toLowerCase();
         } else {
           // JSON login: Hono caches parsed JSON so this is safe
-          const body = await c.req.json()
-          preExtractedEmail = body?.email?.toLowerCase() || ''
+          const body = await c.req.json();
+          preExtractedEmail = body?.email?.toLowerCase() || "";
         }
       } catch {
         // Can't parse body, continue
       }
 
       if (preExtractedEmail && settings.bruteForce.enabled) {
-        const detector = new BruteForceDetector(c.env.CACHE_KV, settings.bruteForce)
-        const lockStatus = await detector.isLocked(ip, preExtractedEmail)
+        const detector = new BruteForceDetector(c.env.CACHE_KV, settings.bruteForce);
+        const lockStatus = await detector.isLocked(ip, preExtractedEmail);
 
         if (lockStatus.locked) {
-          const service = new SecurityAuditService(db, settings)
+          const service = new SecurityAuditService(db, settings);
           // Log the blocked attempt asynchronously
           const logPromise = service.logEvent({
-            eventType: 'login_failure',
-            severity: 'warning',
+            eventType: "login_failure",
+            severity: "warning",
             email: preExtractedEmail,
             ipAddress: ip,
             userAgent,
@@ -86,30 +88,44 @@ export function securityAuditMiddleware() {
             requestMethod: method,
             fingerprint,
             blocked: true,
-            details: { reason: lockStatus.reason }
-          })
+            details: { reason: lockStatus.reason },
+          });
 
           if (c.executionCtx?.waitUntil) {
-            c.executionCtx.waitUntil(logPromise)
+            c.executionCtx.waitUntil(logPromise);
           }
 
-          return c.json({
-            error: lockStatus.reason || 'Too many failed attempts. Please try again later.'
-          }, 429)
+          return c.json(
+            {
+              error: lockStatus.reason || "Too many failed attempts. Please try again later.",
+            },
+            429,
+          );
         }
       }
     }
 
     // Proceed with the request
-    await next()
+    await next();
 
     // After response, log the event asynchronously
-    const logPromise = logAuthEvent(c, db, settings, ip, userAgent, countryCode, fingerprint, path, method, preExtractedEmail)
+    const logPromise = logAuthEvent(
+      c,
+      db,
+      settings,
+      ip,
+      userAgent,
+      countryCode,
+      fingerprint,
+      path,
+      method,
+      preExtractedEmail,
+    );
 
     if (c.executionCtx?.waitUntil) {
-      c.executionCtx.waitUntil(logPromise)
+      c.executionCtx.waitUntil(logPromise);
     }
-  }
+  };
 }
 
 async function logAuthEvent(
@@ -122,63 +138,53 @@ async function logAuthEvent(
   fingerprint: string,
   path: string,
   method: string,
-  preExtractedEmail: string = ''
+  preExtractedEmail: string = "",
 ): Promise<void> {
   try {
-    const service = new SecurityAuditService(db, settings)
-    const status = c.res.status
-    const isLoginPost = (path === '/api/auth/login' || path === '/api/auth/login/form') && method === 'POST'
-    const isFormLogin = path === '/api/auth/login/form'
+    const service = new SecurityAuditService(db, settings);
+    const status = c.res.status;
+    const isLoginPost =
+      (path === "/api/auth/login" || path === "/api/auth/login/form") && method === "POST";
+    const isFormLogin = path === "/api/auth/login/form";
 
     // Login POST
     if (isLoginPost) {
       // Determine if login succeeded or failed.
       // JSON login: 200 = success, 401/400 = failure
       // Form login: always returns 200 — check if response set an auth cookie (HX-Redirect header indicates success)
-      let loginSucceeded: boolean
+      let loginSucceeded: boolean;
       if (isFormLogin) {
         // Form login redirects to /admin on success via HX-Redirect header or meta refresh
-        const hxRedirect = c.res.headers.get('HX-Redirect')
-        const setCookieHeader = c.res.headers.get('set-cookie') || ''
-        loginSucceeded = !!(hxRedirect?.includes('/admin') || setCookieHeader.includes('auth_token'))
+        const hxRedirect = c.res.headers.get("HX-Redirect");
+        const setCookieHeader = c.res.headers.get("set-cookie") || "";
+        loginSucceeded = !!(
+          hxRedirect?.includes("/admin") || setCookieHeader.includes("auth_token")
+        );
       } else {
-        loginSucceeded = status === 200
+        loginSucceeded = status === 200;
       }
 
       if (loginSucceeded) {
-        if (!settings.logging.logSuccessfulLogins) return
+        if (!settings.logging.logSuccessfulLogins) return;
 
         // Try to get user info from response
-        let email = preExtractedEmail
-        let userId = ''
+        let email = preExtractedEmail;
+        let userId = "";
         if (!isFormLogin) {
           try {
-            const cloned = c.res.clone()
-            const body = await cloned.json() as any
-            email = body?.user?.email || email
-            userId = body?.user?.id || ''
-          } catch { /* ignore */ }
+            const cloned = c.res.clone();
+            const body = (await cloned.json()) as any;
+            email = body?.user?.email || email;
+            userId = body?.user?.id || "";
+          } catch {
+            /* ignore */
+          }
         }
 
         await service.logEvent({
-          eventType: 'login_success',
-          severity: 'info',
+          eventType: "login_success",
+          severity: "info",
           userId: userId || undefined,
-          email: email || undefined,
-          ipAddress: ip,
-          userAgent,
-          countryCode: countryCode || undefined,
-          requestPath: path,
-          requestMethod: method,
-          fingerprint
-        })
-      } else {
-        // Failed login — use pre-extracted email since body is already consumed
-        const email = preExtractedEmail
-
-        await service.logEvent({
-          eventType: 'login_failure',
-          severity: 'warning',
           email: email || undefined,
           ipAddress: ip,
           userAgent,
@@ -186,19 +192,34 @@ async function logAuthEvent(
           requestPath: path,
           requestMethod: method,
           fingerprint,
-          details: { statusCode: status }
-        })
+        });
+      } else {
+        // Failed login — use pre-extracted email since body is already consumed
+        const email = preExtractedEmail;
+
+        await service.logEvent({
+          eventType: "login_failure",
+          severity: "warning",
+          email: email || undefined,
+          ipAddress: ip,
+          userAgent,
+          countryCode: countryCode || undefined,
+          requestPath: path,
+          requestMethod: method,
+          fingerprint,
+          details: { statusCode: status },
+        });
 
         // Record failed attempt for brute-force detection
         if (email && settings.bruteForce.enabled) {
-          const detector = new BruteForceDetector(c.env.CACHE_KV, settings.bruteForce)
-          const result = await detector.recordFailedAttempt(ip, email)
+          const detector = new BruteForceDetector(c.env.CACHE_KV, settings.bruteForce);
+          const result = await detector.recordFailedAttempt(ip, email);
 
           if (result.shouldLockIP) {
-            await detector.lockIP(ip)
+            await detector.lockIP(ip);
             await service.logEvent({
-              eventType: 'account_lockout',
-              severity: 'critical',
+              eventType: "account_lockout",
+              severity: "critical",
               email,
               ipAddress: ip,
               userAgent,
@@ -206,15 +227,15 @@ async function logAuthEvent(
               requestPath: path,
               requestMethod: method,
               fingerprint,
-              details: { reason: 'brute_force_ip', attemptCount: result.ipCount }
-            })
+              details: { reason: "brute_force_ip", attemptCount: result.ipCount },
+            });
           }
 
           if (result.shouldLockEmail) {
-            await detector.lockEmail(email)
+            await detector.lockEmail(email);
             await service.logEvent({
-              eventType: 'account_lockout',
-              severity: 'critical',
+              eventType: "account_lockout",
+              severity: "critical",
               email,
               ipAddress: ip,
               userAgent,
@@ -222,42 +243,44 @@ async function logAuthEvent(
               requestPath: path,
               requestMethod: method,
               fingerprint,
-              details: { reason: 'brute_force_email', attemptCount: result.emailCount }
-            })
+              details: { reason: "brute_force_email", attemptCount: result.emailCount },
+            });
           }
 
           if (result.isSuspicious) {
             await service.logEvent({
-              eventType: 'suspicious_activity',
-              severity: 'critical',
+              eventType: "suspicious_activity",
+              severity: "critical",
               ipAddress: ip,
               userAgent,
               countryCode: countryCode || undefined,
               requestPath: path,
               requestMethod: method,
               fingerprint,
-              details: { reason: 'multiple_emails_from_ip', ipCount: result.ipCount }
-            })
+              details: { reason: "multiple_emails_from_ip", ipCount: result.ipCount },
+            });
           }
         }
       }
     }
 
     // Registration POST
-    if (path === '/api/auth/register' && method === 'POST' && settings.logging.logRegistrations) {
+    if (path === "/api/auth/register" && method === "POST" && settings.logging.logRegistrations) {
       if (status === 201 || status === 200) {
-        let email = ''
-        let userId = ''
+        let email = "";
+        let userId = "";
         try {
-          const cloned = c.res.clone()
-          const body = await cloned.json() as any
-          email = body?.user?.email || ''
-          userId = body?.user?.id || ''
-        } catch { /* ignore */ }
+          const cloned = c.res.clone();
+          const body = (await cloned.json()) as any;
+          email = body?.user?.email || "";
+          userId = body?.user?.id || "";
+        } catch {
+          /* ignore */
+        }
 
         await service.logEvent({
-          eventType: 'registration',
-          severity: 'info',
+          eventType: "registration",
+          severity: "info",
           userId: userId || undefined,
           email: email || undefined,
           ipAddress: ip,
@@ -265,17 +288,17 @@ async function logAuthEvent(
           countryCode: countryCode || undefined,
           requestPath: path,
           requestMethod: method,
-          fingerprint
-        })
+          fingerprint,
+        });
       }
     }
 
     // Logout
-    if (path === '/api/auth/logout' && settings.logging.logLogouts) {
-      const user = c.get('user')
+    if (path === "/api/auth/logout" && settings.logging.logLogouts) {
+      const user = c.get("user");
       await service.logEvent({
-        eventType: 'logout',
-        severity: 'info',
+        eventType: "logout",
+        severity: "info",
         userId: user?.userId,
         email: user?.email,
         ipAddress: ip,
@@ -283,10 +306,10 @@ async function logAuthEvent(
         countryCode: countryCode || undefined,
         requestPath: path,
         requestMethod: method,
-        fingerprint
-      })
+        fingerprint,
+      });
     }
   } catch (error) {
-    console.error('[SecurityAudit] Error logging auth event:', error)
+    console.error("[SecurityAudit] Error logging auth event:", error);
   }
 }

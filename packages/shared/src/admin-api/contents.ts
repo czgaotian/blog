@@ -1,17 +1,10 @@
+import type { JSONContent } from "@worker-blog/editor";
 import { z } from "zod";
-import { type JSONContent } from "@worker-blog/editor";
 
-export type ContentStatus =
-  | "draft"
-  | "review"
-  | "scheduled"
-  | "published"
-  | "archived"
-  | "deleted";
+export type ContentStatus = "draft" | "review" | "scheduled" | "published" | "archived" | "deleted";
 
 const contentBodyJsonSchema = z.custom<JSONContent>(
-  (value) =>
-    typeof value === "object" && value !== null && !Array.isArray(value),
+  (value) => typeof value === "object" && value !== null && !Array.isArray(value),
   "Body must be a JSON object",
 );
 
@@ -105,9 +98,7 @@ export const createContentSchema = z
     title: z.string().min(1).max(500),
     slug: z.string().max(500).optional(),
     excerpt: z.string().max(1000).nullable().optional(),
-    bodyJson: contentBodyJsonSchema
-      .optional()
-      .default(() => ({ type: "doc", content: [] })),
+    bodyJson: contentBodyJsonSchema.optional().default(() => ({ type: "doc", content: [] })),
     status: z
       .enum(["draft", "review", "scheduled", "published", "archived"])
       .optional()
@@ -126,16 +117,7 @@ export const updateContentSchema = z
     slug: z.string().max(500).optional(),
     excerpt: z.string().max(1000).nullable().optional(),
     bodyJson: contentBodyJsonSchema.optional(),
-    status: z
-      .enum([
-        "draft",
-        "review",
-        "scheduled",
-        "published",
-        "archived",
-        "deleted",
-      ])
-      .optional(),
+    status: z.enum(["draft", "review", "scheduled", "published", "archived", "deleted"]).optional(),
     categoryId: z.string().nullable().optional(),
     coverImageId: z.string().nullable().optional(),
     tagIds: z.array(z.string()).optional(),

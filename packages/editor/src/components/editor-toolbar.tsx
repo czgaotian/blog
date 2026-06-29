@@ -1,15 +1,10 @@
 "use client";
 
 import { forwardRef, useEffect, useState } from "react";
-
-// --- UI Primitives ---
-import { Button } from "./tiptap-ui-primitive/button";
-import { Spacer } from "./tiptap-ui-primitive/spacer";
-import {
-  Toolbar,
-  ToolbarGroup,
-  ToolbarSeparator,
-} from "./tiptap-ui-primitive/toolbar";
+// --- Icons ---
+import { ArrowLeftIcon } from "./tiptap-icons/arrow-left-icon";
+import { HighlighterIcon } from "./tiptap-icons/highlighter-icon";
+import { LinkIcon } from "./tiptap-icons/link-icon";
 
 // --- Tiptap UI ---
 import { BlockquoteButton } from "./tiptap-ui/blockquote-button";
@@ -26,11 +21,10 @@ import { ListDropdownMenu } from "./tiptap-ui/list-dropdown-menu";
 import { MarkButton } from "./tiptap-ui/mark-button";
 import { TextAlignButton } from "./tiptap-ui/text-align-button";
 import { UndoRedoButton } from "./tiptap-ui/undo-redo-button";
-
-// --- Icons ---
-import { ArrowLeftIcon } from "./tiptap-icons/arrow-left-icon";
-import { HighlighterIcon } from "./tiptap-icons/highlighter-icon";
-import { LinkIcon } from "./tiptap-icons/link-icon";
+// --- UI Primitives ---
+import { Button } from "./tiptap-ui-primitive/button";
+import { Spacer } from "./tiptap-ui-primitive/spacer";
+import { Toolbar, ToolbarGroup, ToolbarSeparator } from "./tiptap-ui-primitive/toolbar";
 
 type MobileToolbarView = "main" | "highlighter" | "link";
 
@@ -56,10 +50,7 @@ const MainToolbarContent = ({
 
       <ToolbarGroup>
         <HeadingDropdownMenu modal={false} levels={[1, 2, 3, 4]} />
-        <ListDropdownMenu
-          modal={false}
-          types={["bulletList", "orderedList", "taskList"]}
-        />
+        <ListDropdownMenu modal={false} types={["bulletList", "orderedList", "taskList"]} />
         <BlockquoteButton />
         <CodeBlockButton />
       </ToolbarGroup>
@@ -130,17 +121,11 @@ const MobileToolbarContent = ({
 
     <ToolbarSeparator />
 
-    {type === "highlighter" ? (
-      <ColorHighlightPopoverContent />
-    ) : (
-      <LinkContent />
-    )}
+    {type === "highlighter" ? <ColorHighlightPopoverContent /> : <LinkContent />}
   </>
 );
 
-export interface EditorToolbarProps extends React.ComponentPropsWithoutRef<
-  typeof Toolbar
-> {
+export interface EditorToolbarProps extends React.ComponentPropsWithoutRef<typeof Toolbar> {
   isMobile: boolean;
 }
 
@@ -163,10 +148,7 @@ export const EditorToolbar = forwardRef<HTMLDivElement, EditorToolbarProps>(
             isMobile={isMobile}
           />
         ) : (
-          <MobileToolbarContent
-            type={mobileView}
-            onBack={() => setMobileView("main")}
-          />
+          <MobileToolbarContent type={mobileView} onBack={() => setMobileView("main")} />
         )}
       </Toolbar>
     );

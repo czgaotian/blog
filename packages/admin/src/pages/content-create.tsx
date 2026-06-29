@@ -1,29 +1,29 @@
-import { useCallback, useState } from 'react'
-import { Link, useNavigate } from 'react-router'
-import { useCreateContents } from '../api/contents'
-import { AdminApiError } from '../api/client'
-import { ContentForm } from '../components/content/content-form'
-import { PageHeader } from '../components/page-header'
-import { Button } from '../components/ui/button'
+import { useCallback, useState } from "react";
+import { Link, useNavigate } from "react-router";
+import { AdminApiError } from "../api/client";
+import { useCreateContents } from "../api/contents";
+import { ContentForm } from "../components/content/content-form";
+import { PageHeader } from "../components/page-header";
+import { Button } from "../components/ui/button";
 import {
+  type ContentFormValues,
   contentFormToCreateRequest,
   EMPTY_CONTENT_FORM_VALUES,
-  type ContentFormValues,
-} from '../lib/content-form'
-import { useUnsavedChanges } from '../lib/use-unsaved-changes'
+} from "../lib/content-form";
+import { useUnsavedChanges } from "../lib/use-unsaved-changes";
 
 export function ContentCreatePage() {
-  const navigate = useNavigate()
-  const create = useCreateContents()
-  const [dirty, setDirty] = useState(false)
-  const handleDirtyChange = useCallback((value: boolean) => setDirty(value), [])
-  const allowNavigation = useUnsavedChanges(dirty)
+  const navigate = useNavigate();
+  const create = useCreateContents();
+  const [dirty, setDirty] = useState(false);
+  const handleDirtyChange = useCallback((value: boolean) => setDirty(value), []);
+  const allowNavigation = useUnsavedChanges(dirty);
 
   async function handleSubmit(values: ContentFormValues) {
     try {
-      const result = await create.mutateAsync(contentFormToCreateRequest(values))
-      allowNavigation()
-      navigate(`/contents/${result.id}`, { replace: true, state: { success: 'Content created' } })
+      const result = await create.mutateAsync(contentFormToCreateRequest(values));
+      allowNavigation();
+      navigate(`/contents/${result.id}`, { replace: true, state: { success: "Content created" } });
     } catch {
       // Mutation error is displayed in the form.
     }
@@ -34,17 +34,27 @@ export function ContentCreatePage() {
       <PageHeader
         title="New content"
         description="Create a new blog content item."
-        actions={<Button asChild variant="outline"><Link to="/contents">Back to content</Link></Button>}
+        actions={
+          <Button asChild variant="outline">
+            <Link to="/contents">Back to content</Link>
+          </Button>
+        }
       />
       <ContentForm
         values={EMPTY_CONTENT_FORM_VALUES}
         submitLabel="Create content"
         pendingLabel="Creating..."
         pending={create.isPending}
-        error={create.error instanceof AdminApiError ? create.error.message : create.isError ? 'Unexpected error' : undefined}
+        error={
+          create.error instanceof AdminApiError
+            ? create.error.message
+            : create.isError
+              ? "Unexpected error"
+              : undefined
+        }
         onDirtyChange={handleDirtyChange}
         onSubmit={handleSubmit}
       />
     </section>
-  )
+  );
 }

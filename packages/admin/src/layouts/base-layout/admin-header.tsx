@@ -52,9 +52,7 @@ export function AdminHeader({
         </Button>
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold">{currentSection}</p>
-          <p className="truncate text-xs text-muted-foreground">
-            {sessionLabel}
-          </p>
+          <p className="truncate text-xs text-muted-foreground">{sessionLabel}</p>
         </div>
       </div>
       <div className="flex items-center gap-1">

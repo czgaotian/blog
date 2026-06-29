@@ -1,20 +1,20 @@
-import { type Extensions } from "@tiptap/core";
-import { TaskItem, TaskList } from "@tiptap/extension-list";
-import { TextAlign } from "@tiptap/extension-text-align";
-import { Typography } from "@tiptap/extension-typography";
-import { Highlight } from "@tiptap/extension-highlight";
+import type { Extensions } from "@tiptap/core";
 import CodeBlockLowlight from "@tiptap/extension-code-block-lowlight";
+import { Highlight } from "@tiptap/extension-highlight";
+import { TaskItem, TaskList } from "@tiptap/extension-list";
 import { Subscript } from "@tiptap/extension-subscript";
 import { Superscript } from "@tiptap/extension-superscript";
+import { TextAlign } from "@tiptap/extension-text-align";
+import { Typography } from "@tiptap/extension-typography";
 import { Selection } from "@tiptap/extensions";
 import StarterKit from "@tiptap/starter-kit";
-import { ImageNode } from "../components/tiptap-node/image-node/image-node-extension";
-import { HorizontalRule } from "../components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
-import { ImageUploadNode } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
-import type { UploadFunction } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
-import { PasteImageUpload } from "../components/tiptap-node/image-upload-node/paste-image-upload-extension";
-import { NodeBackground } from "../components/tiptap-extension/node-background-extension";
 import { all, createLowlight } from "lowlight";
+import { NodeBackground } from "../components/tiptap-extension/node-background-extension";
+import { HorizontalRule } from "../components/tiptap-node/horizontal-rule-node/horizontal-rule-node-extension";
+import { ImageNode } from "../components/tiptap-node/image-node/image-node-extension";
+import type { UploadFunction } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { ImageUploadNode } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
+import { PasteImageUpload } from "../components/tiptap-node/image-upload-node/paste-image-upload-extension";
 import { MAX_FILE_SIZE } from "./tiptap-utils";
 
 export const lowlight = createLowlight(all);
@@ -49,9 +49,7 @@ export function createContentRenderExtensions(): Extensions {
   ];
 }
 
-export function createEditorExtensions({
-  uploadImage,
-}: CreateEditorExtensionsOptions): Extensions {
+export function createEditorExtensions({ uploadImage }: CreateEditorExtensionsOptions): Extensions {
   return [
     StarterKit.configure({
       horizontalRule: false,

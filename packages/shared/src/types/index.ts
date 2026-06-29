@@ -4,19 +4,18 @@
  * TypeScript type definitions for Worker Blog
  */
 
-// Telemetry Types
-export type {
-  TelemetryEvent,
-  TelemetryProperties,
-  TelemetryConfig,
-  TelemetryIdentity
-} from './telemetry'
-
 // Logging Types
 export type {
+  LogConfig,
   LogLevel,
-  LogConfig
-} from './logging'
+} from "./logging";
+// Telemetry Types
+export type {
+  TelemetryConfig,
+  TelemetryEvent,
+  TelemetryIdentity,
+  TelemetryProperties,
+} from "./telemetry";
 
 // Re-export global types that are defined in global.d.ts
 // Note: These are ambient declarations and don't need to be re-exported

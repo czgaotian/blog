@@ -36,8 +36,8 @@ interface AuthUser {
 // Email system types
 interface EmailJob {
   id: string;
-  type: 'templated' | 'direct';
-  priority: 'low' | 'normal' | 'high';
+  type: "templated" | "direct";
+  priority: "low" | "normal" | "high";
   scheduledAt?: number;
   maxRetries: number;
   attemptCount: number;
@@ -58,7 +58,7 @@ interface MessageBatch<T = any> {
 }
 
 // Module declarations for external libraries
-declare module 'marked' {
+declare module "marked" {
   export interface Renderer {
     heading(text: string, level: number): string;
     paragraph(text: string): string;
@@ -70,7 +70,7 @@ declare module 'marked' {
     code(code: string, language?: string): string;
     codespan(code: string): string;
   }
-  
+
   export class Renderer {
     heading(text: string, level: number): string;
     paragraph(text: string): string;
@@ -87,7 +87,7 @@ declare module 'marked' {
   export function setOptions(options: any): void;
 }
 
-declare module 'posthog-node' {
+declare module "posthog-node" {
   export interface PostHogOptions {
     host?: string;
     flushAt?: number;

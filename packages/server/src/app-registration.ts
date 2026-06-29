@@ -1,35 +1,31 @@
-import { Hono } from "hono";
-import {
-  apiRoutes,
-  apiMediaRoutes,
-  adminApiRoutes,
-  authRoutes,
-  createSpaFallbackRoutes,
-  adminApiCategoriesRoutes,
-  adminApiContentsRoutes,
-  adminApiProfileRoutes,
-  adminApiTagsRoutes,
-} from "./routes";
+import type { WorkerBlogApp, WorkerBlogConfig } from "./app";
+import { getServerEnvConfig } from "./config/env";
+import analyticsAdminApiRoutes from "./features/analytics/routes/admin-api";
+import { eventsApiRoutes } from "./features/analytics/routes/api";
+import { securityAuditMiddleware } from "./features/security-audit";
+import securityAuditAdminApiRoutes from "./features/security-audit/routes/admin-api";
+import { securityAuditApiRoutes } from "./features/security-audit/routes/api";
+import { requireAuth, requireRole } from "./middleware/auth";
+import { csrfProtection } from "./middleware/csrf";
 import { metricsMiddleware } from "./middleware/metrics";
 import { requestContextMiddleware } from "./middleware/request-context";
 import { requestLoggingMiddleware } from "./middleware/request-logging";
-import { csrfProtection } from "./middleware/csrf";
 import { securityHeadersMiddleware } from "./middleware/security-headers";
-import { requireAuth, requireRole } from "./middleware/auth";
 import { setupGuardMiddleware } from "./middleware/setup-guard";
-import { getServerEnvConfig } from "./config/env";
-import { securityAuditMiddleware } from "./features/security-audit";
-import { securityAuditApiRoutes } from "./features/security-audit/routes/api";
-import securityAuditAdminApiRoutes from "./features/security-audit/routes/admin-api";
-import { eventsApiRoutes } from "./features/analytics/routes/api";
-import analyticsAdminApiRoutes from "./features/analytics/routes/admin-api";
+import {
+  adminApiCategoriesRoutes,
+  adminApiContentsRoutes,
+  adminApiProfileRoutes,
+  adminApiRoutes,
+  adminApiTagsRoutes,
+  apiMediaRoutes,
+  apiRoutes,
+  authRoutes,
+  createSpaFallbackRoutes,
+} from "./routes";
 import { ensureAsciiContentDisposition } from "./utils/content-disposition";
-import type { WorkerBlogApp, WorkerBlogConfig } from "./app";
 
-export function registerCoreMiddleware(
-  app: WorkerBlogApp,
-  config: WorkerBlogConfig,
-): void {
+export function registerCoreMiddleware(app: WorkerBlogApp, config: WorkerBlogConfig): void {
   // Metrics middleware - track all requests for real-time analytics
   app.use("*", metricsMiddleware());
 

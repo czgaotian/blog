@@ -5,32 +5,30 @@
  * Each route is refactored to remove monolith-specific dependencies.
  */
 
+export { default as adminApiRoutes } from "./admin-api";
+export { adminApiCategoriesRoutes } from "./admin-api-categories";
+export { adminApiContentsRoutes } from "./admin-api-contents";
+export { adminApiProfileRoutes } from "./admin-api-profile";
+export { adminApiTagsRoutes } from "./admin-api-tags";
 // API routes
-export { default as apiRoutes } from './api'
-export { default as apiContentsCrudRoutes } from './api-contents-crud'
-export { default as apiMediaRoutes } from './api-media'
-export { default as adminApiRoutes } from './admin-api'
-
+export { default as apiRoutes } from "./api";
+export { default as apiContentsCrudRoutes } from "./api-contents-crud";
+export { default as apiMediaRoutes } from "./api-media";
 // Auth routes
-export { default as authRoutes } from './auth'
-
+export { default as authRoutes } from "./auth";
 // SPA fallback route
-export { createSpaFallbackRoutes } from './spa-fallback'
-export { adminApiCategoriesRoutes } from './admin-api-categories'
-export { adminApiContentsRoutes } from './admin-api-contents'
-export { adminApiProfileRoutes } from './admin-api-profile'
-export { adminApiTagsRoutes } from './admin-api-tags'
+export { createSpaFallbackRoutes } from "./spa-fallback";
 
 export const ROUTES_INFO = {
-  message: 'Core routes available',
+  message: "Core routes available",
   available: [
-    'apiRoutes',
-    'apiContentsCrudRoutes',
-    'apiMediaRoutes',
-    'adminApiRoutes',
-    'authRoutes',
-    'createSpaFallbackRoutes'
+    "apiRoutes",
+    "apiContentsCrudRoutes",
+    "apiMediaRoutes",
+    "adminApiRoutes",
+    "authRoutes",
+    "createSpaFallbackRoutes",
   ],
-  status: 'Core package routes ready',
-  reference: 'https://github.com/worker-blog/worker-blog'
-} as const
+  status: "Core package routes ready",
+  reference: "https://github.com/worker-blog/worker-blog",
+} as const;

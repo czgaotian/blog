@@ -8,19 +8,19 @@
  * @returns The escaped text safe for HTML output
  */
 export function escapeHtml(text: string): string {
-  if (typeof text !== 'string') {
-    return ''
+  if (typeof text !== "string") {
+    return "";
   }
 
   const map: Record<string, string> = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;'
-  }
+    "&": "&amp;",
+    "<": "&lt;",
+    ">": "&gt;",
+    '"': "&quot;",
+    "'": "&#039;",
+  };
 
-  return text.replace(/[&<>"']/g, (char) => map[char] || char)
+  return text.replace(/[&<>"']/g, (char) => map[char] || char);
 }
 
 /**
@@ -31,9 +31,9 @@ export function escapeHtml(text: string): string {
  */
 export function sanitizeInput(input: string | null | undefined): string {
   if (!input) {
-    return ''
+    return "";
   }
-  return escapeHtml(String(input).trim())
+  return escapeHtml(String(input).trim());
 }
 
 /**
@@ -43,18 +43,20 @@ export function sanitizeInput(input: string | null | undefined): string {
  * @returns Sanitized HTML safe for rendering
  */
 export function sanitizeRichText(html: string): string {
-  if (typeof html !== 'string') {
-    return ''
+  if (typeof html !== "string") {
+    return "";
   }
 
-  return html
-    // Remove script tags and their contents
-    .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '')
-    // Remove event handler attributes (on*)
-    .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, '')
-    // Remove javascript: URLs in href/src/action attributes
-    .replace(/(href|src|action)\s*=\s*"javascript:[^"]*"/gi, '$1=""')
-    .replace(/(href|src|action)\s*=\s*'javascript:[^']*'/gi, "$1=''")
+  return (
+    html
+      // Remove script tags and their contents
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      // Remove event handler attributes (on*)
+      .replace(/\s+on\w+\s*=\s*(?:"[^"]*"|'[^']*'|[^\s>]+)/gi, "")
+      // Remove javascript: URLs in href/src/action attributes
+      .replace(/(href|src|action)\s*=\s*"javascript:[^"]*"/gi, '$1=""')
+      .replace(/(href|src|action)\s*=\s*'javascript:[^']*'/gi, "$1=''")
+  );
 }
 
 /**
@@ -63,17 +65,14 @@ export function sanitizeRichText(html: string): string {
  * @param fields - Array of field names to sanitize
  * @returns New object with sanitized fields
  */
-export function sanitizeObject<T extends Record<string, any>>(
-  obj: T,
-  fields: (keyof T)[]
-): T {
-  const sanitized = { ...obj }
+export function sanitizeObject<T extends Record<string, any>>(obj: T, fields: (keyof T)[]): T {
+  const sanitized = { ...obj };
 
   for (const field of fields) {
-    if (typeof obj[field] === 'string') {
-      sanitized[field] = sanitizeInput(obj[field]) as T[keyof T]
+    if (typeof obj[field] === "string") {
+      sanitized[field] = sanitizeInput(obj[field]) as T[keyof T];
     }
   }
 
-  return sanitized
+  return sanitized;
 }

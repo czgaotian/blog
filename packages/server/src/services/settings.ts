@@ -1,24 +1,24 @@
 export interface Setting {
-  id: string
-  category: string
-  key: string
-  value: string // JSON string
-  created_at: number
-  updated_at: number
+  id: string;
+  category: string;
+  key: string;
+  value: string; // JSON string
+  created_at: number;
+  updated_at: number;
 }
 
 export interface GeneralSettings {
-  siteName: string
-  siteDescription: string
-  adminEmail: string
-  timezone: string
-  language: string
-  maintenanceMode: boolean
+  siteName: string;
+  siteDescription: string;
+  adminEmail: string;
+  timezone: string;
+  language: string;
+  maintenanceMode: boolean;
 }
 
 export interface SecuritySettings {
-  jwtExpiresIn: string
-  jwtRefreshGraceSeconds: number
+  jwtExpiresIn: string;
+  jwtRefreshGraceSeconds: number;
 }
 
 export class SettingsService {
@@ -30,18 +30,18 @@ export class SettingsService {
   async getSetting(category: string, key: string): Promise<any | null> {
     try {
       const result = await this.db
-        .prepare('SELECT value FROM settings WHERE category = ? AND key = ?')
+        .prepare("SELECT value FROM settings WHERE category = ? AND key = ?")
         .bind(category, key)
-        .first()
+        .first();
 
       if (!result) {
-        return null
+        return null;
       }
 
-      return JSON.parse((result as any).value)
+      return JSON.parse((result as any).value);
     } catch (error) {
-      console.error(`Error getting setting ${category}.${key}:`, error)
-      return null
+      console.error(`Error getting setting ${category}.${key}:`, error);
+      return null;
     }
   }
 
@@ -51,20 +51,20 @@ export class SettingsService {
   async getCategorySettings(category: string): Promise<Record<string, any>> {
     try {
       const { results } = await this.db
-        .prepare('SELECT key, value FROM settings WHERE category = ?')
+        .prepare("SELECT key, value FROM settings WHERE category = ?")
         .bind(category)
-        .all()
+        .all();
 
-      const settings: Record<string, any> = {}
+      const settings: Record<string, any> = {};
       for (const row of results || []) {
-        const r = row as any
-        settings[r.key] = JSON.parse(r.value)
+        const r = row as any;
+        settings[r.key] = JSON.parse(r.value);
       }
 
-      return settings
+      return settings;
     } catch (error) {
-      console.error(`Error getting category settings for ${category}:`, error)
-      return {}
+      console.error(`Error getting category settings for ${category}:`, error);
+      return {};
     }
   }
 
@@ -73,8 +73,8 @@ export class SettingsService {
    */
   async setSetting(category: string, key: string, value: any): Promise<boolean> {
     try {
-      const now = Date.now()
-      const jsonValue = JSON.stringify(value)
+      const now = Date.now();
+      const jsonValue = JSON.stringify(value);
 
       await this.db
         .prepare(`
@@ -85,12 +85,12 @@ export class SettingsService {
             updated_at = excluded.updated_at
         `)
         .bind(crypto.randomUUID(), category, key, jsonValue, now, now)
-        .run()
+        .run();
 
-      return true
+      return true;
     } catch (error) {
-      console.error(`Error setting ${category}.${key}:`, error)
-      return false
+      console.error(`Error setting ${category}.${key}:`, error);
+      return false;
     }
   }
 
@@ -99,11 +99,11 @@ export class SettingsService {
    */
   async setMultipleSettings(category: string, settings: Record<string, any>): Promise<boolean> {
     try {
-      const now = Date.now()
+      const now = Date.now();
 
       // Use a transaction-like approach with batch operations
       for (const [key, value] of Object.entries(settings)) {
-        const jsonValue = JSON.stringify(value)
+        const jsonValue = JSON.stringify(value);
 
         await this.db
           .prepare(`
@@ -114,13 +114,13 @@ export class SettingsService {
               updated_at = excluded.updated_at
           `)
           .bind(crypto.randomUUID(), category, key, jsonValue, now, now)
-          .run()
+          .run();
       }
 
-      return true
+      return true;
     } catch (error) {
-      console.error(`Error setting multiple settings for ${category}:`, error)
-      return false
+      console.error(`Error setting multiple settings for ${category}:`, error);
+      return false;
     }
   }
 
@@ -128,59 +128,61 @@ export class SettingsService {
    * Get general settings with defaults
    */
   async getGeneralSettings(userEmail?: string): Promise<GeneralSettings> {
-    const settings = await this.getCategorySettings('general')
+    const settings = await this.getCategorySettings("general");
 
     return {
-      siteName: settings.siteName || 'Worker Blog',
-      siteDescription: settings.siteDescription || 'A modern headless CMS powered by AI',
-      adminEmail: settings.adminEmail || userEmail || 'admin@example.com',
-      timezone: settings.timezone || 'UTC',
-      language: settings.language || 'en',
-      maintenanceMode: settings.maintenanceMode || false
-    }
+      siteName: settings.siteName || "Worker Blog",
+      siteDescription: settings.siteDescription || "A modern headless CMS powered by AI",
+      adminEmail: settings.adminEmail || userEmail || "admin@example.com",
+      timezone: settings.timezone || "UTC",
+      language: settings.language || "en",
+      maintenanceMode: settings.maintenanceMode || false,
+    };
   }
 
   /**
    * Save general settings
    */
   async saveGeneralSettings(settings: Partial<GeneralSettings>): Promise<boolean> {
-    const settingsToSave: Record<string, any> = {}
+    const settingsToSave: Record<string, any> = {};
 
-    if (settings.siteName !== undefined) settingsToSave.siteName = settings.siteName
-    if (settings.siteDescription !== undefined) settingsToSave.siteDescription = settings.siteDescription
-    if (settings.adminEmail !== undefined) settingsToSave.adminEmail = settings.adminEmail
-    if (settings.timezone !== undefined) settingsToSave.timezone = settings.timezone
-    if (settings.language !== undefined) settingsToSave.language = settings.language
-    if (settings.maintenanceMode !== undefined) settingsToSave.maintenanceMode = settings.maintenanceMode
+    if (settings.siteName !== undefined) settingsToSave.siteName = settings.siteName;
+    if (settings.siteDescription !== undefined)
+      settingsToSave.siteDescription = settings.siteDescription;
+    if (settings.adminEmail !== undefined) settingsToSave.adminEmail = settings.adminEmail;
+    if (settings.timezone !== undefined) settingsToSave.timezone = settings.timezone;
+    if (settings.language !== undefined) settingsToSave.language = settings.language;
+    if (settings.maintenanceMode !== undefined)
+      settingsToSave.maintenanceMode = settings.maintenanceMode;
 
-    return await this.setMultipleSettings('general', settingsToSave)
+    return await this.setMultipleSettings("general", settingsToSave);
   }
 
   /**
    * Get security settings with defaults
    */
   async getSecuritySettings(): Promise<SecuritySettings> {
-    const settings = await this.getCategorySettings('security')
+    const settings = await this.getCategorySettings("security");
 
     return {
-      jwtExpiresIn: settings.jwtExpiresIn || '30d',
+      jwtExpiresIn: settings.jwtExpiresIn || "30d",
       jwtRefreshGraceSeconds:
-        typeof settings.jwtRefreshGraceSeconds === 'number'
+        typeof settings.jwtRefreshGraceSeconds === "number"
           ? settings.jwtRefreshGraceSeconds
-          : 60 * 60 * 24 * 7
-    }
+          : 60 * 60 * 24 * 7,
+    };
   }
 
   /**
    * Save security settings
    */
   async saveSecuritySettings(settings: Partial<SecuritySettings>): Promise<boolean> {
-    const settingsToSave: Record<string, any> = {}
+    const settingsToSave: Record<string, any> = {};
 
-    if (settings.jwtExpiresIn !== undefined) settingsToSave.jwtExpiresIn = settings.jwtExpiresIn
+    if (settings.jwtExpiresIn !== undefined) settingsToSave.jwtExpiresIn = settings.jwtExpiresIn;
     if (settings.jwtRefreshGraceSeconds !== undefined)
-      settingsToSave.jwtRefreshGraceSeconds = settings.jwtRefreshGraceSeconds
+      settingsToSave.jwtRefreshGraceSeconds = settings.jwtRefreshGraceSeconds;
 
-    return await this.setMultipleSettings('security', settingsToSave)
+    return await this.setMultipleSettings("security", settingsToSave);
   }
 }

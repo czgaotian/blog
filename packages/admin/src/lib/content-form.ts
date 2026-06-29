@@ -1,19 +1,13 @@
+import { emptyTiptapDocument, type JSONContent } from "@worker-blog/editor";
 import type {
   ContentDetailResponse,
   ContentStatus,
   CreateContentRequest,
   UpdateContentRequest,
 } from "@worker-blog/shared/admin-api";
-import { emptyTiptapDocument, type JSONContent } from "@worker-blog/editor";
 import { z } from "zod";
 
-const EDITABLE_STATUSES = [
-  "draft",
-  "review",
-  "scheduled",
-  "published",
-  "archived",
-] as const;
+const EDITABLE_STATUSES = ["draft", "review", "scheduled", "published", "archived"] as const;
 
 export const tiptapDocumentSchema = z.custom<JSONContent>(
   (value) =>
@@ -70,9 +64,7 @@ export const EMPTY_CONTENT_FORM_VALUES: ContentFormValues = {
   publishedAt: "",
 };
 
-export function detailToContentFormValues(
-  detail: ContentDetailResponse,
-): ContentFormValues {
+export function detailToContentFormValues(detail: ContentDetailResponse): ContentFormValues {
   return {
     title: detail.title,
     slug: detail.slug,
@@ -86,9 +78,7 @@ export function detailToContentFormValues(
   };
 }
 
-export function contentFormToCreateRequest(
-  values: ContentFormValues,
-): CreateContentRequest {
+export function contentFormToCreateRequest(values: ContentFormValues): CreateContentRequest {
   return {
     title: values.title.trim(),
     ...(values.slug.trim() ? { slug: values.slug.trim() } : {}),

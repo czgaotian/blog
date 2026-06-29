@@ -14,8 +14,7 @@ export const ImageNode = Image.extend({
           const value = element.getAttribute("width");
           return value ? Number(value) : null;
         },
-        renderHTML: (attributes) =>
-          attributes.width ? { width: attributes.width } : {},
+        renderHTML: (attributes) => (attributes.width ? { width: attributes.width } : {}),
       },
       height: {
         default: null,
@@ -23,8 +22,7 @@ export const ImageNode = Image.extend({
           const value = element.getAttribute("height");
           return value ? Number(value) : null;
         },
-        renderHTML: (attributes) =>
-          attributes.height ? { height: attributes.height } : {},
+        renderHTML: (attributes) => (attributes.height ? { height: attributes.height } : {}),
       },
     };
   },

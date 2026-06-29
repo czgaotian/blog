@@ -1,24 +1,19 @@
 "use client";
 
 import { forwardRef, useCallback } from "react";
-
-// --- Lib ---
-import { parseShortcutKeys } from "../../../lib/tiptap-utils";
-
 // --- Hooks ---
 import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
-
+// --- Lib ---
+import { parseShortcutKeys } from "../../../lib/tiptap-utils";
+import { Badge } from "../../tiptap-ui-primitive/badge";
+// --- UI Primitives ---
+import type { ButtonProps } from "../../tiptap-ui-primitive/button";
+import { Button } from "../../tiptap-ui-primitive/button";
 // --- Tiptap UI ---
 import type { Mark, UseMarkConfig } from ".";
 import { MARK_SHORTCUT_KEYS, useMark } from ".";
 
-// --- UI Primitives ---
-import type { ButtonProps } from "../../tiptap-ui-primitive/button";
-import { Button } from "../../tiptap-ui-primitive/button";
-import { Badge } from "../../tiptap-ui-primitive/badge";
-
-export interface MarkButtonProps
-  extends Omit<ButtonProps, "type">, UseMarkConfig {
+export interface MarkButtonProps extends Omit<ButtonProps, "type">, UseMarkConfig {
   /**
    * Optional text to display alongside the icon.
    */
@@ -61,15 +56,7 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
     ref,
   ) => {
     const { editor } = useTiptapEditor(providedEditor);
-    const {
-      isVisible,
-      handleMark,
-      label,
-      canToggle,
-      isActive,
-      Icon,
-      shortcutKeys,
-    } = useMark({
+    const { isVisible, handleMark, label, canToggle, isActive, Icon, shortcutKeys } = useMark({
       editor,
       type,
       hideWhenUnavailable,
@@ -109,9 +96,7 @@ export const MarkButton = forwardRef<HTMLButtonElement, MarkButtonProps>(
           <>
             <Icon className="tiptap-button-icon" />
             {text && <span className="tiptap-button-text">{text}</span>}
-            {showShortcut && (
-              <MarkShortcutBadge type={type} shortcutKeys={shortcutKeys} />
-            )}
+            {showShortcut && <MarkShortcutBadge type={type} shortcutKeys={shortcutKeys} />}
           </>
         )}
       </Button>

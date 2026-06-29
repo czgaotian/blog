@@ -1,17 +1,11 @@
 import type { Node as PMNode } from "@tiptap/pm/model";
 import type { Transaction } from "@tiptap/pm/state";
+import { AllSelection, NodeSelection, Selection, TextSelection } from "@tiptap/pm/state";
+import { CellSelection, cellAround } from "@tiptap/pm/tables";
 import {
-  AllSelection,
-  NodeSelection,
-  Selection,
-  TextSelection,
-} from "@tiptap/pm/state";
-import { cellAround, CellSelection } from "@tiptap/pm/tables";
-import {
-  findParentNodeClosestToPos,
-  generateHTML,
-  JSONContent,
   type Editor,
+  findParentNodeClosestToPos,
+  type JSONContent,
   type NodeWithPos,
 } from "@tiptap/react";
 import type { UploadedImage } from "../components/tiptap-node/image-upload-node/image-upload-node-extension";
@@ -46,9 +40,7 @@ export const SR_ONLY = {
   borderWidth: 0,
 } as const;
 
-export function cn(
-  ...classes: (string | boolean | undefined | null)[]
-): string {
+export function cn(...classes: (string | boolean | undefined | null)[]): string {
   return classes.filter(Boolean).join(" ");
 }
 
@@ -57,10 +49,7 @@ export function cn(
  * @returns boolean indicating if the current platform is Mac
  */
 export function isMac(): boolean {
-  return (
-    typeof navigator !== "undefined" &&
-    navigator.platform.toLowerCase().includes("mac")
-  );
+  return typeof navigator !== "undefined" && navigator.platform.toLowerCase().includes("mac");
 }
 
 /**
@@ -70,11 +59,7 @@ export function isMac(): boolean {
  * @param capitalize - Whether to capitalize the key (default: true)
  * @returns Formatted shortcut key symbol
  */
-export const formatShortcutKey = (
-  key: string,
-  isMac: boolean,
-  capitalize: boolean = true,
-) => {
+export const formatShortcutKey = (key: string, isMac: boolean, capitalize: boolean = true) => {
   if (isMac) {
     const lowerKey = key.toLowerCase();
     return MAC_SYMBOLS[lowerKey] || (capitalize ? key.toUpperCase() : key);
@@ -111,10 +96,7 @@ export const parseShortcutKeys = (props: {
  * @param editor - The editor instance
  * @returns boolean indicating if the mark exists in the schema
  */
-export const isMarkInSchema = (
-  markName: string,
-  editor: Editor | null,
-): boolean => {
+export const isMarkInSchema = (markName: string, editor: Editor | null): boolean => {
   if (!editor?.schema) return false;
   return editor.schema.spec.marks.get(markName) !== undefined;
 };
@@ -125,10 +107,7 @@ export const isMarkInSchema = (
  * @param editor - The editor instance
  * @returns boolean indicating if the node exists in the schema
  */
-export const isNodeInSchema = (
-  nodeName: string,
-  editor: Editor | null,
-): boolean => {
+export const isNodeInSchema = (nodeName: string, editor: Editor | null): boolean => {
   if (!editor?.schema) return false;
   return editor.schema.spec.nodes.get(nodeName) !== undefined;
 };
@@ -186,9 +165,7 @@ export function isExtensionAvailable(
 ): boolean {
   if (!editor) return false;
 
-  const names = Array.isArray(extensionNames)
-    ? extensionNames
-    : [extensionNames];
+  const names = Array.isArray(extensionNames) ? extensionNames : [extensionNames];
 
   const found = names.some((name) =>
     editor.extensionManager.extensions.some((ext) => ext.name === name),
@@ -300,9 +277,7 @@ export function isNodeTypeSelected(
   // Direct node selection check
   if (selection instanceof NodeSelection) {
     const selectedNode = selection.node;
-    return selectedNode
-      ? nodeTypeNames.includes(selectedNode.type.name)
-      : false;
+    return selectedNode ? nodeTypeNames.includes(selectedNode.type.name) : false;
   }
 
   // Depth-based ancestor node check
@@ -326,10 +301,7 @@ export function isNodeTypeSelected(
  * - NodeSelection → checks the selected node.
  * - Text/AllSelection → ensures all textblocks within [from, to) are allowed.
  */
-export function selectionWithinConvertibleTypes(
-  editor: Editor,
-  types: string[] = [],
-): boolean {
+export function selectionWithinConvertibleTypes(editor: Editor, types: string[] = []): boolean {
   if (!editor || types.length === 0) return false;
 
   const { state } = editor;
@@ -374,9 +346,7 @@ export const handleImageUpload = async (
   }
 
   if (file.size > MAX_FILE_SIZE) {
-    throw new Error(
-      `File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`,
-    );
+    throw new Error(`File size exceeds maximum allowed (${MAX_FILE_SIZE / (1024 * 1024)}MB)`);
   }
 
   // For demo/testing: Simulate upload progress. In production, replace the following code
@@ -417,10 +387,7 @@ const ATTR_WHITESPACE =
   // eslint-disable-next-line no-control-regex
   /[\u0000-\u0020\u00A0\u1680\u180E\u2000-\u2029\u205F\u3000]/g;
 
-export function isAllowedUri(
-  uri: string | undefined,
-  protocols?: ProtocolConfig,
-) {
+export function isAllowedUri(uri: string | undefined, protocols?: ProtocolConfig) {
   const allowedProtocols: string[] = [
     "http",
     "https",
@@ -436,8 +403,7 @@ export function isAllowedUri(
 
   if (protocols) {
     protocols.forEach((protocol) => {
-      const nextProtocol =
-        typeof protocol === "string" ? protocol : protocol.scheme;
+      const nextProtocol = typeof protocol === "string" ? protocol : protocol.scheme;
 
       if (nextProtocol) {
         allowedProtocols.push(nextProtocol);
@@ -450,18 +416,14 @@ export function isAllowedUri(
     uri.replace(ATTR_WHITESPACE, "").match(
       new RegExp(
         // eslint-disable-next-line no-useless-escape
-        `^(?:(?:${allowedProtocols.join("|")}):|[^a-z]|[a-z0-9+.\-]+(?:[^a-z+.\-:]|$))`,
+        `^(?:(?:${allowedProtocols.join("|")}):|[^a-z]|[a-z0-9+.-]+(?:[^a-z+.-:]|$))`,
         "i",
       ),
     )
   );
 }
 
-export function sanitizeUrl(
-  inputUrl: string,
-  baseUrl: string,
-  protocols?: ProtocolConfig,
-): string {
+export function sanitizeUrl(inputUrl: string, baseUrl: string, protocols?: ProtocolConfig): string {
   try {
     const url = new URL(inputUrl, baseUrl);
 
@@ -499,13 +461,9 @@ export function updateNodesAttr<A extends string = string, V = unknown>(
     const currentNode = tr.doc.nodeAt(pos);
     if (!currentNode) continue;
 
-    const prevValue = (currentNode.attrs as Record<string, unknown>)[
-      attrName
-    ] as V | undefined;
+    const prevValue = (currentNode.attrs as Record<string, unknown>)[attrName] as V | undefined;
     const resolvedNext =
-      typeof next === "function"
-        ? (next as (p: V | undefined) => V | undefined)(prevValue)
-        : next;
+      typeof next === "function" ? (next as (p: V | undefined) => V | undefined)(prevValue) : next;
 
     if (prevValue === resolvedNext) continue;
 
@@ -607,9 +565,7 @@ export function getSelectedNodesOfType(
   }
 
   // Fallback: find parent nodes of allowed types
-  const parentNode = findParentNodeClosestToPos($anchor, (node) =>
-    allowed.has(node.type.name),
-  );
+  const parentNode = findParentNodeClosestToPos($anchor, (node) => allowed.has(node.type.name));
 
   if (parentNode) {
     results.push({ node: parentNode.node, pos: parentNode.pos });

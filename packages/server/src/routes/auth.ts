@@ -1,214 +1,239 @@
-import { Hono, type Context } from 'hono'
+import { registerSchema } from "@worker-blog/shared/admin-api";
+import { type Context, Hono } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 // import { zValidator } from '@hono/zod-validator'
-import { z } from 'zod'
-import { registerSchema } from '@worker-blog/shared/admin-api'
-import { getCookie, setCookie } from 'hono/cookie'
-import { AuthManager, requireAuth, generateCsrfToken, rateLimit } from '../middleware'
-import { getJwtExpirySecondsFromDb, getJwtRefreshGraceSecondsFromDb } from '../middleware/auth'
-import { getCacheService, CACHE_CONFIGS } from '../services'
-import { setAdminExists } from '../services/auth-validation'
-import type { Bindings, Variables } from '../app'
-import { getCustomData } from '../features/user-profiles'
+import { z } from "zod";
+import type { Bindings, Variables } from "../app";
+import { getCustomData } from "../features/user-profiles";
+import { AuthManager, generateCsrfToken, rateLimit, requireAuth } from "../middleware";
+import { getJwtExpirySecondsFromDb, getJwtRefreshGraceSecondsFromDb } from "../middleware/auth";
+import { CACHE_CONFIGS, getCacheService } from "../services";
+import { setAdminExists } from "../services/auth-validation";
 
-const JWT_SECRET_FALLBACK = 'your-super-secret-jwt-key-change-in-production'
+const JWT_SECRET_FALLBACK = "your-super-secret-jwt-key-change-in-production";
 
 /** Set a signed CSRF cookie alongside the auth cookie on login/register. */
 async function setCsrfCookie(c: any, maxAge?: number): Promise<void> {
-  const secret = c.env?.JWT_SECRET || JWT_SECRET_FALLBACK
-  const isDev = c.env?.ENVIRONMENT === 'development' || !c.env?.ENVIRONMENT
-  const csrfToken = await generateCsrfToken(secret)
-  const cookieMaxAge = maxAge ?? (await getJwtExpirySecondsFromDb(c.env?.DB, c.env))
-  setCookie(c, 'csrf_token', csrfToken, {
+  const secret = c.env?.JWT_SECRET || JWT_SECRET_FALLBACK;
+  const isDev = c.env?.ENVIRONMENT === "development" || !c.env?.ENVIRONMENT;
+  const csrfToken = await generateCsrfToken(secret);
+  const cookieMaxAge = maxAge ?? (await getJwtExpirySecondsFromDb(c.env?.DB, c.env));
+  setCookie(c, "csrf_token", csrfToken, {
     httpOnly: false,
     secure: !isDev,
-    sameSite: 'Strict',
-    path: '/',
+    sameSite: "Strict",
+    path: "/",
     maxAge: cookieMaxAge,
-  })
+  });
 }
 
 /** Clear the CSRF cookie on logout. */
 function clearCsrfCookie(c: any): void {
-  setCookie(c, 'csrf_token', '', {
+  setCookie(c, "csrf_token", "", {
     httpOnly: false,
     secure: false,
-    sameSite: 'Strict',
-    path: '/',
+    sameSite: "Strict",
+    path: "/",
     maxAge: 0,
-  })
+  });
 }
 
-const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>()
+const authRoutes = new Hono<{ Bindings: Bindings; Variables: Variables }>();
 
 export async function getCurrentSession(c: Context<{ Bindings: Bindings; Variables: Variables }>) {
   try {
-    const user = c.get('user')
+    const user = c.get("user");
 
     if (!user) {
-      return c.json({ error: 'Not authenticated' }, 401)
+      return c.json({ error: "Not authenticated" }, 401);
     }
 
-    const db = c.env.DB
-    const userData = await db.prepare('SELECT id, email, username, first_name, last_name, role, created_at FROM users WHERE id = ?')
+    const db = c.env.DB;
+    const userData = (await db
+      .prepare(
+        "SELECT id, email, username, first_name, last_name, role, created_at FROM users WHERE id = ?",
+      )
       .bind(user.userId)
-      .first() as Record<string, any> | null
+      .first()) as Record<string, any> | null;
 
     if (!userData) {
-      return c.json({ error: 'User not found' }, 404)
+      return c.json({ error: "User not found" }, 404);
     }
 
-    const customData = await getCustomData(db, user.userId)
-    return c.json({ user: { ...userData, ...customData } })
+    const customData = await getCustomData(db, user.userId);
+    return c.json({ user: { ...userData, ...customData } });
   } catch (error) {
-    console.error('Get session error:', error)
-    return c.json({ error: 'Failed to get session' }, 500)
+    console.error("Get session error:", error);
+    return c.json({ error: "Failed to get session" }, 500);
   }
 }
 
 // Login schema
 const loginSchema = z.object({
-  email: z.string().email('Valid email is required'),
-  password: z.string().min(1, 'Password is required')
-})
+  email: z.string().email("Valid email is required"),
+  password: z.string().min(1, "Password is required"),
+});
 
 // Register the first admin user only.
-authRoutes.post('/register',
-  rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: 'register' }),
+authRoutes.post(
+  "/register",
+  rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: "register" }),
   async (c) => {
     try {
-      const db = c.env.DB
+      const db = c.env.DB;
 
-      const userCount = await db.prepare('SELECT COUNT(*) as count FROM users').first() as any
+      const userCount = (await db.prepare("SELECT COUNT(*) as count FROM users").first()) as any;
       if (Number(userCount?.count || 0) > 0) {
-        return c.json({ error: 'Registration is only available before the first admin account is created' }, 403)
+        return c.json(
+          { error: "Registration is only available before the first admin account is created" },
+          403,
+        );
       }
 
-      let requestData: unknown
+      let requestData: unknown;
       try {
-        requestData = await c.req.json()
+        requestData = await c.req.json();
       } catch {
-        return c.json({ error: 'Invalid JSON in request body' }, 400)
+        return c.json({ error: "Invalid JSON in request body" }, 400);
       }
 
-      const validation = registerSchema.safeParse(requestData)
+      const validation = registerSchema.safeParse(requestData);
       if (!validation.success) {
-        return c.json({ error: 'Validation failed', details: validation.error.issues }, 400)
+        return c.json({ error: "Validation failed", details: validation.error.issues }, 400);
       }
 
-      const validatedData = validation.data
-      const email = validatedData.email
-      const password = validatedData.password
-      const normalizedEmail = email.toLowerCase()
-      const username = validatedData.username
-      const firstName = validatedData.firstName
-      const lastName = validatedData.lastName
-      const passwordHash = await AuthManager.hashPassword(password)
-      const userId = crypto.randomUUID()
-      const now = Date.now()
-      
-      await db.prepare(`
+      const validatedData = validation.data;
+      const email = validatedData.email;
+      const password = validatedData.password;
+      const normalizedEmail = email.toLowerCase();
+      const username = validatedData.username;
+      const firstName = validatedData.firstName;
+      const lastName = validatedData.lastName;
+      const passwordHash = await AuthManager.hashPassword(password);
+      const userId = crypto.randomUUID();
+      const now = Date.now();
+
+      await db
+        .prepare(`
         INSERT INTO users (id, email, username, first_name, last_name, password_hash, role, is_active, created_at, updated_at)
         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-      `).bind(
-        userId,
-        normalizedEmail,
-        username,
-        firstName,
-        lastName,
-        passwordHash,
-        'admin',
-        1,
-        now,
-        now
-      ).run()
-      setAdminExists()
-
-      return c.json({
-        message: 'Account created. Please sign in.',
-        user: {
-          id: userId,
-          email: normalizedEmail,
+      `)
+        .bind(
+          userId,
+          normalizedEmail,
           username,
           firstName,
           lastName,
-          role: 'admin'
-        }
-      }, 201)
+          passwordHash,
+          "admin",
+          1,
+          now,
+          now,
+        )
+        .run();
+      setAdminExists();
+
+      return c.json(
+        {
+          message: "Account created. Please sign in.",
+          user: {
+            id: userId,
+            email: normalizedEmail,
+            username,
+            firstName,
+            lastName,
+            role: "admin",
+          },
+        },
+        201,
+      );
     } catch (error) {
-      console.error('Registration error:', error)
-      return c.json({
-        error: 'Registration failed',
-        details: error instanceof Error ? error.message : String(error)
-      }, 500)
+      console.error("Registration error:", error);
+      return c.json(
+        {
+          error: "Registration failed",
+          details: error instanceof Error ? error.message : String(error),
+        },
+        500,
+      );
     }
-  }
-)
+  },
+);
 
 // Login user
-authRoutes.post('/login',
-  rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: 'login' }),
+authRoutes.post(
+  "/login",
+  rateLimit({ max: 30, windowMs: 60 * 1000, keyPrefix: "login" }),
   async (c) => {
     try {
-      const body = await c.req.json()
-      const validation = loginSchema.safeParse(body)
+      const body = await c.req.json();
+      const validation = loginSchema.safeParse(body);
       if (!validation.success) {
-        return c.json({ error: 'Validation failed', details: validation.error.issues }, 400)
+        return c.json({ error: "Validation failed", details: validation.error.issues }, 400);
       }
-      const { email, password } = validation.data
-      const db = c.env.DB
-      
+      const { email, password } = validation.data;
+      const db = c.env.DB;
+
       // Normalize email to lowercase
-      const normalizedEmail = email.toLowerCase()
-      
+      const normalizedEmail = email.toLowerCase();
+
       // Find user with caching
-      const cache = getCacheService(CACHE_CONFIGS.user!, c.env.CACHE_KV)
-      let user = await cache.get<any>(cache.generateKey('user', `email:${normalizedEmail}`))
+      const cache = getCacheService(CACHE_CONFIGS.user!, c.env.CACHE_KV);
+      let user = await cache.get<any>(cache.generateKey("user", `email:${normalizedEmail}`));
 
       if (!user) {
-        user = await db.prepare('SELECT * FROM users WHERE email = ? AND is_active = 1')
+        user = (await db
+          .prepare("SELECT * FROM users WHERE email = ? AND is_active = 1")
           .bind(normalizedEmail)
-          .first() as any
+          .first()) as any;
 
         if (user) {
           // Cache the user for faster subsequent lookups
-          await cache.set(cache.generateKey('user', `email:${normalizedEmail}`), user)
-          await cache.set(cache.generateKey('user', user.id), user)
+          await cache.set(cache.generateKey("user", `email:${normalizedEmail}`), user);
+          await cache.set(cache.generateKey("user", user.id), user);
         }
       }
 
       if (!user) {
-        return c.json({ error: 'Invalid email or password' }, 401)
+        return c.json({ error: "Invalid email or password" }, 401);
       }
-      
+
       // Verify password
-      const isValidPassword = await AuthManager.verifyPassword(password, user.password_hash)
+      const isValidPassword = await AuthManager.verifyPassword(password, user.password_hash);
       if (!isValidPassword) {
-        return c.json({ error: 'Invalid email or password' }, 401)
+        return c.json({ error: "Invalid email or password" }, 401);
       }
 
       // Generate JWT token
-      const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env)
-      const token = await AuthManager.generateToken(user.id, user.email, user.role, c.env.JWT_SECRET, tokenTtl)
+      const tokenTtl = await getJwtExpirySecondsFromDb(c.env.DB, c.env);
+      const token = await AuthManager.generateToken(
+        user.id,
+        user.email,
+        user.role,
+        c.env.JWT_SECRET,
+        tokenTtl,
+      );
 
       // Set HTTP-only cookie
-      setCookie(c, 'auth_token', token, {
+      setCookie(c, "auth_token", token, {
         httpOnly: true,
         secure: true,
-        sameSite: 'Strict',
-        maxAge: tokenTtl
-      })
+        sameSite: "Strict",
+        maxAge: tokenTtl,
+      });
 
       // Set CSRF cookie for browser sessions
-      await setCsrfCookie(c)
+      await setCsrfCookie(c);
 
       // Update last login
-      await db.prepare('UPDATE users SET last_login_at = ? WHERE id = ?')
+      await db
+        .prepare("UPDATE users SET last_login_at = ? WHERE id = ?")
         .bind(new Date().getTime(), user.id)
-        .run()
+        .run();
 
       // Invalidate user cache on login
-      await cache.delete(cache.generateKey('user', user.id))
-      await cache.delete(cache.generateKey('user', `email:${normalizedEmail}`))
+      await cache.delete(cache.generateKey("user", user.id));
+      await cache.delete(cache.generateKey("user", `email:${normalizedEmail}`));
 
       return c.json({
         user: {
@@ -217,48 +242,49 @@ authRoutes.post('/login',
           username: user.username,
           firstName: user.first_name,
           lastName: user.last_name,
-          role: user.role
+          role: user.role,
         },
-        token
-      })
+        token,
+      });
     } catch (error) {
-      console.error('Login error:', error)
-      return c.json({ error: 'Login failed' }, 500)
+      console.error("Login error:", error);
+      return c.json({ error: "Login failed" }, 500);
     }
-})
+  },
+);
 
 // Logout user (both GET and POST for convenience)
-authRoutes.post('/logout', (c) => {
+authRoutes.post("/logout", (c) => {
   // Clear the auth cookie
-  setCookie(c, 'auth_token', '', {
+  setCookie(c, "auth_token", "", {
     httpOnly: true,
     secure: false, // Set to true in production with HTTPS
-    sameSite: 'Strict',
-    maxAge: 0 // Expire immediately
-  })
-  clearCsrfCookie(c)
+    sameSite: "Strict",
+    maxAge: 0, // Expire immediately
+  });
+  clearCsrfCookie(c);
 
-  return c.json({ message: 'Logged out successfully' })
-})
+  return c.json({ message: "Logged out successfully" });
+});
 
-authRoutes.get('/logout', (c) => {
+authRoutes.get("/logout", (c) => {
   // Clear the auth cookie
-  setCookie(c, 'auth_token', '', {
+  setCookie(c, "auth_token", "", {
     httpOnly: true,
     secure: false, // Set to true in production with HTTPS
-    sameSite: 'Strict',
-    maxAge: 0 // Expire immediately
-  })
-  clearCsrfCookie(c)
+    sameSite: "Strict",
+    maxAge: 0, // Expire immediately
+  });
+  clearCsrfCookie(c);
 
-  return c.redirect('/auth/login?message=You have been logged out successfully')
-})
+  return c.redirect("/auth/login?message=You have been logged out successfully");
+});
 
 // Get current authenticated session.
-authRoutes.get('/session', requireAuth(), getCurrentSession)
+authRoutes.get("/session", requireAuth(), getCurrentSession);
 
 // Legacy alias for the current session endpoint.
-authRoutes.get('/me', requireAuth(), getCurrentSession)
+authRoutes.get("/me", requireAuth(), getCurrentSession);
 
 // Refresh token (sliding session)
 //
@@ -270,58 +296,67 @@ authRoutes.get('/me', requireAuth(), getCurrentSession)
 // Security: the caller must still present a valid-signature token that
 // recently belonged to an active user. Fully forged or long-expired tokens
 // are rejected.
-authRoutes.post('/refresh',
-  rateLimit({ max: 60, windowMs: 60 * 1000, keyPrefix: 'refresh' }),
+authRoutes.post(
+  "/refresh",
+  rateLimit({ max: 60, windowMs: 60 * 1000, keyPrefix: "refresh" }),
   async (c) => {
-  try {
-    // Accept token from Authorization header or cookie
-    let token = c.req.header('Authorization')?.replace('Bearer ', '')
-    if (!token) token = getCookie(c, 'auth_token')
+    try {
+      // Accept token from Authorization header or cookie
+      let token = c.req.header("Authorization")?.replace("Bearer ", "");
+      if (!token) token = getCookie(c, "auth_token");
 
-    if (!token) {
-      return c.json({ error: 'Authentication required' }, 401)
+      if (!token) {
+        return c.json({ error: "Authentication required" }, 401);
+      }
+
+      const db = c.env.DB;
+      const grace = await getJwtRefreshGraceSecondsFromDb(db, c.env);
+
+      const payload = await AuthManager.verifyToken(token, c.env.JWT_SECRET, grace);
+      if (!payload) {
+        return c.json({ error: "Invalid or expired token" }, 401);
+      }
+
+      // Re-validate the user is still active, and pick up any role changes.
+      const row = (await db
+        .prepare("SELECT id, email, role, is_active FROM users WHERE id = ?")
+        .bind(payload.userId)
+        .first()) as any;
+
+      if (!row || !row.is_active) {
+        return c.json({ error: "User is not active" }, 401);
+      }
+
+      // Generate new token with a fresh exp
+      const tokenTtl = await getJwtExpirySecondsFromDb(db, c.env);
+      const newToken = await AuthManager.generateToken(
+        row.id,
+        row.email,
+        row.role,
+        c.env.JWT_SECRET,
+        tokenTtl,
+      );
+
+      // Set new cookie
+      setCookie(c, "auth_token", newToken, {
+        httpOnly: true,
+        secure: true,
+        sameSite: "Strict",
+        maxAge: tokenTtl,
+      });
+
+      // Set CSRF cookie for browser sessions
+      await setCsrfCookie(c);
+
+      return c.json({
+        token: newToken,
+        expiresIn: tokenTtl,
+      });
+    } catch (error) {
+      console.error("Token refresh error:", error);
+      return c.json({ error: "Token refresh failed" }, 500);
     }
+  },
+);
 
-    const db = c.env.DB
-    const grace = await getJwtRefreshGraceSecondsFromDb(db, c.env)
-
-    const payload = await AuthManager.verifyToken(token, c.env.JWT_SECRET, grace)
-    if (!payload) {
-      return c.json({ error: 'Invalid or expired token' }, 401)
-    }
-
-    // Re-validate the user is still active, and pick up any role changes.
-    const row = await db.prepare('SELECT id, email, role, is_active FROM users WHERE id = ?')
-      .bind(payload.userId)
-      .first() as any
-
-    if (!row || !row.is_active) {
-      return c.json({ error: 'User is not active' }, 401)
-    }
-
-    // Generate new token with a fresh exp
-    const tokenTtl = await getJwtExpirySecondsFromDb(db, c.env)
-    const newToken = await AuthManager.generateToken(row.id, row.email, row.role, c.env.JWT_SECRET, tokenTtl)
-
-    // Set new cookie
-    setCookie(c, 'auth_token', newToken, {
-      httpOnly: true,
-      secure: true,
-      sameSite: 'Strict',
-      maxAge: tokenTtl
-    })
-
-    // Set CSRF cookie for browser sessions
-    await setCsrfCookie(c)
-
-    return c.json({
-      token: newToken,
-      expiresIn: tokenTtl
-    })
-  } catch (error) {
-    console.error('Token refresh error:', error)
-    return c.json({ error: 'Token refresh failed' }, 500)
-  }
-})
-
-export default authRoutes
+export default authRoutes;

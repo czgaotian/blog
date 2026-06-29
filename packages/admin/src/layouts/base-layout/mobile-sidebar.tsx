@@ -26,9 +26,7 @@ export function MobileSidebar({ appName, open, onClose }: MobileSidebarProps) {
           </span>
           <div className="min-w-0 flex-1">
             <p className="truncate text-sm font-semibold">{appName}</p>
-            <p className="truncate text-xs text-muted-foreground">
-              Admin console
-            </p>
+            <p className="truncate text-xs text-muted-foreground">Admin console</p>
           </div>
           <Button
             aria-label="Close admin menu"

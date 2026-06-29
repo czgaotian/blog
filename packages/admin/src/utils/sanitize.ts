@@ -1,1 +1,1 @@
-export * from '../../../shared/src/utils/sanitize'
+export * from "../../../shared/src/utils/sanitize";

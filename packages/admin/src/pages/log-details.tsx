@@ -1,23 +1,23 @@
-import { Link, useParams } from 'react-router'
-import { useLogDetails } from '../api/logs'
-import { PageHeader } from '../components/page-header'
-import { Alert } from '../components/ui/alert'
-import { Badge } from '../components/ui/badge'
-import { LoadingState } from '../components/ui/loading-state'
+import { Link, useParams } from "react-router";
+import { useLogDetails } from "../api/logs";
+import { PageHeader } from "../components/page-header";
+import { Alert } from "../components/ui/alert";
+import { Badge } from "../components/ui/badge";
+import { LoadingState } from "../components/ui/loading-state";
 
 const levelColors: Record<string, string> = {
-  debug: 'bg-muted text-muted-foreground',
-  info: 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300',
-  warn: 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300',
-  error: 'bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300',
-  fatal: 'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300',
-}
+  debug: "bg-muted text-muted-foreground",
+  info: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  warn: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300",
+  error: "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-300",
+  fatal: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+};
 
 export function LogDetailsPage() {
-  const { id } = useParams<{ id: string }>()
-  const { data, isLoading, isError } = useLogDetails(id ?? '')
+  const { id } = useParams<{ id: string }>();
+  const { data, isLoading, isError } = useLogDetails(id ?? "");
 
-  const log = data?.log
+  const log = data?.log;
 
   return (
     <section className="space-y-6">
@@ -40,7 +40,7 @@ export function LogDetailsPage() {
       {log && (
         <div className="space-y-6">
           <div className="flex flex-wrap gap-2">
-            <Badge className={levelColors[log.level] ?? 'bg-muted text-muted-foreground'}>
+            <Badge className={levelColors[log.level] ?? "bg-muted text-muted-foreground"}>
               {log.level}
             </Badge>
             <Badge className="bg-muted text-muted-foreground">{log.category}</Badge>
@@ -108,8 +108,10 @@ export function LogDetailsPage() {
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-3 text-sm font-medium">Tags</h2>
               <div className="flex flex-wrap gap-2">
-                {log.tags.map(tag => (
-                  <Badge key={tag} className="bg-muted text-muted-foreground">{tag}</Badge>
+                {log.tags.map((tag) => (
+                  <Badge key={tag} className="bg-muted text-muted-foreground">
+                    {tag}
+                  </Badge>
                 ))}
               </div>
             </div>
@@ -127,11 +129,13 @@ export function LogDetailsPage() {
           {log.stackTrace !== null && (
             <div className="rounded-lg border border-border bg-card p-4">
               <h2 className="mb-3 text-sm font-medium">Stack trace</h2>
-              <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">{log.stackTrace}</pre>
+              <pre className="overflow-x-auto rounded-md bg-muted p-3 text-xs">
+                {log.stackTrace}
+              </pre>
             </div>
           )}
         </div>
       )}
     </section>
-  )
+  );
 }

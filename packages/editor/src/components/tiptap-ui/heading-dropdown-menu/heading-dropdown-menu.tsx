@@ -1,29 +1,26 @@
 import { forwardRef, useCallback, useState } from "react";
-
-// --- Icons ---
-import { ChevronDownIcon } from "../../tiptap-icons/chevron-down-icon";
-
 // --- Hooks ---
 import { useTiptapEditor } from "../../../hooks/use-tiptap-editor";
-
-// --- Tiptap UI ---
-import { HeadingButton } from "../heading-button";
-import type { UseHeadingDropdownMenuConfig } from ".";
-import { useHeadingDropdownMenu } from ".";
-
+// --- Icons ---
+import { ChevronDownIcon } from "../../tiptap-icons/chevron-down-icon";
 // --- UI Primitives ---
 import type { ButtonProps } from "../../tiptap-ui-primitive/button";
 import { Button } from "../../tiptap-ui-primitive/button";
 import {
   DropdownMenu,
-  DropdownMenuTrigger,
   DropdownMenuContent,
-  DropdownMenuItem,
   DropdownMenuGroup,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
 } from "../../tiptap-ui-primitive/dropdown-menu";
+// --- Tiptap UI ---
+import { HeadingButton } from "../heading-button";
+import type { UseHeadingDropdownMenuConfig } from ".";
+import { useHeadingDropdownMenu } from ".";
 
 export interface HeadingDropdownMenuProps
-  extends Omit<ButtonProps, "type">, UseHeadingDropdownMenuConfig {
+  extends Omit<ButtonProps, "type">,
+    UseHeadingDropdownMenuConfig {
   /**
    * Callback for when the dropdown opens or closes
    */
@@ -39,10 +36,7 @@ export interface HeadingDropdownMenuProps
  *
  * For custom dropdown implementations, use the `useHeadingDropdownMenu` hook instead.
  */
-export const HeadingDropdownMenu = forwardRef<
-  HTMLButtonElement,
-  HeadingDropdownMenuProps
->(
+export const HeadingDropdownMenu = forwardRef<HTMLButtonElement, HeadingDropdownMenuProps>(
   (
     {
       editor: providedEditor,

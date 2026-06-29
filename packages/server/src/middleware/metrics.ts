@@ -1,5 +1,5 @@
-import { MiddlewareHandler } from 'hono'
-import { metricsTracker } from '@worker-blog/shared/utils/metrics'
+import { metricsTracker } from "@worker-blog/shared/utils/metrics";
+import type { MiddlewareHandler } from "hono";
 
 /**
  * Middleware to track all HTTP requests for real-time analytics
@@ -7,18 +7,18 @@ import { metricsTracker } from '@worker-blog/shared/utils/metrics'
  */
 export const metricsMiddleware = (): MiddlewareHandler => {
   return async (c, next) => {
-    const path = new URL(c.req.url).pathname
-    const startTime = Date.now()
+    const path = new URL(c.req.url).pathname;
+    const startTime = Date.now();
 
-    await next()
+    await next();
 
     // Don't track the metrics endpoint itself to avoid self-inflating counts
-    if (path !== '/admin/dashboard/api/metrics') {
+    if (path !== "/admin/dashboard/api/metrics") {
       metricsTracker.recordRequest({
         method: c.req.method,
         statusCode: c.res.status,
         durationMs: Date.now() - startTime,
-      })
+      });
     }
-  }
-}
+  };
+};
