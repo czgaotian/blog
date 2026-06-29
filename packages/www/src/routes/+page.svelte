@@ -5,36 +5,15 @@
 </script>
 
 <section>
+  <h1>Latest Posts</h1>
   {#each data.data as post}
     <article>
-      <a href={`/posts/${post.slug}`}>{post.title}</a>
+      <h2><a href={`/posts/${post.slug}`}>{post.title}</a></h2>
+      <p><small>{formatDate(post.published_at)}</small></p>
       {#if post.excerpt}<p>{post.excerpt}</p>{/if}
-      <time>{formatDate(post.published_at)}</time>
+      <hr />
     </article>
   {:else}
     <p>No posts yet.</p>
   {/each}
 </section>
-
-<style>
-  article {
-    padding: 22px 0;
-    border-bottom: 1px solid #dddddd;
-  }
-
-  a {
-    font-size: 24px;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  p {
-    margin: 10px 0;
-    line-height: 1.6;
-  }
-
-  time {
-    color: #606368;
-    font-size: 14px;
-  }
-</style>

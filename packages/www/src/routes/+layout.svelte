@@ -7,45 +7,34 @@
 </svelte:head>
 
 <header class="site-header">
-  <a href="/" class="brand">Worker Blog</a>
+  <h1><a href="/">Worker Blog</a></h1>
+  <p>Personal publishing for the World Wide Web</p>
+  <hr />
 </header>
 
 <main>
   {@render children()}
 </main>
 
+<footer>
+  <hr />
+  <small>Best viewed with a standards-compliant browser.</small>
+</footer>
+
 <style>
   :global(body) {
-    margin: 0;
-    color: #202124;
-    background: #fafafa;
-    font-family:
-      Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    max-width: 760px;
+    margin: 8px;
+    font-family: "Times New Roman", Times, serif;
   }
 
-  :global(a) {
-    color: #0f5d5e;
+  @media (min-width: 800px) {
+    :global(body) {
+      margin: 8px auto;
+    }
   }
 
-  .site-header {
-    border-bottom: 1px solid #dddddd;
-    background: #ffffff;
-  }
-
-  .brand {
-    display: block;
-    width: min(760px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 18px 0;
-    color: inherit;
-    font-size: 18px;
-    font-weight: 700;
-    text-decoration: none;
-  }
-
-  main {
-    width: min(760px, calc(100% - 32px));
-    margin: 0 auto;
-    padding: 32px 0 56px;
+  .site-header h1 {
+    margin-bottom: 0;
   }
 </style>
