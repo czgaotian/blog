@@ -27,3 +27,9 @@
 - Added AI-readable docs under `docs/`: README, AI context, project design, usage, architecture, backend, frontend, data model, API, and development guide.
 - Ran `git diff --check -- docs task_plan.md findings.md progress.md`; no whitespace errors.
 - Verified all README-linked generated docs exist and marked documentation task complete.
+
+## 2026-06-27
+
+- Read `packages/www/docs/architecture.md` and restored existing planning context.
+- Inventoried current public API routes, public detail route behavior, shared exports, package scripts, and the empty `packages/www` package state.
+- Created the www public frontend development plan at `docs/superpowers/plans/2026-06-27-www-public-frontend.md`.
