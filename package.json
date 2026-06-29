@@ -6,6 +6,7 @@
   "scripts": {
     "build": "pnpm -r --if-present build",
     "dev": "pnpm --filter @worker-blog/server dev",
+    "dev:www": "pnpm --filter @worker-blog/www dev",
     "format": "biome format --write .",
     "format:check": "biome format .",
     "lint": "biome check .",
