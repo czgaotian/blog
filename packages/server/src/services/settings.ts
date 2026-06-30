@@ -10,7 +10,19 @@ export interface Setting {
 export interface GeneralSettings {
   siteName: string;
   siteDescription: string;
+  siteUrl: string;
+  faviconUrl: string;
   adminEmail: string;
+  timezone: string;
+  language: string;
+  maintenanceMode: boolean;
+}
+
+export interface PublicSettings {
+  siteName: string;
+  siteDescription: string;
+  siteUrl: string;
+  faviconUrl: string;
   timezone: string;
   language: string;
   maintenanceMode: boolean;
@@ -133,6 +145,8 @@ export class SettingsService {
     return {
       siteName: settings.siteName || "Worker Blog",
       siteDescription: settings.siteDescription || "A modern headless CMS powered by AI",
+      siteUrl: settings.siteUrl || "",
+      faviconUrl: settings.faviconUrl || "",
       adminEmail: settings.adminEmail || userEmail || "admin@example.com",
       timezone: settings.timezone || "UTC",
       language: settings.language || "en",
@@ -149,6 +163,8 @@ export class SettingsService {
     if (settings.siteName !== undefined) settingsToSave.siteName = settings.siteName;
     if (settings.siteDescription !== undefined)
       settingsToSave.siteDescription = settings.siteDescription;
+    if (settings.siteUrl !== undefined) settingsToSave.siteUrl = settings.siteUrl;
+    if (settings.faviconUrl !== undefined) settingsToSave.faviconUrl = settings.faviconUrl;
     if (settings.adminEmail !== undefined) settingsToSave.adminEmail = settings.adminEmail;
     if (settings.timezone !== undefined) settingsToSave.timezone = settings.timezone;
     if (settings.language !== undefined) settingsToSave.language = settings.language;
@@ -156,6 +172,20 @@ export class SettingsService {
       settingsToSave.maintenanceMode = settings.maintenanceMode;
 
     return await this.setMultipleSettings("general", settingsToSave);
+  }
+
+  async getPublicSettings(): Promise<PublicSettings> {
+    const general = await this.getGeneralSettings();
+
+    return {
+      siteName: general.siteName,
+      siteDescription: general.siteDescription,
+      siteUrl: general.siteUrl,
+      faviconUrl: general.faviconUrl,
+      timezone: general.timezone,
+      language: general.language,
+      maintenanceMode: general.maintenanceMode,
+    };
   }
 
   /**

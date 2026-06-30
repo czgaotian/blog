@@ -4,7 +4,7 @@ import { Hono } from "hono";
 import { cors } from "hono/cors";
 import type { Variables as AppVariables, Bindings } from "../app";
 import { optionalAuth } from "../middleware";
-import { CACHE_CONFIGS, getCacheService } from "../services";
+import { CACHE_CONFIGS, getCacheService, SettingsService } from "../services";
 import { normalizePublicContentFilter } from "./api-content-access-policy";
 import apiContentsCrudRoutes from "./api-contents-crud";
 
@@ -293,6 +293,13 @@ apiRoutes.get("/health", (c) => {
     timestamp: new Date().toISOString(),
     schemas: schemaDefinitions.map((s) => s.name),
   });
+});
+
+apiRoutes.get("/settings", async (c) => {
+  const service = new SettingsService(c.env.DB);
+  const settings = await service.getPublicSettings();
+
+  return c.json({ data: settings });
 });
 
 apiRoutes.get("/category/:slug", async (c) => getContentsByCategorySlug(c));

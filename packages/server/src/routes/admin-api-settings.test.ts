@@ -13,6 +13,8 @@ vi.mock("../middleware", () => ({
 const mockGeneralSettings = {
   siteName: "Test Blog",
   siteDescription: "A test blog",
+  siteUrl: "https://example.com",
+  faviconUrl: "https://example.com/favicon.ico",
   adminEmail: "admin@test.com",
   timezone: "UTC",
   language: "en",
@@ -61,6 +63,8 @@ describe("GET /api/admin/settings", () => {
     expect(json).toHaveProperty("general");
     expect(json).toHaveProperty("security");
     expect(json.general.siteName).toBe("Test Blog");
+    expect(json.general.siteUrl).toBe("https://example.com");
+    expect(json.general.faviconUrl).toBe("https://example.com/favicon.ico");
     expect(json.security.jwtExpiresIn).toBe("7d");
   });
 

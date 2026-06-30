@@ -279,6 +279,8 @@ describe("SettingsService", () => {
       expect(result).toEqual({
         siteName: "Worker Blog",
         siteDescription: "A modern headless CMS powered by AI",
+        siteUrl: "",
+        faviconUrl: "",
         adminEmail: "admin@example.com",
         timezone: "UTC",
         language: "en",
@@ -299,6 +301,8 @@ describe("SettingsService", () => {
       expect(result).toEqual({
         siteName: "Custom Site",
         siteDescription: "A modern headless CMS powered by AI",
+        siteUrl: "",
+        faviconUrl: "",
         adminEmail: "admin@example.com",
         timezone: "UTC",
         language: "fr",
@@ -329,6 +333,8 @@ describe("SettingsService", () => {
         results: [
           { key: "siteName", value: '"Test"' },
           { key: "siteDescription", value: '"Description"' },
+          { key: "siteUrl", value: '"https://example.com"' },
+          { key: "faviconUrl", value: '"https://example.com/favicon.ico"' },
           { key: "adminEmail", value: '"admin@test.com"' },
           { key: "timezone", value: '"America/New_York"' },
           { key: "language", value: '"de"' },
@@ -341,6 +347,8 @@ describe("SettingsService", () => {
       expect(result).toEqual({
         siteName: "Test",
         siteDescription: "Description",
+        siteUrl: "https://example.com",
+        faviconUrl: "https://example.com/favicon.ico",
         adminEmail: "admin@test.com",
         timezone: "America/New_York",
         language: "de",
@@ -380,6 +388,8 @@ describe("SettingsService", () => {
       const result = await settingsService.saveGeneralSettings({
         siteName: "Test",
         siteDescription: "Desc",
+        siteUrl: "https://example.com",
+        faviconUrl: "https://example.com/favicon.ico",
         adminEmail: "admin@test.com",
         timezone: "UTC",
         language: "en",
@@ -387,7 +397,7 @@ describe("SettingsService", () => {
       });
 
       expect(result).toBe(true);
-      expect(mockDb._mocks.run).toHaveBeenCalledTimes(6);
+      expect(mockDb._mocks.run).toHaveBeenCalledTimes(8);
     });
 
     it("should handle boolean maintenanceMode correctly", async () => {
@@ -417,6 +427,80 @@ describe("SettingsService", () => {
 
       expect(result).toBe(false);
       consoleSpy.mockRestore();
+    });
+  });
+
+  describe("site config settings", () => {
+    it("returns general settings defaults with site URL and favicon URL", async () => {
+      mockDb._mocks.all.mockResolvedValue({ results: [] });
+
+      const result = await settingsService.getGeneralSettings("admin@example.com");
+
+      expect(result).toEqual({
+        siteName: "Worker Blog",
+        siteDescription: "A modern headless CMS powered by AI",
+        siteUrl: "",
+        faviconUrl: "",
+        adminEmail: "admin@example.com",
+        timezone: "UTC",
+        language: "en",
+        maintenanceMode: false,
+      });
+    });
+
+    it("saves site URL and favicon URL with general settings", async () => {
+      mockDb._mocks.run.mockResolvedValue({ success: true });
+
+      const result = await settingsService.saveGeneralSettings({
+        siteUrl: "https://example.com",
+        faviconUrl: "https://example.com/favicon.ico",
+      } as any);
+
+      expect(result).toBe(true);
+      expect(mockDb._mocks.bind).toHaveBeenCalledWith(
+        expect.any(String),
+        "general",
+        "siteUrl",
+        "\"https://example.com\"",
+        expect.any(Number),
+        expect.any(Number),
+      );
+      expect(mockDb._mocks.bind).toHaveBeenCalledWith(
+        expect.any(String),
+        "general",
+        "faviconUrl",
+        "\"https://example.com/favicon.ico\"",
+        expect.any(Number),
+        expect.any(Number),
+      );
+    });
+
+    it("returns public settings without admin email", async () => {
+      mockDb._mocks.all.mockResolvedValue({
+        results: [
+          { key: "siteName", value: "\"Public Blog\"" },
+          { key: "siteDescription", value: "\"Public description\"" },
+          { key: "siteUrl", value: "\"https://example.com\"" },
+          { key: "faviconUrl", value: "\"https://example.com/favicon.ico\"" },
+          { key: "adminEmail", value: "\"admin@example.com\"" },
+          { key: "timezone", value: "\"Europe/Berlin\"" },
+          { key: "language", value: "\"zh\"" },
+          { key: "maintenanceMode", value: "true" },
+        ],
+      });
+
+      const result = await (settingsService as any).getPublicSettings();
+
+      expect(result).toEqual({
+        siteName: "Public Blog",
+        siteDescription: "Public description",
+        siteUrl: "https://example.com",
+        faviconUrl: "https://example.com/favicon.ico",
+        timezone: "Europe/Berlin",
+        language: "zh",
+        maintenanceMode: true,
+      });
+      expect(result).not.toHaveProperty("adminEmail");
     });
   });
 });
