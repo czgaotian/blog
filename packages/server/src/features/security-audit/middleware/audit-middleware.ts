@@ -60,11 +60,13 @@ export function securityAuditMiddleware() {
           // Form-based login: clone request to read formData without consuming it
           const clonedReq = c.req.raw.clone();
           const formData = await clonedReq.formData();
-          preExtractedEmail = ((formData.get("email") as string) || "").toLowerCase();
+          preExtractedEmail = (
+            ((formData.get("identifier") || formData.get("email")) as string) || ""
+          ).toLowerCase();
         } else {
           // JSON login: Hono caches parsed JSON so this is safe
           const body = await c.req.json();
-          preExtractedEmail = body?.email?.toLowerCase() || "";
+          preExtractedEmail = (body?.identifier || body?.email || "").toLowerCase();
         }
       } catch {
         // Can't parse body, continue

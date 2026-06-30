@@ -1,12 +1,11 @@
 import { z } from "zod";
 
 export const loginSchema = z.object({
-  email: z
-    .string({ error: "Email is required" })
+  identifier: z
+    .string({ error: "Email or username is required" })
     .trim()
-    .min(1, "Email is required")
-    .email("Enter a valid email address")
-    .toLowerCase(),
+    .min(1, "Email or username is required")
+    .transform((value) => (value.includes("@") ? value.toLowerCase() : value)),
   password: z.string({ error: "Password is required" }).min(1, "Password is required"),
 });
 export type LoginRequest = z.infer<typeof loginSchema>;

@@ -155,6 +155,60 @@ describe("auth session routes", () => {
   });
 });
 
+describe("login", () => {
+  it("allows signing in with username", async () => {
+    const passwordHash = await import("../middleware").then(({ AuthManager }) =>
+      AuthManager.hashPassword("password123"),
+    );
+    const loginRun = vi.fn().mockResolvedValue({ success: true });
+    const prepare = vi.fn((query: string) => {
+      if (query.includes("SELECT * FROM users WHERE")) {
+        return {
+          bind: vi.fn(() => ({
+            first: vi.fn().mockResolvedValue({
+              id: "u1",
+              email: "admin@example.com",
+              username: "Admin_User",
+              first_name: "Admin",
+              last_name: "User",
+              role: "admin",
+              is_active: 1,
+              password_hash: passwordHash,
+            }),
+          })),
+        };
+      }
+      if (query.includes("UPDATE users SET last_login_at")) {
+        return { bind: vi.fn(() => ({ run: loginRun })) };
+      }
+      throw new Error(`Unexpected query: ${query}`);
+    });
+    const app = new Hono();
+    app.route("/api/auth", authRoutes);
+
+    const res = await app.request(
+      "/api/auth/login",
+      {
+        method: "POST",
+        body: JSON.stringify({ identifier: "Admin_User", password: "password123" }),
+        headers: { "Content-Type": "application/json" },
+      },
+      {
+        DB: { prepare },
+        JWT_SECRET: "test-secret",
+        JWT_EXPIRES_IN: "1h",
+        ENVIRONMENT: "development",
+      },
+    );
+    const json = (await res.json()) as { user: { username: string; email: string }; token: string };
+
+    expect(res.status).toBe(200);
+    expect(json.user).toMatchObject({ username: "Admin_User", email: "admin@example.com" });
+    expect(json.token).toBeTruthy();
+    expect(loginRun).toHaveBeenCalled();
+  });
+});
+
 describe("first admin registration", () => {
   beforeEach(() => {
     resetAdminExistsCache();

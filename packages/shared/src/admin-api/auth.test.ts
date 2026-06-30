@@ -4,7 +4,7 @@ import { loginSchema, registerSchema } from "./auth";
 describe("loginSchema", () => {
   it("accepts a valid login payload and normalizes email", () => {
     const result = loginSchema.safeParse({
-      email: " ADMIN@Example.com ",
+      identifier: " ADMIN@Example.com ",
       password: "password123",
     });
 
@@ -14,14 +14,31 @@ describe("loginSchema", () => {
     }
 
     expect(result.data).toEqual({
-      email: "admin@example.com",
+      identifier: "admin@example.com",
+      password: "password123",
+    });
+  });
+
+  it("accepts a username login payload", () => {
+    const result = loginSchema.safeParse({
+      identifier: " Admin_User ",
+      password: "password123",
+    });
+
+    expect(result.success).toBe(true);
+    if (!result.success) {
+      return;
+    }
+
+    expect(result.data).toEqual({
+      identifier: "Admin_User",
       password: "password123",
     });
   });
 
   it("returns field-specific messages for invalid login payloads", () => {
     const result = loginSchema.safeParse({
-      email: "not-an-email",
+      identifier: "",
       password: "",
     });
 
@@ -32,7 +49,7 @@ describe("loginSchema", () => {
 
     expect(result.error.issues).toEqual(
       expect.arrayContaining([
-        expect.objectContaining({ message: "Enter a valid email address", path: ["email"] }),
+        expect.objectContaining({ message: "Email or username is required", path: ["identifier"] }),
         expect.objectContaining({ message: "Password is required", path: ["password"] }),
       ]),
     );

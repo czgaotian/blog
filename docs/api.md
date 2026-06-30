@@ -22,7 +22,7 @@ Local Worker/Admin dev server serves:
 
 `POST /api/auth/login`
 
-- Body: email and password.
+- Body: email-or-username `identifier` and password.
 - Returns user and JWT token.
 - Sets `auth_token` HTTP-only cookie.
 - Sets `csrf_token` readable cookie for browser mutation requests.

@@ -6,7 +6,7 @@ import { useLogin } from "../../api/auth";
 import { AdminApiError } from "../../api/client";
 import { Alert } from "../../components/ui/alert";
 import { Button } from "../../components/ui/button";
-import { Field, FieldError, FieldGroup, FieldLabel } from "../../components/ui/field";
+import { Field, FieldError, FieldGroup } from "../../components/ui/field";
 import { Input } from "../../components/ui/input";
 import { Spinner } from "../../components/ui/spinner";
 
@@ -17,7 +17,7 @@ export function LoginPage() {
   const form = useForm<LoginRequest>({
     resolver: zodResolver(loginSchema),
     defaultValues: {
-      email: "",
+      identifier: "",
       password: "",
     },
   });
@@ -49,23 +49,22 @@ export function LoginPage() {
             </Alert>
           )}
 
-          <Field data-invalid={!!errors.email}>
-            <FieldLabel htmlFor="email">Email</FieldLabel>
+          <Field data-invalid={!!errors.identifier}>
             <Input
-              id="email"
-              type="email"
-              autoComplete="email"
-              aria-invalid={!!errors.email}
-              {...form.register("email")}
+              id="identifier"
+              placeholder="Email or username"
+              autoComplete="username"
+              aria-invalid={!!errors.identifier}
+              {...form.register("identifier")}
             />
-            <FieldError errors={[errors.email]} />
+            <FieldError errors={[errors.identifier]} />
           </Field>
 
           <Field data-invalid={!!errors.password}>
-            <FieldLabel htmlFor="password">Password</FieldLabel>
             <Input
               id="password"
               type="password"
+              placeholder="Password"
               autoComplete="current-password"
               aria-invalid={!!errors.password}
               {...form.register("password")}

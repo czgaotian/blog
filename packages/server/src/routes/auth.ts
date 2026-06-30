@@ -1,8 +1,6 @@
-import { registerSchema } from "@worker-blog/shared/admin-api";
+import { loginSchema, registerSchema } from "@worker-blog/shared/admin-api";
 import { type Context, Hono } from "hono";
 import { getCookie, setCookie } from "hono/cookie";
-// import { zValidator } from '@hono/zod-validator'
-import { z } from "zod";
 import type { Bindings, Variables } from "../app";
 import { getCustomData } from "../features/user-profiles";
 import { AuthManager, generateCsrfToken, rateLimit, requireAuth } from "../middleware";
@@ -67,12 +65,6 @@ export async function getCurrentSession(c: Context<{ Bindings: Bindings; Variabl
     return c.json({ error: "Failed to get session" }, 500);
   }
 }
-
-// Login schema
-const loginSchema = z.object({
-  email: z.string().email("Valid email is required"),
-  password: z.string().min(1, "Password is required"),
-});
 
 // Register the first admin user only.
 authRoutes.post(
@@ -171,37 +163,34 @@ authRoutes.post(
       if (!validation.success) {
         return c.json({ error: "Validation failed", details: validation.error.issues }, 400);
       }
-      const { email, password } = validation.data;
+      const { identifier, password } = validation.data;
       const db = c.env.DB;
-
-      // Normalize email to lowercase
-      const normalizedEmail = email.toLowerCase();
 
       // Find user with caching
       const cache = getCacheService(CACHE_CONFIGS.user!, c.env.CACHE_KV);
-      let user = await cache.get<any>(cache.generateKey("user", `email:${normalizedEmail}`));
+      let user = await cache.get<any>(cache.generateKey("user", `login:${identifier}`));
 
       if (!user) {
         user = (await db
-          .prepare("SELECT * FROM users WHERE email = ? AND is_active = 1")
-          .bind(normalizedEmail)
+          .prepare("SELECT * FROM users WHERE (email = ? OR username = ?) AND is_active = 1")
+          .bind(identifier, identifier)
           .first()) as any;
 
         if (user) {
           // Cache the user for faster subsequent lookups
-          await cache.set(cache.generateKey("user", `email:${normalizedEmail}`), user);
+          await cache.set(cache.generateKey("user", `login:${identifier}`), user);
           await cache.set(cache.generateKey("user", user.id), user);
         }
       }
 
       if (!user) {
-        return c.json({ error: "Invalid email or password" }, 401);
+        return c.json({ error: "Invalid email/username or password" }, 401);
       }
 
       // Verify password
       const isValidPassword = await AuthManager.verifyPassword(password, user.password_hash);
       if (!isValidPassword) {
-        return c.json({ error: "Invalid email or password" }, 401);
+        return c.json({ error: "Invalid email/username or password" }, 401);
       }
 
       // Generate JWT token
@@ -233,7 +222,7 @@ authRoutes.post(
 
       // Invalidate user cache on login
       await cache.delete(cache.generateKey("user", user.id));
-      await cache.delete(cache.generateKey("user", `email:${normalizedEmail}`));
+      await cache.delete(cache.generateKey("user", `login:${identifier}`));
 
       return c.json({
         user: {
