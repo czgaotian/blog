@@ -1,4 +1,3 @@
-import { fetchPublicSettings } from "$lib/server/api";
 import type { LayoutServerLoad } from "./$types";
 
 const fallbackSettings = {
@@ -11,17 +10,9 @@ const fallbackSettings = {
   maintenanceMode: false,
 };
 
-export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
-  const currentPath = url.pathname || "/";
-
-  if (locals.settings) {
-    return { settings: locals.settings, currentPath };
-  }
-
-  try {
-    const response = await fetchPublicSettings(fetch);
-    return { settings: response.data, currentPath };
-  } catch {
-    return { settings: fallbackSettings, currentPath };
-  }
+export const load: LayoutServerLoad = async ({ locals, url }) => {
+  return {
+    settings: locals.settings ?? fallbackSettings,
+    currentPath: url.pathname || "/",
+  };
 };

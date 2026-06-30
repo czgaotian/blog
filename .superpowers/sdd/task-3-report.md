@@ -45,3 +45,16 @@ Both passed.
 
 - `pnpm --filter @worker-blog/www test src/lib/server/api.test.ts` — passed
 - `pnpm --filter @worker-blog/www type-check` — passed
+
+## Review Fix
+
+Collapsed root settings consumption to a single source of truth in `packages/www/src/routes/+layout.server.ts`:
+
+- Removed the extra `fetchPublicSettings` retry path from layout load.
+- Returned `locals.settings ?? fallbackSettings` with the current pathname.
+- Kept SSR `<html lang>` and layout data aligned on the same per-request settings value.
+
+### Review Fix Verification
+
+- `pnpm --filter @worker-blog/www test src/lib/server/api.test.ts` — passed
+- `pnpm --filter @worker-blog/www type-check` — passed
