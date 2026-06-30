@@ -40,6 +40,8 @@ function GeneralTab() {
     await mutation.mutateAsync({
       siteName: String(form.get("siteName") || ""),
       siteDescription: String(form.get("siteDescription") || ""),
+      siteUrl: String(form.get("siteUrl") || ""),
+      faviconUrl: String(form.get("faviconUrl") || ""),
       adminEmail: String(form.get("adminEmail") || ""),
       timezone: String(form.get("timezone") || "UTC"),
       language: String(form.get("language") || "en"),
@@ -65,6 +67,12 @@ function GeneralTab() {
       </FieldRow>
       <FieldRow label="Site description">
         <Input name="siteDescription" defaultValue={g.siteDescription} required />
+      </FieldRow>
+      <FieldRow label="Site URL">
+        <Input name="siteUrl" type="url" defaultValue={g.siteUrl} required />
+      </FieldRow>
+      <FieldRow label="Favicon URL">
+        <Input name="faviconUrl" type="url" defaultValue={g.faviconUrl} />
       </FieldRow>
       <FieldRow label="Admin email">
         <Input name="adminEmail" type="email" defaultValue={g.adminEmail} required />
