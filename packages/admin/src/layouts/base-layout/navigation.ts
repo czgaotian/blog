@@ -42,7 +42,6 @@ export const navSections: Array<{ label: string; items: NavItem[] }> = [
     items: [
       { label: "Settings", href: "/settings", icon: Settings },
       { label: "Profile", href: "/profile", icon: User },
-      { label: "SPA Test", href: "/spa-test", icon: Activity },
     ],
   },
 ];

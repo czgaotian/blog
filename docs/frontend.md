@@ -43,7 +43,6 @@
 | `/security-audit` | Security audit |
 | `/settings` | Settings |
 | `/profile` | Profile/password/avatar |
-| `/spa-test` | SPA fallback test page |
 
 ## Admin Navigation
 
@@ -53,7 +52,7 @@ Sections:
 
 - Operate: Dashboard, Contents, Media, Categories, Tags.
 - Observe: Analytics, Logs, Security Audit.
-- System: Settings, Profile, SPA Test.
+- System: Settings, Profile.
 
 ## API Client Behavior
 

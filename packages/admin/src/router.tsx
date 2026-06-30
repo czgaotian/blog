@@ -17,7 +17,6 @@ import { NotFoundPage } from "./pages/not-found";
 import { ProfilePage } from "./pages/profile";
 import { SecurityAuditPage } from "./pages/security-audit";
 import { SettingsPage } from "./pages/settings";
-import { SpaTestPage } from "./pages/spa-test";
 import { TagsListPage } from "./pages/tags-list";
 
 export const router = createBrowserRouter(
@@ -49,7 +48,6 @@ export const router = createBrowserRouter(
         { path: "profile", element: <ProfilePage /> },
         { path: "security-audit", element: <SecurityAuditPage /> },
         { path: "analytics", element: <AnalyticsPage /> },
-        { path: "spa-test", element: <SpaTestPage /> },
         { path: "*", element: <NotFoundPage /> },
       ],
     },
