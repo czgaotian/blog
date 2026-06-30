@@ -4,12 +4,12 @@
   let { children, data } = $props()
 
   const settings = $derived(data.settings)
+  const currentPath = $derived(data.currentPath || "/")
   const siteUrl = $derived(settings.siteUrl.replace(/\/$/, ""))
-  const canonicalUrl = $derived(siteUrl || "")
+  const canonicalUrl = $derived(siteUrl ? `${siteUrl}${currentPath}` : "")
 
   $effect(() => {
     if (browser) {
-      // ponytail: SvelteKit app.html owns SSR <html>; server-side dynamic lang needs a hook later.
       document.documentElement.lang = settings.language || "en"
     }
   })

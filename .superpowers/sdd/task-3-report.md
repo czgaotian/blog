@@ -35,3 +35,13 @@ Both passed.
 
 - Kept the diff minimal and stayed inside the four owned files plus this required report.
 - Used the exact fallback values and layout behavior from the task brief verbatim.
+
+## Fixes For Review Findings
+
+1. Canonical URL and `og:url` now use the configured `siteUrl` plus the current request pathname from root layout server data, so non-root pages no longer point at the site root.
+2. Added `packages/www/src/hooks.server.ts` to fetch public settings once per request, store them on `event.locals.settings`, and stamp SSR `<html lang="...">` via `transformPageChunk`. The client-side `document.documentElement.lang` update remains for client navigations.
+
+### Fix Verification
+
+- `pnpm --filter @worker-blog/www test src/lib/server/api.test.ts` — passed
+- `pnpm --filter @worker-blog/www type-check` — passed

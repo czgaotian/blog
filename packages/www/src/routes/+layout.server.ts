@@ -11,11 +11,17 @@ const fallbackSettings = {
   maintenanceMode: false,
 };
 
-export const load: LayoutServerLoad = async ({ fetch }) => {
+export const load: LayoutServerLoad = async ({ fetch, locals, url }) => {
+  const currentPath = url.pathname || "/";
+
+  if (locals.settings) {
+    return { settings: locals.settings, currentPath };
+  }
+
   try {
     const response = await fetchPublicSettings(fetch);
-    return { settings: response.data };
+    return { settings: response.data, currentPath };
   } catch {
-    return { settings: fallbackSettings };
+    return { settings: fallbackSettings, currentPath };
   }
 };
