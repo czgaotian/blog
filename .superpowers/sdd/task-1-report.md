@@ -76,3 +76,22 @@ Results:
 ## Commit
 
 - `feat: add public site settings API`
+
+## Fix
+
+Adjusted the server to use the shared public settings contract instead of a local duplicate type:
+
+- `packages/server/src/services/settings.ts` now returns `PublicSettingsData` from `@worker-blog/shared/public-api`.
+- `packages/server/src/routes/api.ts` now types `/api/settings` as `PublicSettingsResponse` from `@worker-blog/shared/public-api`.
+
+### Verification
+
+```bash
+pnpm --filter @worker-blog/shared test src/admin-api/settings.test.ts
+pnpm --filter @worker-blog/server test src/services/settings.test.ts src/routes/admin-api-settings.test.ts src/routes/api-settings.test.ts
+```
+
+Results:
+
+- Shared settings test: 3 passed
+- Server settings tests: 38 passed

@@ -1,3 +1,5 @@
+import type { PublicSettingsData } from "@worker-blog/shared/public-api";
+
 export interface Setting {
   id: string;
   category: string;
@@ -13,16 +15,6 @@ export interface GeneralSettings {
   siteUrl: string;
   faviconUrl: string;
   adminEmail: string;
-  timezone: string;
-  language: string;
-  maintenanceMode: boolean;
-}
-
-export interface PublicSettings {
-  siteName: string;
-  siteDescription: string;
-  siteUrl: string;
-  faviconUrl: string;
   timezone: string;
   language: string;
   maintenanceMode: boolean;
@@ -174,7 +166,7 @@ export class SettingsService {
     return await this.setMultipleSettings("general", settingsToSave);
   }
 
-  async getPublicSettings(): Promise<PublicSettings> {
+  async getPublicSettings(): Promise<PublicSettingsData> {
     const general = await this.getGeneralSettings();
 
     return {

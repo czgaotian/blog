@@ -1,4 +1,5 @@
 import { schemaDefinitions } from "@worker-blog/shared/schemas";
+import type { PublicSettingsResponse } from "@worker-blog/shared/public-api";
 import { type QueryFilter, QueryFilterBuilder } from "@worker-blog/shared/utils";
 import { Hono } from "hono";
 import { cors } from "hono/cors";
@@ -299,7 +300,8 @@ apiRoutes.get("/settings", async (c) => {
   const service = new SettingsService(c.env.DB);
   const settings = await service.getPublicSettings();
 
-  return c.json({ data: settings });
+  const response: PublicSettingsResponse = { data: settings };
+  return c.json(response);
 });
 
 apiRoutes.get("/category/:slug", async (c) => getContentsByCategorySlug(c));
