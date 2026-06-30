@@ -1,25 +1,58 @@
 <script lang="ts">
-  let { children } = $props()
+  import { browser } from "$app/environment"
+
+  let { children, data } = $props()
+
+  const settings = $derived(data.settings)
+  const siteUrl = $derived(settings.siteUrl.replace(/\/$/, ""))
+  const canonicalUrl = $derived(siteUrl || "")
+
+  $effect(() => {
+    if (browser) {
+      // ponytail: SvelteKit app.html owns SSR <html>; server-side dynamic lang needs a hook later.
+      document.documentElement.lang = settings.language || "en"
+    }
+  })
 </script>
 
 <svelte:head>
-  <title>Worker Blog</title>
+  <title>{settings.siteName}</title>
+  <meta name="description" content={settings.siteDescription} />
+  <meta property="og:site_name" content={settings.siteName} />
+  <meta property="og:title" content={settings.siteName} />
+  <meta property="og:description" content={settings.siteDescription} />
+  {#if canonicalUrl}
+    <link rel="canonical" href={canonicalUrl} />
+    <meta property="og:url" content={canonicalUrl} />
+  {/if}
+  {#if settings.faviconUrl}
+    <link rel="icon" href={settings.faviconUrl} />
+  {/if}
 </svelte:head>
 
-<header class="site-header">
-  <h1><a href="/">Worker Blog</a></h1>
-  <p>Personal publishing for the World Wide Web</p>
-  <hr />
-</header>
+{#if settings.maintenanceMode}
+  <main>
+    <h1>{settings.siteName}</h1>
+    <p>{settings.siteDescription}</p>
+    <hr />
+    <p>Maintenance in progress.</p>
+  </main>
+{:else}
+  <header class="site-header">
+    <h1><a href="/">{settings.siteName}</a></h1>
+    <p>{settings.siteDescription}</p>
+    <hr />
+  </header>
 
-<main>
-  {@render children()}
-</main>
+  <main>
+    {@render children()}
+  </main>
 
-<footer>
-  <hr />
-  <small>Best viewed with a standards-compliant browser.</small>
-</footer>
+  <footer>
+    <hr />
+    <small>Best viewed with a standards-compliant browser.</small>
+  </footer>
+{/if}
 
 <style>
   :global(body) {

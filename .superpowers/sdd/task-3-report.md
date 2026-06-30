@@ -1,0 +1,37 @@
+# Task 3 Report: www Public Settings Consumption
+
+## Scope
+
+Implemented only the files assigned by the brief:
+
+- `packages/www/src/lib/server/api.ts`
+- `packages/www/src/lib/server/api.test.ts`
+- `packages/www/src/routes/+layout.server.ts`
+- `packages/www/src/routes/+layout.svelte`
+
+## Changes
+
+1. Added `fetchPublicSettings(eventFetch)` to the www server API helper, using the existing `getJson` path and `PublicSettingsResponse`.
+2. Added a focused Vitest regression test covering the public settings helper request URL and returned payload.
+3. Added root `+layout.server.ts` to fetch public settings and return the exact fallback settings from the brief when the request fails.
+4. Updated root `+layout.svelte` to consume `data.settings`, drive metadata from settings, set `document.documentElement.lang` on the client, and render a maintenance-mode view when enabled.
+
+## Verification
+
+Red/green:
+
+- `pnpm --filter @worker-blog/www test src/lib/server/api.test.ts`
+  - Red: failed with `TypeError: fetchPublicSettings is not a function`
+  - Green: passed after implementing the helper
+
+Final required checks:
+
+- `pnpm --filter @worker-blog/www test src/lib/server/api.test.ts`
+- `pnpm --filter @worker-blog/www type-check`
+
+Both passed.
+
+## Notes
+
+- Kept the diff minimal and stayed inside the four owned files plus this required report.
+- Used the exact fallback values and layout behavior from the task brief verbatim.

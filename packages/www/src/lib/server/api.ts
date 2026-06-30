@@ -3,6 +3,7 @@ import type {
   PublicCategoryContentsResponse,
   PublicContentDetailResponse,
   PublicContentListResponse,
+  PublicSettingsResponse,
   PublicTagContentsResponse,
 } from "@worker-blog/shared/public-api";
 import { env } from "$env/dynamic/private";
@@ -41,4 +42,8 @@ export function fetchCategoryContents(eventFetch: SvelteFetch, slug: string) {
 
 export function fetchTagContents(eventFetch: SvelteFetch, slug: string) {
   return getJson<PublicTagContentsResponse>(eventFetch, `/api/tag/${encodeURIComponent(slug)}`);
+}
+
+export function fetchPublicSettings(eventFetch: SvelteFetch) {
+  return getJson<PublicSettingsResponse>(eventFetch, "/api/settings");
 }
